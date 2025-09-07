@@ -131,6 +131,31 @@ return [
             'path' => storage_path('logs/rahasiaBisnis.log'),
             'level' => 'info',
         ],
+        'padiUmkm' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/padiUmkm.log'),
+            'level' => 'info',
+        ],
+        'creatorPartner' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/creatorPartner.log'),
+            'level' => 'info',
+        ],
+        'simpatiTiktok' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/simpatiTiktok.log'),
+            'level' => 'info',
+        ],
+        'referralChampion' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/referralChampion.log'),
+            'level' => 'info',
+        ],
+        'sultamRacing' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/sultamRacing.log'),
+            'level' => 'info',
+        ],
 
     ],
 
