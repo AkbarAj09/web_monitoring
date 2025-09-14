@@ -16,7 +16,7 @@
     <ul class="navbar-nav ml-auto">
         <li class="nav-item">
             <a class="nav-brand" href="#">
-                <img src="{{ asset('images/myads_logo.png') }}" alt="Logo" style="height: 50px; margin-top: -10px;">
+                <img src="{{ asset('images/TRACERS_2.png') }}" alt="Logo" style="height: 50px; margin-top: -10px;">
             </a>
         </li>
     </ul>

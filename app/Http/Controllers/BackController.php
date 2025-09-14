@@ -3,23 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\CreatorPartner;
+use App\Models\EventSponsorhip;
 use App\Models\PadiUmkm;
 use App\Models\RahasiaBisnis;
 use App\Models\ReferralChampionAm;
+use App\Models\RekruterKol;
 use App\Models\SimpatiTiktok;
 use App\Models\SultamRacing;
 use Illuminate\Http\Request;
 use App\Models\User;
+use DataTables;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Session;
 use Carbon\Carbon;
-use File;
-use Illuminate\Support\Facades\Cache;
+use Dflydev\DotAccessData\Data;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use ZipArchive;
+
 
 class BackController extends Controller
 {
@@ -89,486 +91,221 @@ class BackController extends Controller
             'email' => 'Email atau Password Anda salah.',
         ])->withInput();
     }
-    private function normalizePhone($phone)
+
+    public function getPadiUmkmData(Request $request)
     {
-        if (!$phone) return null;
-
-        // buang semua karakter non-digit
-        $phone = preg_replace('/\D/', '', $phone);
-
-        // kalau sudah awalan 62, biarkan
-        if (str_starts_with($phone, '62')) {
-            return $phone;
+        if ($request->has('tanggal') && !empty($request->tanggal)) {
+            $tanggal = $request->tanggal;
+            $date = Carbon::parse($tanggal);
+            $month = $date->month;
+            $year = $date->year;
+            $data = DB::table('summary_padi_umkm')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            $data = DB::table('summary_padi_umkm')
+                ->orderBy('created_at', 'desc')
+                ->get();
         }
 
-        // kalau awalan 0 → ganti 0 jadi 62
-        if (str_starts_with($phone, '0')) {
-            return '62' . substr($phone, 1);
+        return DataTables()->of($data)
+            ->addIndexColumn()
+            ->make(true);
+    }
+    public function getPadiUmkmSummary(Request $request)
+    {
+        $query = DB::table('summary_padi_umkm');
+
+        if ($request->has('tanggal') && !empty($request->tanggal)) {
+            $tanggal = $request->tanggal;
+            $date = Carbon::parse($tanggal);
+            $month = $date->month;
+            $year = $date->year;
+            $query->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year);
         }
 
-        // kalau tidak ada awalan 0 atau 62 (misal: 822xxxx)
-        return '62' . $phone;
+        $totalForm = $query->count();
+
+        // Clone query for aggregation
+        $topupQuery = clone $query;
+
+        $jumlahTopup = $topupQuery->sum('jumlah_topup');
+        $totalTopup = $topupQuery->sum('total_topup');
+
+        return response()->json([
+            'total_form'    => $totalForm,
+            'jumlah_topup'  => $jumlahTopup,
+            'total_topup'   => $totalTopup,
+        ]);
+    }
+    public function getEventSponsorship(Request $request)
+    {
+        $data = EventSponsorhip::orderBy('created_at', 'desc')->get();
+
+        return DataTables()->of($data)
+            ->addIndexColumn()
+            ->make(true);
     }
 
-    public function getDataRahasiaBisnis()
+
+    public function getCreatorPartner(Request $request)
     {
-        $url = "https://docs.google.com/spreadsheets/d/189GWwmBkByfgraTxSDjKbcmH9zjE8a83aIKtCYnpyq8/export?format=csv&gid=1498573724";
+        // Ambil semua creator + total_invited (subquery)
+        $creators = CreatorPartner::select(
+            'creator_partner.*',
+            DB::raw('(SELECT COUNT(*) FROM rekruter_kol WHERE rekruter_kol.referral_code = creator_partner.referral_code) as total_invited')
+        )
+            ->when($request->area, function ($query, $area) {
+                $query->where('creator_partner.area', $area);
+            })
+            ->when($request->region, function ($query, $region) {
+                $query->where('creator_partner.regional', $region);
+            })
+            ->when($request->jenis_kol, function ($query, $jenis_kol) {
+                $query->where('creator_partner.jenis_kol', $jenis_kol);
+            })
+            ->orderBy('creator_partner.created_at', 'desc')
+            ->get();
 
-        try {
-            $csv = @array_map('str_getcsv', file($url));
-        } catch (\Exception $e) {
-            Log::channel('rahasiaBisnis')->error("Gagal mengambil file CSV: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal ambil CSV'], 500);
-        }
+        // Hitung tier untuk setiap creator partner
+        $creators->transform(function ($creator) use ($request) {
+            // ambil list email rekruter untuk referral ini
+            $rekruterEmails = DB::table('rekruter_kol')
+                ->where('referral_code', $creator->referral_code)
+                ->pluck('email')
+                ->toArray();
 
-        if (empty($csv)) {
-            Log::channel('rahasiaBisnis')->warning("CSV kosong dari URL: $url");
-            return response()->json(['status' => 'error', 'message' => 'CSV kosong'], 400);
-        }
-
-        $header = array_map(fn($h) => Str::slug($h, '_'), $csv[0]);
-        unset($csv[0]);
-
-        $inserted = 0;
-
-        foreach ($csv as $row) {
-            if (count($row) < count($header)) continue;
-
-            $rowAssoc = array_combine($header, $row);
-
-            // ambil timestamp
-            if (!empty($rowAssoc['timestamp'])) {
-                try {
-                    $created_at = Carbon::createFromFormat('d/m/Y H:i:s', $rowAssoc['timestamp'])
-                        ->format('Y-m-d H:i:s');
-                } catch (\Exception $e) {
-                    $created_at = now();
-                    Log::channel('rahasiaBisnis')->warning("Gagal parsing timestamp: {$rowAssoc['timestamp']}");
-                }
+            if (empty($rekruterEmails)) {
+                $creator->tier = '-';
             } else {
-                $created_at = now();
-            }
+                // ambil total topup per email
+                $topupPerAkun = DB::table('revenue_kol')
+                    ->whereIn('email', $rekruterEmails)
+                    ->select('email', DB::raw('SUM(jumlah_top_up) as total_topup'))
+                    ->groupBy('email')
+                    ->pluck('total_topup', 'email');
 
-            // cek hanya di kolom kabupaten yang valid
-            $kabupaten_kota = null;
-            foreach ($rowAssoc as $colName => $value) {
-                $colNameLower = strtolower($colName);
-                if (Str::startsWith($colNameLower, 'kabupaten') || Str::startsWith($colNameLower, 'kabupaten_kota')) {
-                    if (!empty($value)) {
-                        $kabupaten_kota = $value;
-                        break;
-                    }
+                // set minimum sesuai jenis_kol
+                $minTopup = 0;
+                if ($creator->jenis_kol === 'KOL as a Buzzer') {
+                    $minTopup = 250000;
+                } elseif ($creator->jenis_kol === 'KOL as a Seller Online/Afiliate') {
+                    $minTopup = 200000;
+                }
+
+                // hitung berapa akun yang memenuhi minimum
+                $eligibleAccounts = collect($topupPerAkun)->filter(function ($total) use ($minTopup) {
+                    return $total >= $minTopup;
+                })->count();
+
+                // tentukan tier
+                if ($eligibleAccounts >= 30) {
+                    $creator->tier = 'Platinum';
+                } elseif ($eligibleAccounts >= 20) {
+                    $creator->tier = 'Gold';
+                } elseif ($eligibleAccounts >= 10) {
+                    $creator->tier = 'Silver';
+                } elseif ($eligibleAccounts >= 5) {
+                    $creator->tier = 'Bronze';
+                } else {
+                    $creator->tier = '-';
                 }
             }
 
-            RahasiaBisnis::create([
-                'nama'          => $rowAssoc['nama'] ?? null,
-                'email'         => $rowAssoc['email'] ?? null,
-                'nomor_hp'      => $rowAssoc['nomor_hp'] ?? null,
-                'jenis_usaha'   => $rowAssoc['jenis_usaha'] ?? null,
-                'alamat_usaha'  => $rowAssoc['alamat_usaha'] ?? null,
-                'provinsi'      => $rowAssoc['provinsi'] ?? null,
-                'kabupaten_kota' => $kabupaten_kota,
-                'kecamatan'     => $rowAssoc['silakan_isi_kecamatan'] ?? null,
-                'created_at'    => $created_at,
-                'updated_at'    => now(),
-            ]);
+            // Filter berdasarkan tier (kalau user pilih filter tier)
+            if ($request->tier && $creator->tier !== $request->tier) {
+                $creator->hide = true; // kasih flag biar nanti dihapus
+            }
 
-            $inserted++;
+            return $creator;
+        });
+
+        // Buang data yang tidak sesuai tier filter
+        if ($request->tier) {
+            $creators = $creators->reject(function ($creator) {
+                return isset($creator->hide) && $creator->hide === true;
+            });
         }
 
-        Log::channel('rahasiaBisnis')->info("Import selesai, berhasil insert {$inserted} data dari CSV.");
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Import selesai! Total $inserted data berhasil dimasukkan"
-        ], 201);
+        // Kembalikan collection ke DataTables
+        return DataTables::of($creators)->make(true);
     }
-    public function getDataPadiUmkm()
+    public function getRekrutBuzzer(Request $request)
     {
-        $url = "https://docs.google.com/spreadsheets/d/1Sdfhiy6DK2enNkM-L7SKgOBkAnfhND8IZXkakdPy07U/export?format=csv&gid=1905803457";
+        // Ambil referral_code semua creator dengan jenis KOL = Buzzer
+        $buzzerReferralCodes = DB::table('creator_partner')
+            ->where('jenis_kol', 'KOL as a Buzzer')
+            ->pluck('referral_code');
 
-        try {
-            $csv = @array_map('str_getcsv', file($url));
-        } catch (\Exception $e) {
-            Log::channel('padiUmkm')->error("Gagal mengambil file CSV: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal ambil CSV'], 500);
-        }
+        // Ambil semua rekruter yang referral_code-nya ada di list buzzer
+        $rekrut = DB::table('rekruter_kol')
+            ->whereIn('referral_code', $buzzerReferralCodes)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        if (empty($csv)) {
-            Log::channel('padiUmkm')->warning("CSV kosong dari URL: $url");
-            return response()->json(['status' => 'error', 'message' => 'CSV kosong'], 400);
-        }
+        // Transform hasil biar sesuai table kamu
+        $rekrut->transform(function ($item) {
+            // Hitung total topup untuk email rekruter ini
+            $totalTopup = DB::table('revenue_kol')
+                ->where('email', $item->email)
+                ->sum('jumlah_top_up');
 
-        $header = array_map(fn($h) => Str::slug($h, '_'), $csv[0]);
-        unset($csv[0]);
+            // Tentukan nilai minimal topup & remarks
+            $minTopup = 250000; // karena jenis_kol = Buzzer
+            $item->nilai_min_topup = $minTopup;
+            $item->jumlah_top_up = $totalTopup;
+            $item->remarks = $totalTopup >= $minTopup ? 'Eligible' : 'Not Eligible';
 
-        $inserted = 0;
+            return $item;
+        });
 
-        foreach ($csv as $row) {
-            if (count($row) < count($header)) continue;
-
-            $rowAssoc = array_combine($header, $row);
-
-            // ambil timestamp
-            if (!empty($rowAssoc['timestamp'])) {
-                try {
-                    $created_at = Carbon::createFromFormat('d/m/Y H:i:s', $rowAssoc['timestamp'])
-                        ->format('Y-m-d H:i:s');
-                } catch (\Exception $e) {
-                    $created_at = now();
-                    Log::channel('padiUmkm')->warning("Gagal parsing timestamp: {$rowAssoc['timestamp']}");
-                }
-            } else {
-                $created_at = now();
-            }
-            $normalizedPhone = $this->normalizePhone($rowAssoc['nomor_hp'] ?? null);
-
-            $exists = PadiUmkm::where('no_hp', $normalizedPhone)
-                ->exists();
-
-            if (!$exists) {
-                PadiUmkm::create([
-                    'nama'          => $rowAssoc['nama_lengkap'] ?? null,
-                    'nama_usaha'         => $rowAssoc['nama_usaha'] ?? null,
-                    'email'      => $rowAssoc['email'] ?? null,
-                    'no_hp'   => $normalizedPhone,
-                    'created_at'    => $created_at,
-                    'updated_at'    => now(),
-                ]);
-
-                $inserted++;
-            }
-        }
-
-        Log::channel('padiUmkm')->info("Import selesai, berhasil insert {$inserted} data dari CSV.");
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Import selesai! Total $inserted data berhasil dimasukkan"
-        ], 201);
+        return DataTables::of($rekrut)
+            ->addColumn('nilai_min_topup', function ($row) {
+                return number_format($row->nilai_min_topup, 0, ',', '.');
+            })
+            ->addColumn('jumlah_top_up', function ($row) {
+                return number_format($row->jumlah_top_up, 0, ',', '.');
+            })
+            ->addColumn('remarks', function ($row) {
+                return $row->remarks;
+            })
+            ->make(true);
     }
-    public function getDataCreatorPartner()
+
+
+
+
+    public function getSimpatiTiktok(Request $request)
     {
-        $url = "https://docs.google.com/spreadsheets/d/1RxZpFhYXMjtwMxdinD9oT_0t3fFA8KqmXo59l0dcRbM/export?format=csv&gid=1067207517";
+        $data = DB::table('summary_simpati_tiktok as sst')
+            ->select(
+                'sst.*'
+            )
+            ->orderBy('sst.created_at', 'desc')
+            ->get();
 
-        try {
-            $csv = @array_map('str_getcsv', file($url));
-        } catch (\Exception $e) {
-            Log::channel('creatorPartner')->error("Gagal mengambil file CSV: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal ambil CSV'], 500);
-        }
-
-        if (empty($csv)) {
-            Log::channel('creatorPartner')->warning("CSV kosong dari URL: $url");
-            return response()->json(['status' => 'error', 'message' => 'CSV kosong'], 400);
-        }
-
-        $header = array_map(fn($h) => Str::slug($h, '_'), $csv[0]);
-        unset($csv[0]);
-
-        $inserted = 0;
-
-        foreach ($csv as $row) {
-            if (count($row) < count($header)) continue;
-
-            $rowAssoc = array_combine($header, $row);
-
-
-
-            if (!empty($rowAssoc['timestamp'])) {
-                $rawTimestamp = trim($rowAssoc['timestamp']);
-                Log::channel('creatorPartner')->warning("Data {$rawTimestamp}");
-                $formats = [
-                    'd/m/Y H:i:s', // jam 2 digit
-                    'd/m/Y G:i:s', // jam bisa 1 digit
-                ];
-
-                foreach ($formats as $format) {
-                    try {
-                        $created_at = Carbon::createFromFormat($format, $rawTimestamp)
-                            ->format('Y-m-d H:i:s');
-                        Log::channel('creatorPartner')->warning("created {$rawTimestamp}");
-                        break; // kalau berhasil, langsung stop
-                    } catch (\Exception $e) {
-                        // coba format lain
-                        continue;
-                    }
-                }
-
-                if ($created_at === now()) {
-                    Log::channel('creatorPartner')->warning("Gagal parsing timestamp: {$rawTimestamp}");
-                }
-            }
-
-
-            $normalizedPhone = $this->normalizePhone($rowAssoc['no_hp_kol'] ?? null);
-            // Cek apakah data sudah ada berdasarkan timestamp
-            $exists = CreatorPartner::where('no_hp_kol', $normalizedPhone)
-                ->exists();
-
-            if (!$exists) {
-                CreatorPartner::create([
-                    'area'       => $rowAssoc['area'] ?? null,
-                    'regional'   => $rowAssoc['regional'] ?? null,
-                    'jenis_kol'  => $rowAssoc['jenis_kol'] ?? null,
-                    'nama_kol'   => $rowAssoc['nama_kol'] ?? null,
-                    'email_kol'  => $rowAssoc['email_kol'] ?? null,
-                    'no_hp_kol'  => $normalizedPhone,
-                    'created_at' => $created_at,
-                    'updated_at' => now(),
-                ]);
-
-                $inserted++;
-            }
-        }
-
-        Log::channel('creatorPartner')->info("Import selesai, berhasil insert {$inserted} data dari CSV.");
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Import selesai! Total $inserted data berhasil dimasukkan"
-        ], 201);
+        return DataTables()->of($data)
+            ->addIndexColumn()
+            ->make(true);
     }
-    public function getDataSimpatiTiktok()
+
+    public function getReferralChampionAm(Request $request)
     {
-        $url = "https://docs.google.com/spreadsheets/d/1XOhtsI1nxGD_hbj2CO5BUBqf1LLHS_o_WhwTSCv5NIo/export?format=csv&gid=655754240";
+        $data = ReferralChampionAm::orderBy('created_at', 'desc')->get();
 
-        try {
-            $csv = @array_map('str_getcsv', file($url));
-        } catch (\Exception $e) {
-            Log::channel('simpatiTiktok')->error("Gagal mengambil file CSV: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal ambil CSV'], 500);
-        }
-
-        if (empty($csv)) {
-            Log::channel('simpatiTiktok')->warning("CSV kosong dari URL: $url");
-            return response()->json(['status' => 'error', 'message' => 'CSV kosong'], 400);
-        }
-
-        $header = array_map(fn($h) => Str::slug($h, '_'), $csv[0]);
-        unset($csv[0]);
-
-        $inserted = 0;
-
-        foreach ($csv as $row) {
-            if (count($row) < count($header)) continue;
-
-            $rowAssoc = array_combine($header, $row);
-
-            if (!empty($rowAssoc['timestamp'])) {
-                $rawTimestamp = trim($rowAssoc['timestamp']);
-                Log::channel('simpatiTiktok')->warning("Data {$rawTimestamp}");
-                $formats = [
-                    'd/m/Y H:i:s', // jam 2 digit
-                    'd/m/Y G:i:s', // jam bisa 1 digit
-                ];
-
-                foreach ($formats as $format) {
-                    try {
-                        $created_at = Carbon::createFromFormat($format, $rawTimestamp)
-                            ->format('Y-m-d H:i:s');
-                        Log::channel('simpatiTiktok')->warning("created {$rawTimestamp}");
-                        break; // kalau berhasil, langsung stop
-                    } catch (\Exception $e) {
-                        // coba format lain
-                        continue;
-                    }
-                }
-
-                if ($created_at === now()) {
-                    Log::channel('simpatiTiktok')->warning("Gagal parsing timestamp: {$rawTimestamp}");
-                }
-            }
-
-
-            $rawPhone = $rowAssoc['nomor_telp_yg_di_daftarkan_di_myads'] ?? null;
-            $normalizedPhone = $this->normalizePhone($rawPhone);
-
-            // Cek apakah data sudah ada berdasarkan no hp
-            $exists = SimpatiTiktok::where('no_hp', $normalizedPhone)->exists();
-
-            // Cek apakah data sudah ada berdasarkan no hp
-            $exists = SimpatiTiktok::where('no_hp', $normalizedPhone)->exists();
-
-            if (!$exists) {
-                SimpatiTiktok::insert([
-                    'email'       => $rowAssoc['alamat_email'] ?? null,
-                    'no_hp'       => $normalizedPhone,
-                    'nama_lengkap' => $rowAssoc['nama_lengkap_sesuai_ktp'] ?? null,
-                    'created_at'  => $created_at,
-                    'updated_at'  => now(),
-                ]);
-
-                $inserted++;
-            }
-        }
-
-        Log::channel('simpatiTiktok')->info("Import selesai, berhasil insert {$inserted} data dari CSV.");
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Import selesai! Total $inserted data berhasil dimasukkan"
-        ], 201);
+        return DataTables()->of($data)
+            ->addIndexColumn()
+            ->make(true);
     }
-    public function getDataReferralChampionAm()
+    public function getSultamRacing(Request $request)
     {
-        $url = "https://docs.google.com/spreadsheets/d/1I6OvP09KH2K2o7Ksmijf2XPdoutvYlxKLJJ7b9igi_g/export?format=csv&gid=491427565";
+        $data = SultamRacing::orderBy('created_at', 'desc')->get();
 
-        try {
-            $csv = @array_map('str_getcsv', file($url));
-        } catch (\Exception $e) {
-            Log::channel('referralChampion')->error("Gagal mengambil file CSV: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal ambil CSV'], 500);
-        }
-
-        if (empty($csv)) {
-            Log::channel('referralChampion')->warning("CSV kosong dari URL: $url");
-            return response()->json(['status' => 'error', 'message' => 'CSV kosong'], 400);
-        }
-
-        $header = array_map(fn($h) => Str::slug($h, '_'), $csv[0]);
-        unset($csv[0]);
-
-        $inserted = 0;
-
-        foreach ($csv as $row) {
-            if (count($row) < count($header)) continue;
-
-            $rowAssoc = array_combine($header, $row);
-
-            if (!empty($rowAssoc['timestamp'])) {
-                $rawTimestamp = trim($rowAssoc['timestamp']);
-                Log::channel('referralChampion')->warning("Data {$rawTimestamp}");
-                $formats = [
-                    'd/m/Y H:i:s', // jam 2 digit
-                    'd/m/Y G:i:s', // jam bisa 1 digit
-                ];
-
-                foreach ($formats as $format) {
-                    try {
-                        $created_at = Carbon::createFromFormat($format, $rawTimestamp)
-                            ->format('Y-m-d H:i:s');
-                        Log::channel('referralChampion')->warning("created {$rawTimestamp}");
-                        break; // kalau berhasil, langsung stop
-                    } catch (\Exception $e) {
-                        // coba format lain
-                        continue;
-                    }
-                }
-
-                if ($created_at === now()) {
-                    Log::channel('referralChampion')->warning("Gagal parsing timestamp: {$rawTimestamp}");
-                }
-            }
-
-
-            $rawPhone = $rowAssoc['no_hp_tele_am'] ?? null;
-            $normalizedPhone = $this->normalizePhone($rawPhone);
-
-
-            // Cek apakah data sudah ada berdasarkan no hp
-            $exists = ReferralChampionAm::where('no_hp', $normalizedPhone)->exists();
-
-            if (!$exists) {
-                ReferralChampionAm::insert([
-                    'nama_tele_am'       => $rowAssoc['nama_tele_am'] ?? null,
-                    'no_hp'       => $normalizedPhone,
-                    'email' => $rowAssoc['email_tele_am'] ?? null,
-                    'username_company_myads' => $rowAssoc['nama_akun_myAds_perusahaan_yang_diakuisisi'] ?? null,
-                    'username' => $rowAssoc['akun_myads'] ?? null,
-                    'created_at'  => $created_at,
-                    'updated_at'  => now(),
-                ]);
-
-                $inserted++;
-            }
-        }
-
-        Log::channel('referralChampion')->info("Import selesai, berhasil insert {$inserted} data dari CSV.");
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Import selesai! Total $inserted data berhasil dimasukkan"
-        ], 201);
-    }
-    public function getDataSultamRacing()
-    {
-        $url = "https://docs.google.com/spreadsheets/d/1Z3Es9lMXvd9yxsHlE4phHvtBkpcQF65gpIQQ1P-yOs4/export?format=csv&gid=31344884";
-
-        try {
-            $csv = @array_map('str_getcsv', file($url));
-        } catch (\Exception $e) {
-            Log::channel('sultamRacing')->error("Gagal mengambil file CSV: " . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal ambil CSV'], 500);
-        }
-
-        if (empty($csv)) {
-            Log::channel('sultamRacing')->warning("CSV kosong dari URL: $url");
-            return response()->json(['status' => 'error', 'message' => 'CSV kosong'], 400);
-        }
-
-        $header = array_map(fn($h) => Str::slug($h, '_'), $csv[0]);
-        unset($csv[0]);
-
-        $inserted = 0;
-
-        foreach ($csv as $row) {
-            if (count($row) < count($header)) continue;
-
-            $rowAssoc = array_combine($header, $row);
-
-            if (!empty($rowAssoc['timestamp'])) {
-                $rawTimestamp = trim($rowAssoc['timestamp']);
-                Log::channel('sultamRacing')->warning("Data {$rawTimestamp}");
-                $formats = [
-                    'd/m/Y H:i:s', // jam 2 digit
-                    'd/m/Y G:i:s', // jam bisa 1 digit
-                ];
-
-                foreach ($formats as $format) {
-                    try {
-                        $created_at = Carbon::createFromFormat($format, $rawTimestamp)
-                            ->format('Y-m-d H:i:s');
-                        Log::channel('sultamRacing')->warning("created {$rawTimestamp}");
-                        break; // kalau berhasil, langsung stop
-                    } catch (\Exception $e) {
-                        // coba format lain
-                        continue;
-                    }
-                }
-
-                if ($created_at === now()) {
-                    Log::channel('sultamRacing')->warning("Gagal parsing timestamp: {$rawTimestamp}");
-                }
-            }
-
-
-
-            $email = $rowAssoc['email_new_register_myads'] ?? null;
-            // Cek apakah data sudah ada berdasarkan no hp
-            $exists = SultamRacing::where('email', $email)->exists();
-
-            if (!$exists) {
-                SultamRacing::insert([
-                    'jenis_akun'       => $rowAssoc['account_am'] ?? null,
-                    'nama_akun'       => $rowAssoc['nama_account'] ?? null,
-                    'area'       => $rowAssoc['area'] ?? null,
-                    'email'       => $email,
-                    'nama_am'       => $rowAssoc['nama_am'] ?? null,
-                    'created_at'  => $created_at,
-                    'updated_at'  => now(),
-                ]);
-
-                $inserted++;
-            }
-        }
-
-        Log::channel('sultamRacing')->info("Import selesai, berhasil insert {$inserted} data dari CSV.");
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Import selesai! Total $inserted data berhasil dimasukkan"
-        ], 201);
+        return DataTables()->of($data)
+            ->addIndexColumn()
+            ->make(true);
     }
 }

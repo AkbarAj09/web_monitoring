@@ -4,8 +4,8 @@
 
     <a href="\" class="brand-link">
 
-        <img src="{{ asset('images/myads_logo.png') }}" alt="MyAds Logo" class="brand-image img-circle elevation-2">
-    
+        <img src="{{ asset('images/TRACERS_2.png') }}" alt="MyAds Logo" class="brand-image img-circle elevation-2">
+
 
         @if(Auth::user()->role == 'User')
 
@@ -63,12 +63,69 @@
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <li class="nav-header">ALL DASHBOARD</li>
-
                 <li class="nav-item">
                     <a href="{{ route('admin.home') }}"
                         class="nav-link waves-effect {{ request()->routeIs('admin.home') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-bullseye" style="color:rgb(240, 236, 1);"></i>
                         <p>Home Dashboard</p>
+                    </a>
+                </li>
+                <li class="nav-header">All Program</li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.padi_umkm') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.padi_umkm') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-shop" style="color: #4b66ffff;"></i>
+                        <p>Padi UMKM</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.event_sponsorship') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.event_sponsorship') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-handshake" style="color: #ff5733ff;"></i>
+                        <p>Event Sponsorship</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.creator_partner') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.creator_partner') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-user-pen" style="color: #efff5eff;"></i>
+                        <p>Creator Partner</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.rekruter_kol_buzzer') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.rekruter_kol_buzzer') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-user-pen" style="color: #efff5eff;"></i>
+                        <p>Rekruter KOL Buzzer</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.simpati_tiktok') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.simpati_tiktok') ? 'active' : '' }}">
+                        <i class="nav-icon fa-brands fa-tiktok" style="color: #fe0404ff;"></i>
+                        <p>Simpati Tiktok</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.referral_champion') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.referral_champion') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-user-check" style="color: #42f554ff;"></i>
+                        <p>Referral Champion</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.monitoring.sultam_racing') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.sultam_racing') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-car" style="color: #f39c12;"></i>
+                        <p>Sultam Racing</p>
+                    </a>
+                </li>
+                <li class="nav-header">Upload File</li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.upload') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('admin.upload') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-bullseye" style="color:rgb(240, 236, 1);"></i>
+                        <p>Revenue & Program</p>
                     </a>
                 </li>
 

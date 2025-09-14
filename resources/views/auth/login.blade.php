@@ -13,7 +13,7 @@
 
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 
-    <title>MoniForm | Monitor Form MyAds</title>
+    <title>TRACERS | Tracking Performance & Revenue MyAds</title>
 
 
 
@@ -21,9 +21,10 @@
 
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
 
-    <link rel="stylesheet" href="{{asset('vendor/adminlte/plugins/fontawesome-free/css/all.min.css')}}">
+    <link rel="stylesheet" href="{{asset('adminlte/plugins/fontawesome-free/css/all.min.css')}}">
 
-    <link rel="stylesheet" href="{{asset('vendor/adminlte/dist/css/adminlte.min.css')}}">
+    <link rel="stylesheet" href="{{asset('adminlte/dist/css/adminlte.min.css')}}">
+    <link rel="icon" type="image/png" href="{{ asset('images/TRACERS_3.png') }}">
 
 
     <style>
@@ -61,7 +62,7 @@
 
             height: 100%;
 
-            background-color: #124170;
+            background-color: #b42d2aff;
 
             background-repeat: no-repeat;
 
@@ -103,7 +104,7 @@
 
         .card-header {
 
-            background: #124170;
+            background: #b42d2aff;
 
             color: #fff;
 
@@ -115,7 +116,7 @@
 
         .input-group input {
 
-            border: 1px solid #124170;
+            border: 1px solid #b42d2aff;
 
             border-radius: 5px;
 
@@ -131,7 +132,7 @@
 
         .input-group input:focus {
 
-            border-color: #124170;
+            border-color: #b42d2aff;
 
             box-shadow: 0 0 5px rgba(211, 81, 194, 0.5);
 
@@ -145,9 +146,9 @@
 
         .btn-danger {
 
-            background-color: #124170;
+            background-color: #b42d2aff;
 
-            border-color: #124170;
+            border-color: #b42d2aff;
 
             color: #fff;
 
@@ -169,9 +170,9 @@
 
         .btn-danger:hover {
 
-            background-color: #124170;
+            background-color: #b42d2aff;
 
-            border-color: #124170;
+            border-color: #b42d2aff;
 
         }
 
@@ -231,7 +232,7 @@
         <div class="card card-outline">
 
             <div class="card-header text-center" style="background-color: #ffffff !important">
-                <h1 style="color: #124170;">MoniForm</h1>
+                <img src="{{ asset('images/TRACERS_2.png') }}" alt="Logo" style="max-width: 280px; height: auto;">
 
             </div>
 

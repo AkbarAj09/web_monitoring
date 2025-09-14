@@ -16,6 +16,7 @@ class CreatorPartner extends Model
         'nama_kol',
         'email_kol',
         'no_hp_kol',
+        'referral_code',
         'created_at',
         'updated_at'
     ];
