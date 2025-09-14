@@ -156,6 +156,16 @@ return [
             'path' => storage_path('logs/sultamRacing.log'),
             'level' => 'info',
         ],
+        'eventSponsorhip' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/eventSponsorship.log'),
+            'level' => 'info',
+        ],
+        'rekruterKol' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/rekruterKol.log'),
+            'level' => 'info',
+        ]
 
     ],
 
