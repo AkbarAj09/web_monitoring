@@ -237,10 +237,10 @@
                     <thead>
 
                         <tr>
+                            <th class="text-center">Tanggal<br>Isi Form</th>
                             <th class="text-center">Nama Lengkap</th>
                             <th class="text-center">Email</th>
                             <th class="text-center">No HP</th>
-                            <th class="text-center">Tanggal<br>Isi Form</th>
                             <th class="text-center">Jumlah Topup</th>
                             <th class="text-center">Total Topup</th>
 
@@ -303,6 +303,24 @@
 
 
             columns: [
+                {
+                    data: 'created_at',
+                    name: 'created_at',
+                    orderable: true,
+                    render: function(data) {
+                        if (!data) return '';
+                        // Parse date string and format as "07 Aug 2025 13:25"
+                        const dateObj = new Date(data);
+                        if (isNaN(dateObj)) return data;
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                        const month = monthNames[dateObj.getMonth()];
+                        const year = dateObj.getFullYear();
+                        const hours = String(dateObj.getHours()).padStart(2, '0');
+                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        return `<div style="text-align: center;">${day} ${month} ${year}</div>`;
+                    }
+                },
 
                 {
 
@@ -339,24 +357,7 @@
 
                 },
 
-                {
-                    data: 'created_at',
-                    name: 'created_at',
-                    orderable: true,
-                    render: function(data) {
-                        if (!data) return '';
-                        // Parse date string and format as "07 Aug 2025 13:25"
-                        const dateObj = new Date(data);
-                        if (isNaN(dateObj)) return data;
-                        const day = String(dateObj.getDate()).padStart(2, '0');
-                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                        const month = monthNames[dateObj.getMonth()];
-                        const year = dateObj.getFullYear();
-                        const hours = String(dateObj.getHours()).padStart(2, '0');
-                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                        return `<div style="text-align: center;">${day} ${month} ${year} ${hours}:${minutes}</div>`;
-                    }
-                },
+                
                 {
 
                     data: 'jumlah_topup',

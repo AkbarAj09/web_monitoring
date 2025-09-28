@@ -274,6 +274,138 @@ class BackController extends Controller
             })
             ->make(true);
     }
+    public function getRekruterInfluencer(Request $request)
+    {
+        // Ambil referral_code semua creator dengan jenis KOL = Influencer
+        $influencerReferralCodes = DB::table('creator_partner')
+            ->where('jenis_kol', 'KOL as a Seller Online/Afiliate')
+            ->pluck('referral_code');
+
+        // Ambil semua rekruter yang referral_code-nya ada di list influencer
+        $rekrut = DB::table('rekruter_kol')
+            ->whereIn('referral_code', $influencerReferralCodes)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Transform hasil biar sesuai table kamu
+        $rekrut->transform(function ($item) {
+            // Hitung total topup untuk email rekruter ini
+            $totalTopup = DB::table('revenue_kol')
+                ->where('email', $item->email)
+                ->sum('jumlah_top_up');
+
+            // Tentukan nilai minimal topup & remarks
+            $minTopup = 200000; // karena jenis_kol = Influencer
+            $item->nilai_min_topup = $minTopup;
+            $item->jumlah_top_up = $totalTopup;
+            $item->remarks = $totalTopup >= $minTopup ? 'Eligible' : 'Not Eligible';
+
+            return $item;
+        });
+
+        return DataTables::of($rekrut)
+            ->addColumn('nilai_min_topup', function ($row) {
+                return number_format($row->nilai_min_topup, 0, ',', '.');
+            })
+            ->addColumn('jumlah_top_up', function ($row) {
+                return number_format($row->jumlah_top_up, 0, ',', '.');
+            })
+            ->addColumn('remarks', function ($row) {
+                return $row->remarks;
+            })
+            ->make(true);
+    }
+
+    public function getAreaMarcom(Request $request)
+    {
+        $bulanIni = now()->format('Y-m'); // e.g. 2025-09
+
+        // Ambil statistik per area (unikkan kol dengan COUNT DISTINCT)
+        $areas = DB::table('creator_partner as cp')
+            ->leftJoin('rekruter_kol as rk', DB::raw('cp.referral_code COLLATE utf8mb4_unicode_ci'), '=', DB::raw('rk.referral_code COLLATE utf8mb4_unicode_ci'))
+            ->leftJoin('revenue_kol as rv', DB::raw('rk.email COLLATE utf8mb4_unicode_ci'), '=', DB::raw('rv.email COLLATE utf8mb4_unicode_ci'))
+            ->select(
+                'cp.area',
+                DB::raw("COUNT(DISTINCT cp.id) as total_kol"),
+                DB::raw("SUM(CASE WHEN cp.jenis_kol = 'KOL as a Buzzer' THEN 1 ELSE 0 END) as jumlah_buzzer"),
+                DB::raw("SUM(CASE WHEN cp.jenis_kol = 'KOL as a Seller Online/Afiliate' THEN 1 ELSE 0 END) as jumlah_influencer"),
+                DB::raw("COUNT(DISTINCT rk.id) as total_rekruter"),
+                DB::raw("COALESCE(SUM(rv.jumlah_top_up), 0) as total_topup"),
+                // max topup dari revenue_kol yang terjadi pada bulan ini (untuk rule 3)
+                DB::raw("MAX(CASE WHEN DATE_FORMAT(rv.created_at, '%Y-%m') = '{$bulanIni}' THEN rv.jumlah_top_up ELSE 0 END) as max_topup_bulan_ini")
+            )
+            ->groupBy('cp.area')
+            ->orderBy('cp.area', 'asc')
+            ->get();
+
+        // Untuk setiap area: hitung bintang sesuai aturan:
+        // 1) ada KOL -> 1 bintang
+        // 2) ada minimal 1 creator di area yang punya >=5 akun rekruter eligible (eligible = akun punya total_topup >= minTopup tergantung jenis_kol)
+        // 3) ada akun yang topup >= 1.000.000 pada bulan ini -> 1 bintang
+        foreach ($areas as $areaRow) {
+            $bintang = 0;
+
+            // Rule 2: cek apakah ada creator di area yang sudah mencapai Tier >= Bronze
+            // (Tier Bronze: ada >=5 rekruter dengan total_topup >= minTopup; minTopup berbeda per jenis_kol)
+            $adaTierBronze = false;
+
+            // Ambil semua creator di area (referral_code + jenis_kol)
+            $creators = DB::table('creator_partner')
+                ->where('area', $areaRow->area)
+                ->select('referral_code', 'jenis_kol')
+                ->get();
+
+            foreach ($creators as $creator) {
+                if (empty($creator->referral_code)) continue;
+
+                // ambil list email rekruter untuk referral ini
+                $emails = DB::table('rekruter_kol')
+                    ->where('referral_code', $creator->referral_code)
+                    ->pluck('email')
+                    ->filter() // hapus null/empty
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                if (empty($emails)) continue;
+
+                // set minimum per jenis_kol
+                $minTopup = $creator->jenis_kol === 'KOL as a Buzzer' ? 250000 : 200000;
+
+                // ambil total topup per email (all-time)
+                $topupPerEmail = DB::table('revenue_kol')
+                    ->whereIn('email', $emails)
+                    ->select('email', DB::raw('SUM(jumlah_top_up) as total'))
+                    ->groupBy('email')
+                    ->pluck('total')
+                    ->toArray();
+
+                // hitung berapa email yang memenuhi minTopup
+                $eligibleCount = collect($topupPerEmail)->filter(fn($tot) => $tot >= $minTopup)->count();
+
+                if ($eligibleCount >= 5) {
+                    $adaTierBronze = true;
+                    break; // cukup ada 1 creator yang memenuhi -> area dapat bintang tambahan
+                }
+            }
+
+            if ($adaTierBronze) $bintang+=2;
+
+            // Rule 3: ada akun rekruter yang topup >= 1jt pada bulan ini?
+            if ((int)$areaRow->max_topup_bulan_ini >= 1000000) {
+                $bintang++;
+            }
+
+            $areaRow->remarks = $bintang; // hanya kirim angka 0..3
+        }
+
+        return DataTables()->of($areas)
+            ->addIndexColumn()
+            ->make(true);
+    }
+
+
+
 
 
 

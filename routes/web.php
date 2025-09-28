@@ -53,6 +53,16 @@ Route::middleware(['auth', 'checkrole:Admin'])->group(function () {
     // Rekruter Kol Buzzer
     Route::get('/monitoring-rekruter-kol-buzzer', [FrontController::class, 'rekruterKolBuzzer'])->name('admin.monitoring.rekruter_kol_buzzer');
     Route::get('/get-rekruter-kol-buzzer-data', [BackController::class, 'getRekrutBuzzer'])->name('rekruter_kol_buzzer_data');
+    
+    // Rekruter Kol Influencer
+    Route::get('/monitoring-rekruter-kol-influencer', [FrontController::class, 'rekruterKolInfluencer'])->name('admin.monitoring.rekruter_kol_influencer');
+    Route::get('/get-rekruter-kol-influencer-data', [BackController::class, 'getRekruterInfluencer'])->name('rekruter_kol_influencer_data');
+
+    // Rekruter KOL Area Marcom
+    Route::get('/monitoring-kol-area-marcom', [FrontController::class, 'areaMarkomKol'])->name('admin.monitoring.area_marcom');
+    Route::get('/get-monitoring-kol-area-marcom-data', [BackController::class, 'getAreaMarcom'])->name('area_marcom_kol_data');
+
+    
     // Simpati Tiktok
     Route::get('/monitoring-simpati-tiktok', [FrontController::class, 'monitoringSimpatiTiktok'])->name('admin.monitoring.simpati_tiktok');
     Route::get('/get-simpati-tiktok-data', [BackController::class, 'getSimpatiTiktok'])->name('simpati_tiktok_data');

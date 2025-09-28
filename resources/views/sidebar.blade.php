@@ -85,20 +85,59 @@
                         <p>Event Sponsorship</p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.creator_partner') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.creator_partner') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-user-pen" style="color: #efff5eff;"></i>
-                        <p>Creator Partner</p>
+                <li class="nav-item {{ request()->routeIs([
+    'admin.monitoring.creator_partner',
+    'admin.monitoring.rekruter_kol_buzzer',
+    'admin.monitoring.rekruter_kol_influencer',
+    'admin.monitoring.area_marcom'
+]) ? 'menu-open' : '' }}">
+
+                    <a href="#" class="nav-link {{ request()->routeIs([
+        'admin.monitoring.creator_partner',
+        'admin.monitoring.rekruter_kol_buzzer',
+        'admin.monitoring.rekruter_kol_influencer',
+        'admin.monitoring.area_marcom'
+    ]) ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>
+                            Monitoring KOL
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
                     </a>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('admin.monitoring.creator_partner') }}"
+                                class="nav-link {{ request()->routeIs('admin.monitoring.creator_partner') ? 'active' : '' }}">
+                                <i class="fa fa-user-pen nav-icon"></i>
+                                <p>Creator Partner</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admin.monitoring.rekruter_kol_buzzer') }}"
+                                class="nav-link {{ request()->routeIs('admin.monitoring.rekruter_kol_buzzer') ? 'active' : '' }}">
+                                <i class="fa fa-user-pen nav-icon"></i>
+                                <p>Rekruter KOL Buzzer</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admin.monitoring.rekruter_kol_influencer') }}"
+                                class="nav-link {{ request()->routeIs('admin.monitoring.rekruter_kol_influencer') ? 'active' : '' }}">
+                                <i class="fa fa-user-pen nav-icon"></i>
+                                <p>Rekruter KOL Influencer</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admin.monitoring.area_marcom') }}"
+                                class="nav-link {{ request()->routeIs('admin.monitoring.area_marcom') ? 'active' : '' }}">
+                                <i class="fa fa-user-pen nav-icon"></i>
+                                <p>Area Marcom KOL</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.rekruter_kol_buzzer') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.rekruter_kol_buzzer') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-user-pen" style="color: #efff5eff;"></i>
-                        <p>Rekruter KOL Buzzer</p>
-                    </a>
-                </li>
+
+
                 <li class="nav-item">
                     <a href="{{ route('admin.monitoring.simpati_tiktok') }}"
                         class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.simpati_tiktok') ? 'active' : '' }}">

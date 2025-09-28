@@ -110,12 +110,15 @@ class FrontController extends Controller
                 DB::raw('MAX(st.no_hp) as no_hp'),
                 DB::raw('MAX(st.nama_lengkap) as nama_lengkap'),
                 DB::raw('COUNT(r.id) as jumlah_topup'),
+                DB::raw('COALESCE(SUM(r.saldo_utama), 0) as total_saldo_utama'),
+                DB::raw('COALESCE(SUM(r.saldo_bonus), 0) as total_saldo_bonus'),
                 DB::raw('COALESCE(SUM(r.total), 0) as total_topup'),
                 DB::raw('MIN(st.created_at) as created_at'),
                 DB::raw('MAX(st.updated_at) as updated_at')
             )
             ->leftJoin('manajemen_user_register as mur', DB::raw('st.email COLLATE utf8mb4_unicode_ci'), '=', DB::raw('mur.email COLLATE utf8mb4_unicode_ci'))
             ->leftJoin('revenue as r', DB::raw('mur.reg_id COLLATE utf8mb4_unicode_ci'), '=', DB::raw('r.id_klien COLLATE utf8mb4_unicode_ci'))
+            ->where('r.status', 'PAID')
             ->groupBy('st.email')
             ->get();
 
@@ -127,6 +130,8 @@ class FrontController extends Controller
                     'no_hp'         => $row->no_hp,
                     'nama_lengkap'  => $row->nama_lengkap,
                     'jumlah_topup'  => $row->jumlah_topup,
+                    'total_saldo_utama' => $row->total_saldo_utama,
+                    'total_saldo_bonus' => $row->total_saldo_bonus,
                     'total_topup'   => $row->total_topup,
                     'created_at'    => $row->created_at,
                     'updated_at'    => now(),
@@ -191,5 +196,13 @@ class FrontController extends Controller
     public function rekruterKolBuzzer()
     {
         return view('admin.kol_buzzer');
+    }
+    public function rekruterKolInfluencer()
+    {
+        return view('admin.kol_influencer');
+    }
+    public function areaMarkomKol()
+    {
+        return view('admin.area_marcom');
     }
 }
