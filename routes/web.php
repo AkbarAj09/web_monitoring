@@ -71,6 +71,12 @@ Route::middleware(['auth', 'checkrole:Admin'])->group(function () {
     Route::get('/monitoring-referral-champion-am', [FrontController::class, 'monitoringReferralChampionAm'])->name('admin.monitoring.referral_champion');
     Route::get('/get-referral-champion-am-data', [BackController::class, 'getReferralChampionAm'])->name('referral_champion_am_data');
 
+    // Referral Champion Tele AM
+    Route::get('/monitoring-referral-champion-tele-am', [FrontController::class, 'monitoringReferralChampionTeleAm'])->name('admin.monitoring.referral_tele_am');
+
+    // Referral Champion Canvasser
+    Route::get('/monitoring-referral-champion-canvasser', [FrontController::class, 'monitoringReferralChampionCanvasser'])->name('admin.monitoring.referral_canvasser');
+
     // Sultam Racing
     Route::get('/monitoring-sultam-racing', [FrontController::class, 'monitoringSultamRacing'])->name('admin.monitoring.sultam_racing');
     Route::get('/get-sultam-racing-data', [BackController::class, 'getSultamRacing'])->name('sultam_racing_data');

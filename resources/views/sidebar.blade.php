@@ -145,12 +145,38 @@
                         <p>Simpati Tiktok</p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.referral_champion') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.referral_champion') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-user-check" style="color: #42f554ff;"></i>
-                        <p>Referral Champion</p>
+                <li class="nav-item {{ request()->routeIs([
+    'admin.monitoring.referral_tele_am',
+    'admin.monitoring.referral_canvasser'
+]) ? 'menu-open' : '' }}">
+
+                    <a href="#" class="nav-link {{ request()->routeIs([
+        'admin.monitoring.referral_tele_am',
+        'admin.monitoring.referral_canvasser',
+    ]) ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-users" style="color: #42f554ff;"></i>
+                        <p>
+                            Referral Champion
+                            <i class="right fas fa-angle-left" ></i>
+                        </p>
                     </a>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('admin.monitoring.referral_tele_am') }}"
+                                class="nav-link {{ request()->routeIs('admin.monitoring.referral_tele_am') ? 'active' : '' }}">
+                                <i class="fa fa-user-check nav-icon"></i>
+                                <p>Tele AM</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admin.monitoring.referral_canvasser') }}"
+                                class="nav-link {{ request()->routeIs('admin.monitoring.referral_canvasser') ? 'active' : '' }}">
+                                <i class="fa fa-user-check nav-icon"></i>
+                                <p>Canvaser</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('admin.monitoring.sultam_racing') }}"

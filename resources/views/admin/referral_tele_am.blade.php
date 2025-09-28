@@ -1,5 +1,5 @@
 @extends('master')
-@section('title') Monitoring Creator Partner @endsection
+@section('title') Referral Champion for Tele AM @endsection
 @section('css')
 
 <style>
@@ -122,7 +122,7 @@
 
         <div class="card-header">
 
-            <h3 style="font-weight: bold" class="card-title">DATA GFORM SULTAM RACING</h3>
+            <h3 style="font-weight: bold" class="card-title">DATA GFORM REFERRAL TELE AM</h3>
 
         </div>
 
@@ -136,13 +136,10 @@
                     <thead>
 
                         <tr>
-                            <th class="text-center">Tanggal<br>Isi Form</th>
-                            <th class="text-center">Area</th>
-                            <th class="text-center">Jenis Akun</th>
-                            <th class="text-center">Nama Akun</th>
-                            <th class="text-center">Nama AM</th>
+                            <th class="text-center">Nama Tele AM</th>
                             <th class="text-center">Email</th>
-                            
+                            <th class="text-center">No HP</th>
+                            <th class="text-center">Tanggal<br>Isi Form</th>
 
                         </tr>
 
@@ -186,7 +183,7 @@
 
             ajax: {
 
-                url: "{{ route('sultam_racing_data') }}",
+                url: "{{ route('referral_champion_am_data') }}",
 
                 type: "GET",
 
@@ -221,29 +218,17 @@
                         return `<div style="text-align: center;">${day} ${month} ${year}</div>`;
                     }
                 },
+
                 {
-                    data: 'area',
-                    name: 'area',
+
+                    data: 'nama_tele_am',
+
+                    name: 'nama_tele_am',
+
                     orderable: true,
-                    render: data => `<div style="text-align: center;">${data}</div>`
-                },
-                {
-                    data: 'jenis_akun',
-                    name: 'jenis_akun',
-                    orderable: true,
-                    render: data => `<div style="text-align: center;">${data}</div>`
-                },
-                {
-                    data: 'nama_akun',
-                    name: 'nama_akun',
-                    orderable: true,
+
                     render: data => `<div style="text-align: left;">${data}</div>`
-                },
-                {
-                    data: 'nama_am',
-                    name: 'nama_am',
-                    orderable: true,
-                    render: data => `<div style="text-align: left;">${data}</div>`
+
                 },
                 {
 
@@ -256,7 +241,19 @@
                     render: data => `<div style="text-align: center;">${data}</div>`
 
                 },
-                
+
+                {
+
+                    data: 'no_hp',
+
+                    name: 'no_hp',
+
+                    orderable: true,
+
+                    render: data => `<div style="text-align: center;">${data}</div>`
+
+                },
+
 
             ],
 

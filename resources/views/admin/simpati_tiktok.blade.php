@@ -242,7 +242,7 @@
                             <th class="text-center">Email</th>
                             <th class="text-center">No HP</th>
                             <th class="text-center">Jumlah Topup</th>
-                            <th class="text-center">Total Topup</th>
+                            <th class="text-center">Total Topup (Rp.)</th>
 
                         </tr>
 
@@ -370,15 +370,17 @@
 
                 },
                 {
-
                     data: 'total_topup',
-
                     name: 'total_topup',
-
                     orderable: true,
-
-                    render: data => `<div style="text-align: center;">${data}</div>`
-
+                    render: function(data) {
+                        let num = parseInt(data?.toString().replace(/\D/g, '')) || 0;
+                        // If num is 0, display "0"
+                        if (num === 0) {
+                            return `<div style="text-align:center;">0</div>`;
+                        }
+                        return `<div style="text-align:center;">Rp.${num.toLocaleString('id-ID')}</div>`;
+                    }
                 },
 
             ],

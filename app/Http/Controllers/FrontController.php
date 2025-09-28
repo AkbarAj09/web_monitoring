@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Session;
+use Illuminate\Support\Facades\Log;
 
 class FrontController extends Controller
 {
@@ -97,6 +98,14 @@ class FrontController extends Controller
     {
         return view('admin.referral_champion');
     }
+    public function monitoringReferralChampionTeleAm()
+    {
+        return view('admin.referral_tele_am');
+    }
+    public function monitoringReferralChampionCanvasser()
+    {
+        return view('admin.referral_canvasser');
+    }
     public function monitoringSultamRacing()
     {
         return view('admin.sultam_racing');
@@ -122,8 +131,11 @@ class FrontController extends Controller
             ->groupBy('st.email')
             ->get();
 
+        $totalData = count($data);
+        $inserted = 0;
+
         foreach ($data as $row) {
-            DB::table('summary_simpati_tiktok')->updateOrInsert(
+            $result = DB::table('summary_simpati_tiktok')->updateOrInsert(
                 ['email' => $row->email], // pakai email sbg unique key
                 [
                     'simpati_tiktok_id' => $row->simpati_tiktok_id,
@@ -137,9 +149,21 @@ class FrontController extends Controller
                     'updated_at'    => now(),
                 ]
             );
+            // updateOrInsert tidak return affected rows, jadi kita anggap semua proses sukses
+            $inserted++;
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Summary Simpati Tiktok by email updated']);
+        // Logging ke channel simpatiTiktok
+        Log::channel('simpatiTiktok')->info('refreshSummarySimpatiTiktok executed', [
+            'total_data_from_query' => $totalData,
+            'total_processed' => $inserted,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Summary Simpati Tiktok by email updated. Total data: $totalData, processed: $inserted"
+        ]);
     }
 
     public function refreshSummaryPadiUmkm()

@@ -5,12 +5,6 @@
         </li>
     </ul>
 
-    <!-- Scrolling Text -->
-    <div class="scrolling-text">
-        <span><b>Semangat Pagi!!</b> Tetap Semangat dalam menjalani hari! Jangan lupa tersenyum &#128522;</span>
-    </div>
-
-
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
