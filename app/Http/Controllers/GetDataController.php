@@ -18,7 +18,7 @@ use App\Models\RekruterKol;
 
 class GetDataController extends Controller
 {
-     private function normalizePhone($phone)
+    private function normalizePhone($phone)
     {
         if (!$phone) return null;
 
@@ -38,7 +38,7 @@ class GetDataController extends Controller
         // kalau tidak ada awalan 0 atau 62 (misal: 822xxxx)
         return '62' . $phone;
     }
-     public function getDataRahasiaBisnis()
+    public function getDataRahasiaBisnis()
     {
         $url = "https://docs.google.com/spreadsheets/d/189GWwmBkByfgraTxSDjKbcmH9zjE8a83aIKtCYnpyq8/export?format=csv&gid=1498573724";
 
@@ -561,8 +561,8 @@ class GetDataController extends Controller
                     'regional'        => $rowAssoc['regional'] ?? null,
                     'nama_event'      => $namaEvent,
                     'lokasi_event'    => $lokasiEvent,
-                    'tanggal_event'   => !empty($rowAssoc['tanggal_event'])
-                        ? Carbon::parse($rowAssoc['tanggal_event'])->format('Y-m-d')
+                    'tanggal_event' => !empty($rowAssoc['tanggal_event'])
+                        ? Carbon::createFromFormat('d/m/Y', trim($rowAssoc['tanggal_event']))->format('Y-m-d')
                         : null,
                     'pic_event'       => $rowAssoc['pic_event_eo'] ?? null,
                     'telp_pic_event'  => $rowAssoc['no_telp_pic_event_eo'] ?? null,
