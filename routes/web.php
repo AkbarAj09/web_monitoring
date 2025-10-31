@@ -77,6 +77,41 @@ Route::middleware(['auth', 'checkrole:Admin'])->group(function () {
     // Referral Champion Canvasser
     Route::get('/monitoring-referral-champion-canvasser', [FrontController::class, 'monitoringReferralChampionCanvasser'])->name('admin.monitoring.referral_canvasser');
 
+    Route::get('/monitor-voucher', [FrontController::class, 'botVoucher'])->name('admin.voucher');
+    Route::get('/monitor-claim-voucher', [FrontController::class, 'claimedVoucher'])->name('admin.claim.voucher');
+    Route::prefix('vouchers')->name('vouchers.')->group(function () {
+    
+    // == ROUTE UNTUK MANAJEMEN VOUCHER ==
+    Route::get('/data', [BackController::class, 'getVouchers'])->name('data');
+    Route::post('/tambah', [BackController::class, 'tambahVoucher'])->name('tambah');
+    Route::post('/update/{id}', [BackController::class, 'updateVoucher'])->name('update');
+    Route::delete('/hapus/{id}', [BackController::class, 'hapusVoucher'])->name('hapus');
+    Route::get('/download-claimed-voucher', [BackController::class, 'downloadVouchers'])->name('download-claim-voucher'); // Route untuk download
+
+    Route::get('/stats', [BackController::class, 'getVoucherStats'])->name('stats');
+    // --- Pemisah untuk kejelasan ---
+
+    // == ROUTE UNTUK USER YANG KLAIM VOUCHER ==
+
+    /**
+     * Route untuk mengambil data user yang sudah klaim (untuk DataTables).
+     * URL: /vouchers/claimed/data
+     */
+    Route::get('/claimed/data', [BackController::class, 'getClaimedVouchers'])->name('claimed.data');
+
+    /**
+     * Route untuk proses update data user.
+     * URL: /vouchers/update-user/{user_id}
+     */
+    Route::post('/update-user/{user_id}', [BackController::class, 'updateUser'])->name('update.user');
+
+    /**
+     * Route untuk proses melepaskan klaim voucher dari user.
+     * URL: /vouchers/unclaim/{voucher_id}
+     */
+    Route::delete('/unclaim/{voucher_id}', [BackController::class, 'unclaimVoucher'])->name('unclaim');
+});
+
     // Sultam Racing
     Route::get('/monitoring-sultam-racing', [FrontController::class, 'monitoringSultamRacing'])->name('admin.monitoring.sultam_racing');
     Route::get('/get-sultam-racing-data', [BackController::class, 'getSultamRacing'])->name('sultam_racing_data');

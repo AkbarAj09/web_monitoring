@@ -229,4 +229,10 @@ class FrontController extends Controller
     {
         return view('admin.area_marcom');
     }
+    public function botVoucher(){
+        return view('admin.voucher');
+    }
+    public function claimedVoucher(){
+        return view('admin.user_voucher');
+    }
 }

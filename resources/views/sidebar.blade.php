@@ -185,6 +185,32 @@
                         <p>Sultam Racing</p>
                     </a>
                 </li>
+                <li class="nav-item {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'menu-open' : '' }}">
+    <a href="#" class="nav-link waves-effect {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'active' : '' }}">
+        {{-- Ikon Parent: Menggunakan ikon tiket yang relevan dengan voucher --}}
+        <i class="nav-icon fas fa-ticket-alt" style="color: #17a2b8;"></i>
+        <p>
+            Manajemen Voucher
+            {{-- Panah dropdown --}}
+            <i class="right fas fa-angle-left"></i>
+        </p>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="{{ route('admin.voucher') }}" class="nav-link waves-effect {{ request()->routeIs('admin.voucher') ? 'active' : '' }}">
+                {{-- Ikon Child: Menggunakan ikon lingkaran simpel --}}
+                <i class="far fa-circle nav-icon"></i>
+                <p>Daftar Voucher</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.claim.voucher') }}" class="nav-link waves-effect {{ request()->routeIs('admin.claim.voucher') ? 'active' : '' }}">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Klaim Voucher</p>
+            </a>
+        </li>
+    </ul>
+</li>
                 <li class="nav-header">Upload File</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.upload') }}"

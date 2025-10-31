@@ -405,11 +405,6 @@ class BackController extends Controller
     }
 
 
-
-
-
-
-
     public function getSimpatiTiktok(Request $request)
     {
         $data = DB::table('summary_simpati_tiktok as sst')
@@ -440,4 +435,292 @@ class BackController extends Controller
             ->addIndexColumn()
             ->make(true);
     }
+    public function getVoucherStats()
+    {
+        // Menghitung total semua voucher
+        $totalVoucher = DB::table('myads_voucher')->count();
+
+        // Menghitung voucher yang sudah diklaim (user_id tidak null)
+        $totalClaimed = DB::table('myads_voucher')->whereNotNull('user_id')->count();
+        
+        // Menghitung sisa voucher yang belum diklaim
+        $totalNotClaimed = $totalVoucher - $totalClaimed;
+
+        $data = [
+            'total_voucher'   => $totalVoucher,
+            'total_claimed'   => $totalClaimed,
+            'total_not_claim' => $totalNotClaimed,
+        ];
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    public function getVouchers(Request $request)
+    {
+        // Mengecek apakah ini adalah request AJAX dari DataTables
+        if ($request->ajax()) {
+            $data = DB::table('myads_voucher')
+                ->select('id', 'voucher', 'created_at', 'user_id')
+                ->orderBy('created_at', 'desc'); // Mengurutkan dari yang terbaru
+
+            return DataTables::of($data)
+                ->addColumn('status_klaim', function($row){
+                    // Logika untuk menampilkan status klaim
+                    if ($row->user_id) { 
+                        return 'claimed'; // Kirim 'claimed' jika sudah diklaim
+                    }
+                    return 'not_claimed'; // Kirim 'not_claimed' jika belum
+                })
+                ->addColumn('aksi', function($row){
+                // Menambahkan tombol Edit dan Hapus dengan ikon di setiap baris
+                $btn = '<a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-primary btn-sm editVoucher"><i class="fas fa-edit"></i> Edit</a> ';
+                $btn .= '<a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-danger btn-sm hapusVoucher"><i class="fas fa-trash-alt"></i> Hapus</a>';
+                return $btn;
+            })
+                ->rawColumns(['aksi']) // Memberitahu DataTables bahwa kolom 'aksi' berisi HTML
+                ->make(true);
+                }
+    }
+
+    /**
+     * Function 2: Menyimpan data voucher baru.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function tambahVoucher(Request $request)
+    {
+        // Validasi input dari form
+        $validator = Validator::make($request->all(), [
+            'voucher' => 'required|string|max:255|unique:myads_voucher,voucher',
+        ], [
+            'voucher.required' => 'Kolom voucher wajib diisi.',
+            'voucher.unique'   => 'Kode voucher ini sudah ada.',
+        ]);
+
+        // Jika validasi gagal, kembalikan pesan error
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Jika validasi berhasil, simpan data ke database
+        DB::table('myads_voucher')->insert([
+            'voucher'    => $request->voucher,
+            // user_id bisa ditambahkan jika perlu, contoh: 'user_id' => auth()->id()
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        return response()->json(['success' => 'Voucher berhasil ditambahkan.']);
+    }
+
+    /**
+     * Function 3: Mengupdate data voucher yang sudah ada.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateVoucher(Request $request, $id)
+    {
+        // Validasi input, pastikan voucher unik tapi abaikan id saat ini
+        $validator = Validator::make($request->all(), [
+            'voucher' => 'required|string|max:255|unique:myads_voucher,voucher,' . $id,
+        ], [
+            'voucher.required' => 'Kolom voucher wajib diisi.',
+            'voucher.unique'   => 'Kode voucher ini sudah digunakan oleh data lain.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Cari voucher berdasarkan ID
+        $voucher = DB::table('myads_voucher')->where('id', $id)->first();
+
+        // Jika voucher tidak ditemukan
+        if (!$voucher) {
+            return response()->json(['error' => 'Data voucher tidak ditemukan.'], 404);
+        }
+
+        // Update data di database
+        DB::table('myads_voucher')->where('id', $id)->update([
+            'voucher'    => $request->voucher,
+            'updated_at' => Carbon::now(),
+        ]);
+
+        return response()->json(['success' => 'Voucher berhasil diperbarui.']);
+    }
+
+    /**
+     * Function 4: Menghapus data voucher.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function hapusVoucher($id)
+    {
+        // Cari voucher berdasarkan ID
+        $voucher = DB::table('myads_voucher')->where('id', $id)->first();
+
+        // Jika voucher tidak ditemukan
+        if (!$voucher) {
+            return response()->json(['error' => 'Data voucher tidak ditemukan.'], 404);
+        }
+        
+        // Hapus data dari database
+        DB::table('myads_voucher')->where('id', $id)->delete();
+
+        return response()->json(['success' => 'Voucher berhasil dihapus.']);
+    }
+
+    public function getClaimedVouchers(Request $request)
+    {
+        if ($request->ajax()) {
+            $data = DB::table('myads_voucher as mv')
+                ->join('myads_user as mu', 'mv.user_id', '=', 'mu.id')
+                ->whereNotNull('mv.user_id') // Hanya tampilkan voucher yang sudah ada user_id-nya
+                ->select(
+                    'mu.id as user_id', // ID dari tabel user untuk proses update
+                    'mv.id as voucher_id', // ID dari tabel voucher untuk proses 'unclaim'
+                    'mu.created_at as tanggal_daftar',
+                    'mu.nama',
+                    'mu.usaha',
+                    'mu.email',
+                    'mu.nomor_hp',
+                    'mv.voucher as kode_voucher'
+                );
+
+            return DataTables::of($data)
+                ->addColumn('aksi', function ($row) {
+                    // Tombol Edit merujuk pada user_id, Tombol Hapus merujuk pada voucher_id
+                    $btn = '<a href="javascript:void(0)" data-user-id="'.$row->user_id.'" class="btn btn-primary btn-sm editUser"><i class="fas fa-edit"></i> Edit User</a> ';
+                    $btn .= '<a href="javascript:void(0)" data-voucher-id="'.$row->voucher_id.'" class="btn btn-warning btn-sm unclaimVoucher"><i class="fas fa-unlink"></i> Lepas Klaim</a>';
+                    return $btn;
+                })
+                ->rawColumns(['aksi'])
+                ->make(true);
+        }
+    }
+
+    /**
+     * FUNGSI UPDATE: Mengupdate data user yang telah klaim voucher.
+     */
+    public function updateUser(Request $request, $user_id)
+    {
+        // Validasi input, pastikan email unik tapi abaikan email user saat ini
+        $validator = Validator::make($request->all(), [
+            'nama'      => 'required|string|max:191',
+            'usaha'     => 'nullable|string|max:191',
+            'email'     => 'required|email|max:191|unique:myads_user,email,' . $user_id,
+            'nomor_hp'  => 'nullable|string|max:32',
+        ], [
+            'nama.required' => 'Nama wajib diisi.',
+            'email.required'=> 'Email wajib diisi.',
+            'email.unique'  => 'Email ini sudah digunakan oleh user lain.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Cari user berdasarkan ID
+        $user = DB::table('myads_user')->where('id', $user_id)->first();
+        if (!$user) {
+            return response()->json(['error' => 'Data user tidak ditemukan.'], 404);
+        }
+
+        // Update data di tabel myads_user
+        DB::table('myads_user')->where('id', $user_id)->update([
+            'nama'       => $request->nama,
+            'usaha'      => $request->usaha,
+            'email'      => $request->email,
+            'nomor_hp'   => $request->nomor_hp,
+            'updated_at' => Carbon::now(),
+        ]);
+
+        return response()->json(['success' => 'Data user berhasil diperbarui.']);
+    }
+
+    /**
+     * FUNGSI DELETE: Melepaskan klaim voucher dari user (user_id di-set NULL).
+     */
+    public function unclaimVoucher($voucher_id)
+    {
+        // Cari voucher berdasarkan ID-nya
+        $voucher = DB::table('myads_voucher')->where('id', $voucher_id)->first();
+
+        if (!$voucher) {
+            return response()->json(['error' => 'Data voucher tidak ditemukan.'], 404);
+        }
+
+        // Set kolom user_id menjadi NULL
+        DB::table('myads_voucher')->where('id', $voucher_id)->update([
+            'user_id' => null,
+            'updated_at' => Carbon::now(),
+        ]);
+
+        return response()->json(['success' => 'Klaim voucher berhasil dilepaskan.']);
+    }
+    public function downloadVouchers()
+    {
+        // 1. Tentukan nama file
+        $fileName = 'claimed_vouchers_' . Carbon::now()->format('Y-m-d') . '.csv';
+
+        // 2. Tentukan header untuk file CSV
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        // 3. Kolom yang akan ada di file CSV
+        $columns = ['Tanggal Daftar', 'Nama', 'Usaha', 'Email', 'Nomor HP', 'Kode Voucher'];
+
+        // 4. Buat callback untuk streaming data
+        $callback = function() use($columns) {
+            // Buka output stream
+            $file = fopen('php://output', 'w');
+            
+            // Tulis baris header ke file CSV dengan delimiter ~
+            fputcsv($file, $columns, '~');
+
+            // Ambil data dari database
+            $data = DB::table('myads_voucher as mv')
+                ->join('myads_user as mu', 'mv.user_id', '=', 'mu.id')
+                ->whereNotNull('mv.user_id')
+                ->select(
+                    'mu.created_at',
+                    'mu.nama',
+                    'mu.usaha',
+                    'mu.email',
+                    'mu.nomor_hp',
+                    'mv.voucher'
+                )
+                ->orderBy('mu.created_at', 'desc')
+                ->get();
+
+            // Tulis setiap baris data ke file CSV
+            foreach ($data as $row) {
+                $rowData = [
+                    Carbon::parse($row->created_at)->format('Y-m-d H:i:s'),
+                    $row->nama,
+                    $row->usaha,
+                    $row->email,
+                    $row->nomor_hp,
+                    $row->voucher,
+                ];
+                fputcsv($file, $rowData, '~');
+            }
+
+            // Tutup output stream
+            fclose($file);
+        };
+
+        // 5. Kembalikan response sebagai file download
+        return response()->stream($callback, 200, $headers);
+    }
+
 }

@@ -177,7 +177,7 @@
 
         <div class="card-header">
 
-            <h3 style="font-weight: bold" class="card-title">DATA GFORM PADI UMKM X MYADS</h3>
+            <h3 style="font-weight: bold" class="card-title">DATA GFORM CREATOR PARTNER</h3>
 
         </div>
 
