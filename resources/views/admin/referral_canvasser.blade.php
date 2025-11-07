@@ -136,7 +136,7 @@
 
                         <tr>
                             <th class="text-center">Tanggal<br>Isi Form</th>
-                            <th class="text-center">Nama Canvasser/th>
+                            <th class="text-center">Nama Canvasser</th>
                             <th class="text-center">Email</th>
                             <th class="text-center">No HP</th>
 

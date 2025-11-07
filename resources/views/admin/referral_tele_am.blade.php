@@ -136,10 +136,11 @@
                     <thead>
 
                         <tr>
+                            <th class="text-center">Tanggal<br>Isi Form</th>
                             <th class="text-center">Nama Tele AM</th>
                             <th class="text-center">Email</th>
                             <th class="text-center">No HP</th>
-                            <th class="text-center">Tanggal<br>Isi Form</th>
+                            
 
                         </tr>
 
