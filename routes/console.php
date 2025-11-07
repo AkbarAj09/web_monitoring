@@ -13,6 +13,9 @@ Artisan::command('inspire', function () {
 Schedule::call(function () {
     app(FrontController::class)->refreshSummarySimpatiTiktok();
 })->everyMinute()->name('refreshSummarySimpatiTiktok');
+Schedule::call(function () {
+    app(FrontController::class)->refreshSummaryPadiUmkm();
+})->everyMinute()->name('refreshSummaryPadiUmkm');
 
 Schedule::call(function () {
     app(GetDataController::class)->getDataCreatorPartner();
