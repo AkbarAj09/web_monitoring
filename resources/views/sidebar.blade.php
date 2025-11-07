@@ -12,7 +12,8 @@
                 <span class="badge badge-danger">{{ Str::limit(Auth::user()->name, 25) }}</span><br>
                 @php
                 $user = Auth::user();
-                $isAdmin = $user->role === 'Admin' || $user->role === 'Tsel';
+                $isAdmin = $user->role === 'Admin';
+                $isTsel = $user->role === 'Tsel';
                 $isTreg = $user->role === 'Treg';
                 @endphp
 
@@ -36,7 +37,7 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
                 {{-- ===== ADMIN: bisa akses semua menu (ALL + TREG) ===== --}}
-                @if($isAdmin)
+                @if($isAdmin || $isTsel)
                 <li class="nav-header">ALL DASHBOARD</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.home') }}"
@@ -234,7 +235,7 @@
 
 
                 {{-- ===== Logout untuk semua role yang ditangani di atas ===== --}}
-                @if($isAdmin || $isTreg)
+                @if($isAdmin || $isTreg || $isTsel)
                 <li class="nav-header">LOGOUT</li>
                 <li class="nav-item">
                     <a href="{{ url('logout') }}"
