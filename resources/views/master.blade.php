@@ -334,9 +334,9 @@
 
     <footer class="main-footer text-right">
         <div class="float-left d-none d-sm-block">
-            <b>Version</b> 1.0.1
+            <b>Version</b> 1.3.2
         </div>
-        <strong>&copy; 2025 <a href="/">MoniForm</a></strong>
+        <strong>&copy; 2025 <a href="/">TRACERS</a></strong>
     </footer>
 
 
