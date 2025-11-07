@@ -129,8 +129,8 @@ class FrontController extends Controller
                 DB::raw('MIN(st.created_at) as created_at'),
                 DB::raw('MAX(st.updated_at) as updated_at')
             )
-            ->leftJoin('manajemen_user_register as mur', DB::raw('st.email COLLATE utf8mb4_unicode_ci'), '=', DB::raw('mur.email COLLATE utf8mb4_unicode_ci'))
-            ->leftJoin('revenue as r', DB::raw('mur.reg_id COLLATE utf8mb4_unicode_ci'), '=', DB::raw('r.id_klien COLLATE utf8mb4_unicode_ci'))
+            ->leftJoin('manajemen_user_register as mur', 'st.email', '=', 'mur.email')
+            ->leftJoin('revenue as r', 'mur.reg_id', '=', 'r.id_klien')
             ->where('r.status', 'PAID')
             ->groupBy('st.email')
             ->get();
