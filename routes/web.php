@@ -6,6 +6,7 @@ use App\Http\Controllers\FrontController;
 use App\Http\Controllers\GetDataController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TregController;
+use App\Http\Controllers\HomeController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::post('/login', [BackController::class, 'login'])->name('login');
@@ -41,7 +42,7 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
 });
 
 Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
-    Route::get('/admin/home', [FrontController::class, 'homeAdmin'])->name('admin.home');
+    Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
 
     Route::get('/upload-file-myads', [FrontController::class, 'uploadMyAds'])->name('admin.upload');
     Route::post('/store-csv-myads', [BackController::class, 'storeUploadMyAds'])->name('upload.myads.store');
