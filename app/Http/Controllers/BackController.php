@@ -389,7 +389,7 @@ class BackController extends Controller
                 }
             }
 
-            if ($adaTierBronze) $bintang+=2;
+            if ($adaTierBronze) $bintang += 2;
 
             // Rule 3: ada akun rekruter yang topup >= 1jt pada bulan ini?
             if ((int)$areaRow->max_topup_bulan_ini >= 1000000) {
@@ -442,7 +442,7 @@ class BackController extends Controller
 
         // Menghitung voucher yang sudah diklaim (user_id tidak null)
         $totalClaimed = DB::table('myads_voucher')->whereNotNull('user_id')->count();
-        
+
         // Menghitung sisa voucher yang belum diklaim
         $totalNotClaimed = $totalVoucher - $totalClaimed;
 
@@ -464,22 +464,22 @@ class BackController extends Controller
                 ->orderBy('created_at', 'desc'); // Mengurutkan dari yang terbaru
 
             return DataTables::of($data)
-                ->addColumn('status_klaim', function($row){
+                ->addColumn('status_klaim', function ($row) {
                     // Logika untuk menampilkan status klaim
-                    if ($row->user_id) { 
+                    if ($row->user_id) {
                         return 'claimed'; // Kirim 'claimed' jika sudah diklaim
                     }
                     return 'not_claimed'; // Kirim 'not_claimed' jika belum
                 })
-                ->addColumn('aksi', function($row){
-                // Menambahkan tombol Edit dan Hapus dengan ikon di setiap baris
-                $btn = '<a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-primary btn-sm editVoucher"><i class="fas fa-edit"></i> Edit</a> ';
-                $btn .= '<a href="javascript:void(0)" data-id="'.$row->id.'" class="btn btn-danger btn-sm hapusVoucher"><i class="fas fa-trash-alt"></i> Hapus</a>';
-                return $btn;
-            })
+                ->addColumn('aksi', function ($row) {
+                    // Menambahkan tombol Edit dan Hapus dengan ikon di setiap baris
+                    $btn = '<a href="javascript:void(0)" data-id="' . $row->id . '" class="btn btn-primary btn-sm editVoucher"><i class="fas fa-edit"></i> Edit</a> ';
+                    $btn .= '<a href="javascript:void(0)" data-id="' . $row->id . '" class="btn btn-danger btn-sm hapusVoucher"><i class="fas fa-trash-alt"></i> Hapus</a>';
+                    return $btn;
+                })
                 ->rawColumns(['aksi']) // Memberitahu DataTables bahwa kolom 'aksi' berisi HTML
                 ->make(true);
-                }
+        }
     }
 
     /**
@@ -567,7 +567,7 @@ class BackController extends Controller
         if (!$voucher) {
             return response()->json(['error' => 'Data voucher tidak ditemukan.'], 404);
         }
-        
+
         // Hapus data dari database
         DB::table('myads_voucher')->where('id', $id)->delete();
 
@@ -594,8 +594,8 @@ class BackController extends Controller
             return DataTables::of($data)
                 ->addColumn('aksi', function ($row) {
                     // Tombol Edit merujuk pada user_id, Tombol Hapus merujuk pada voucher_id
-                    $btn = '<a href="javascript:void(0)" data-user-id="'.$row->user_id.'" class="btn btn-primary btn-sm editUser"><i class="fas fa-edit"></i> Edit User</a> ';
-                    $btn .= '<a href="javascript:void(0)" data-voucher-id="'.$row->voucher_id.'" class="btn btn-warning btn-sm unclaimVoucher"><i class="fas fa-unlink"></i> Lepas Klaim</a>';
+                    $btn = '<a href="javascript:void(0)" data-user-id="' . $row->user_id . '" class="btn btn-primary btn-sm editUser"><i class="fas fa-edit"></i> Edit User</a> ';
+                    $btn .= '<a href="javascript:void(0)" data-voucher-id="' . $row->voucher_id . '" class="btn btn-warning btn-sm unclaimVoucher"><i class="fas fa-unlink"></i> Lepas Klaim</a>';
                     return $btn;
                 })
                 ->rawColumns(['aksi'])
@@ -616,7 +616,7 @@ class BackController extends Controller
             'nomor_hp'  => 'nullable|string|max:32',
         ], [
             'nama.required' => 'Nama wajib diisi.',
-            'email.required'=> 'Email wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
             'email.unique'  => 'Email ini sudah digunakan oleh user lain.',
         ]);
 
@@ -680,10 +680,10 @@ class BackController extends Controller
         $columns = ['Tanggal Daftar', 'Nama', 'Usaha', 'Email', 'Nomor HP', 'Kode Voucher'];
 
         // 4. Buat callback untuk streaming data
-        $callback = function() use($columns) {
+        $callback = function () use ($columns) {
             // Buka output stream
             $file = fopen('php://output', 'w');
-            
+
             // Tulis baris header ke file CSV dengan delimiter ~
             fputcsv($file, $columns, '~');
 
@@ -722,5 +722,5 @@ class BackController extends Controller
         // 5. Kembalikan response sebagai file download
         return response()->stream($callback, 200, $headers);
     }
-
+    
 }

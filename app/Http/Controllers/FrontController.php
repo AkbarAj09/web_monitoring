@@ -18,6 +18,8 @@ class FrontController extends Controller
                 return redirect('/home');
             } else if ('TL' == Auth::user()->role) {
                 return redirect('/loglogin');
+            } else if ('Treg' == Auth::user()->role) {
+                return redirect()->route('race_summary_treg');
             } else {
                 return redirect('/admin/home');
             }
@@ -234,5 +236,12 @@ class FrontController extends Controller
     }
     public function claimedVoucher(){
         return view('admin.user_voucher');
+    }
+    public function akuisisiVoucherTreg(){
+        return view('treg.race_akuisisi');
+    }
+    
+    public function raceSummaryTreg(){
+        return view('treg.race_summary');
     }
 }
