@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BackController;
 use App\Http\Controllers\FrontController;
 use App\Http\Controllers\GetDataController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\TregController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::post('/login', [BackController::class, 'login'])->name('login');
@@ -27,6 +29,16 @@ Route::get('/summary-tiktok', [FrontController::class, 'refreshSummarySimpatiTik
 
 
 Route::get('/logout', [FrontController::class, 'logout'])->name('logout');
+
+Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
+    Route::get('/monitoring-akuisisi-treg', [FrontController::class, 'akuisisiVoucherTreg'])->name('monitoring_akuisisi_treg');
+    Route::get('/race-summary-treg', [FrontController::class, 'raceSummaryTreg'])->name('race_summary_treg');
+    Route::get('/get-akuisisi-data', [TregController::class, 'getDetailAkuisisi'])->name('akuisisi_data');
+    Route::get('/get-treg-summary-data', [TregController::class, 'getTregSummaryData'])->name('treg_summary_data');
+    Route::post('/upload-voucher-csv', [TregController::class, 'uploadCsv'])->name('upload.voucher.csv');
+    Route::get('/download-format-voucher-treg', [TregController::class, 'downloadFormatVoucherTreg'])
+    ->name('download.format.voucher.treg');
+});
 
 Route::middleware(['auth', 'checkrole:Admin'])->group(function () {
     Route::get('/admin/home', [FrontController::class, 'homeAdmin'])->name('admin.home');
@@ -111,6 +123,13 @@ Route::middleware(['auth', 'checkrole:Admin'])->group(function () {
      */
     Route::delete('/unclaim/{voucher_id}', [BackController::class, 'unclaimVoucher'])->name('unclaim');
 });
+
+    Route::get('/users', [UserController::class, 'index'])->name('users.page');
+    Route::get('/users-data', [UserController::class, 'getUsers'])->name('users.data');
+    Route::post('/users-store', [UserController::class, 'storeUser'])->name('users.store');
+    Route::get('/users-edit/{id}', [UserController::class, 'editUser'])->name('users.edit');
+    Route::post('/users-update/{id}', [UserController::class, 'updateUser'])->name('users.update');
+    Route::post('/users-delete/{id}', [UserController::class, 'deleteUser'])->name('users.delete');
 
     // Sultam Racing
     Route::get('/monitoring-sultam-racing', [FrontController::class, 'monitoringSultamRacing'])->name('admin.monitoring.sultam_racing');

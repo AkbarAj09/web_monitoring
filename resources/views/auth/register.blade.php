@@ -30,7 +30,7 @@
 <body class="hold-transition register-page">
     <div class="register-box">
         <div class="register-logo">
-            <a href="#"><b>MoniForm</b>Tambah User</a>
+            <a href="#"><b>Tracers</b>Tambah User</a>
         </div>
 
         <div class="card">
