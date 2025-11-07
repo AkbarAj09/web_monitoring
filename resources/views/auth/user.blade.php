@@ -198,6 +198,7 @@
                         <select class="form-control" id="role" name="role" required>
                             <option value="">Pilih Role</option>
                             <option value="Admin">Admin</option>
+                            <option value="Tsel">Tsel</option>
                             <option value="Treg">Treg</option>
                         </select>
                     </div>
@@ -285,7 +286,14 @@
                     name: 'role',
                     orderable: true,
                     render: function(data) {
-                        let badgeClass = data === 'Admin' ? 'badge-danger' : 'badge-info';
+                        let badgeClass = '';
+                        if (data === 'Admin') {
+                            badgeClass = 'badge-danger';
+                        } else if (data === 'Tsel') {
+                            badgeClass = 'badge-success';
+                        } else if (data === 'Treg') {
+                            badgeClass = 'badge-info';
+                        }
                         return `<div style="text-align: center;"><span class="badge ${badgeClass}">${data}</span></div>`;
                     }
                 },
