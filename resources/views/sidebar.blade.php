@@ -12,14 +12,16 @@
                 <span class="badge badge-danger">{{ Str::limit(Auth::user()->name, 25) }}</span><br>
                 @php
                 $user = Auth::user();
-                $isAdmin = $user->role === 'Admin';
+                $isAdmin = $user->role === 'Admin' || $user->role === 'Tsel';
                 $isTreg = $user->role === 'Treg';
                 @endphp
 
                 @if($isAdmin && $user->email === 'admin@telkomsel.co.id')
                 <span class="badge badge-warning">SUPER ADMIN</span>
-                @elseif($isAdmin)
-                <span class="badge badge-warning">ADMIN {{ $user->region }}</span>
+                @elseif($user->role === 'Admin')
+                <span class="badge badge-warning">ADMIN</span>
+                @elseif($user->role === 'Tsel')
+                <span class="badge badge-success">TSEL</span>
                 @elseif($isTreg)
                 @php
                 $treg_name = DB::table('treg')->where('id', $user->treg_id)->value('treg_name');

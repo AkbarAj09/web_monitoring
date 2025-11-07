@@ -78,9 +78,10 @@ class BackController extends Controller
             // 4. Arahkan sesuai role
             switch ($user->role) {
                 case 'Admin':
-                    return redirect()->route('admin.home'); // ganti dengan route admin
                 case 'Tsel':
-                    return redirect()->route('tsel.home'); // ganti dengan route tsel
+                    return redirect()->route('admin.home');
+                case 'Treg':
+                    return redirect()->route('race_summary_treg');
                 default:
                     return redirect()->route('home'); // fallback
             }

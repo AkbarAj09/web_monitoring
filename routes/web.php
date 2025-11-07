@@ -40,7 +40,7 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
     ->name('download.format.voucher.treg');
 });
 
-Route::middleware(['auth', 'checkrole:Admin'])->group(function () {
+Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     Route::get('/admin/home', [FrontController::class, 'homeAdmin'])->name('admin.home');
 
     Route::get('/upload-file-myads', [FrontController::class, 'uploadMyAds'])->name('admin.upload');

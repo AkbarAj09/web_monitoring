@@ -20,6 +20,8 @@ class FrontController extends Controller
                 return redirect('/loglogin');
             } else if ('Treg' == Auth::user()->role) {
                 return redirect()->route('race_summary_treg');
+            } else if (in_array(Auth::user()->role, ['Admin', 'Tsel'])) {
+                return redirect('/admin/home');
             } else {
                 return redirect('/admin/home');
             }
