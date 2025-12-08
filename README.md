@@ -124,12 +124,14 @@ DB_PASSWORD=your_password
 ### External PostgreSQL Database
 Untuk koneksi ke PostgreSQL eksternal, tambahkan di `.env`:
 ```env
-PGSQL_EXT_HOST=34.101.214.131
-PGSQL_EXT_PORT=7382
-PGSQL_EXT_DATABASE=soadb
-PGSQL_EXT_USERNAME=digiads
-PGSQL_EXT_PASSWORD=digiads123
+PGSQL_EXT_HOST=your_postgres_host
+PGSQL_EXT_PORT=your_postgres_port
+PGSQL_EXT_DATABASE=your_database_name
+PGSQL_EXT_USERNAME=your_username
+PGSQL_EXT_PASSWORD=your_password
 ```
+
+**Note**: Hubungi administrator untuk mendapatkan kredensial PostgreSQL yang valid.
 
 Lihat dokumentasi lengkap di `POSTGRESQL_GUIDE.md`
 
