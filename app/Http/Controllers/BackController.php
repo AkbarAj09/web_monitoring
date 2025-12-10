@@ -30,7 +30,7 @@ class BackController extends Controller
         $validated = $request->validate([
             'name' => 'required',
             'nope' => 'required',
-            'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@telkomsel\.co\.id$/'],
+            'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'],
             'role' => 'required|in:Admin,Tsel',
         ]);
         $data = [
@@ -56,7 +56,8 @@ class BackController extends Controller
             'email' => [
                 'required',
                 'email',
-                'regex:/^[a-zA-Z0-9._%+-]+@telkomsel\.co\.id$/', // hanya email @telkomsel.co.id
+                // 'regex:/^[a-zA-Z0-9._%+-]+@telkomsel\.co\.id$/', // hanya email @telkomsel.co.id
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', // semua domain
             ],
             'password' => 'required',
         ], [
@@ -74,6 +75,7 @@ class BackController extends Controller
                     'email' => 'Akun Anda belum aktif.',
                 ])->withInput();
             }
+                        // dd($user->role);
 
             // 4. Arahkan sesuai role
             switch ($user->role) {
@@ -82,6 +84,8 @@ class BackController extends Controller
                     return redirect()->route('admin.home');
                 case 'Treg':
                     return redirect()->route('race_summary_treg');
+                case 'Canvasser':
+                    return redirect()->route('leads-master.index');
                 default:
                     return redirect()->route('home'); // fallback
             }

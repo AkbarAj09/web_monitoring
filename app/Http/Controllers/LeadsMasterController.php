@@ -1,0 +1,190 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\LeadsMaster;
+use App\Models\LeadsSource;
+use App\Models\Sector;
+use Illuminate\Validation\Rule; 
+use DataTables;
+use Validator;
+
+class LeadsMasterController extends Controller
+{
+    /**
+     * Show the leads master view
+     */
+    public function index()
+    {
+        return view('leads-master.index');
+    }
+
+    /**
+     * Datatable server-side response
+     */
+    public function data(Request $request)
+    {
+        // Load relasi supaya tidak error "undefined relationship"
+        $query = LeadsMaster::with(['user', 'source', 'sector'])->orderBy('created_at', 'asc');
+        
+        // Filter based on role
+        if (!auth()->user()->hasRole('Admin')) { // assuming you use a role system
+            $query->where('user_id', auth()->id());
+        }
+
+        return datatables()->of($query)
+            ->addColumn('user_name', function($row){
+                return $row->user->name ?? '-';
+            })
+            ->addColumn('company_name', fn($row) => $row->company_name ?? '-')
+            ->addColumn('email', fn($row) => $row->email ?? '-')
+            ->addColumn('mobile_phone', fn($row) => $row->mobile_phone)
+            // ->addColumn('kode_voucher', fn($row) => $row->kode_voucher)
+            ->addColumn('source_name', fn($row) => $row->source->name ?? '-')
+            ->addColumn('sector_name', fn($row) => $row->sector->name ?? '-')
+           ->addColumn('status', function($row){
+                return $row->status == 1
+                    ? '<span class="badge badge-ok">Ok</span>'
+                    : '<span class="badge badge-no">No</span>';
+            })
+            ->addColumn('aksi', function($row){
+                return '
+                    <a href="'.route('leads-master.show', $row->id).'" class="btn btn-sm btn-warning" title="Lihat">
+                        <i class="fas fa-search"></i> Lihat
+                    </a>
+                    <a href="'.route('leads-master.edit', $row->id).'" class="btn btn-sm btn-primary" title="Edit">
+                        <i class="fas fa-pencil-alt"></i> Edit
+                    </a>
+                ';
+            })
+            ->rawColumns(['aksi'])
+
+            ->rawColumns(['aksi', 'status'])
+            ->make(true);
+    }
+
+    public function create()
+    {
+        $leadSources = LeadsSource::all();
+        $sectors = Sector::all();
+
+        return view('leads-master.create', compact('leadSources', 'sectors'));
+    }
+
+    public function store(Request $request)
+    {
+        // Custom validation rules
+        $rules = [
+            'user_id' => 'required|exists:users,id',
+            'source_id' => 'required|exists:leads_source,id',
+            'sector_id' => 'nullable|exists:sectors,id',
+            // 'kode_voucher' => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'mobile_phone' => [
+                'required',
+                'string',
+                'max:20',
+                'regex:/^62\d{9,12}$/',
+                'unique:leads_master,mobile_phone',
+            ],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                'unique:leads_master,email',
+            ],
+            // 'status' => 'required|in:Ok,No',
+            'nama' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:1000',
+            'remarks' => 'nullable|string|max:1000',
+        ];
+
+        $messages = [
+            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka.',
+            'mobile_phone.unique' => 'Nomor HP sudah terdaftar.',
+            'email.unique' => 'Email sudah terdaftar.',
+        ];
+
+        $validated = $request->validate($rules, $messages);
+
+        // $statusValue = $validated['status'] === 'Ok' ? 1 : 0;
+        $statusValue = 1; // Default ke 1 (Yes) karena field status di form disembunyikan
+        LeadsMaster::create([
+            'user_id' => $validated['user_id'],
+            'source_id' => $validated['source_id'],
+            'sector_id' => $validated['sector_id'] ?? null,
+            // 'kode_voucher' => $validated['kode_voucher'],
+            'company_name' => $validated['company_name'] ?? null,
+            'mobile_phone' => $validated['mobile_phone'],
+            'email' => $validated['email'] ?? null,
+            'status' => $statusValue,  // simpan 1 untuk Ok, 0 untuk No
+            'nama' => $validated['nama'],
+            'address' => $validated['address'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
+        ]);
+
+
+        return redirect()->route('leads-master.index')->with('success', 'Leads baru berhasil disimpan.');
+    }
+
+    public function show($id)
+    {
+        // Load lead beserta relasi
+        $lead = LeadsMaster::with(['user', 'source', 'sector'])->findOrFail($id);
+
+        return view('leads-master.show', compact('lead'));
+    }
+
+    public function edit(LeadsMaster $lead)
+    {
+        
+        $leadSources = LeadsSource::all();
+        $sectors = Sector::all();
+        return view('leads-master.edit', compact('lead', 'leadSources', 'sectors'));
+    }
+
+    public function update(Request $request, LeadsMaster $lead)
+    {
+        $lead = LeadsMaster::findOrFail($lead->id);
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'source_id' => 'required|exists:leads_source,id',
+            'sector_id' => 'nullable|exists:sectors,id',
+            // 'kode_voucher' => 'string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'mobile_phone' => [
+                'required',
+                'string',
+                'max:20',
+                'regex:/^62\d{9,12}$/',
+                Rule::unique('leads_master', 'mobile_phone')->ignore($lead->id),
+            ],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('leads_master', 'email')->ignore($lead->id),
+            ],
+            // 'status' => 'required|in:Ok,No',
+            'nama' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:1000',
+            'remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $lead->update([
+            // 'kode_voucher' => $request->kode_voucher,
+            'company_name' => $request->company_name,
+            'mobile_phone' => $request->mobile_phone,
+            'email' => $request->email,
+            'source_id' => $request->source_id,
+            'nama' => $request->nama,
+            'sector_id' => $request->sector_id,
+            // 'status' => $request->status == 'Ok' ? 1 : 0,
+            'remarks' => $request->remarks,
+        ]);
+
+        return redirect()->route('leads-master.index')->with('success', 'Lead berhasil diupdate');
+    }
+
+}

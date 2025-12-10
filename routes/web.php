@@ -7,6 +7,8 @@ use App\Http\Controllers\GetDataController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TregController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LeadsMasterController;
+use App\Http\Controllers\LogbookController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::post('/login', [BackController::class, 'login'])->name('login');
@@ -135,4 +137,16 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     // Sultam Racing
     Route::get('/monitoring-sultam-racing', [FrontController::class, 'monitoringSultamRacing'])->name('admin.monitoring.sultam_racing');
     Route::get('/get-sultam-racing-data', [BackController::class, 'getSultamRacing'])->name('sultam_racing_data');
+    
+});
+Route::middleware(['auth', 'checkrole:Admin,Canvasser'])->prefix('report')->group(function (){
+    Route::get('leads-master', [LeadsMasterController::class, 'index'])->name('leads-master.index');
+    Route::get('leads-master/create', [LeadsMasterController::class, 'create'])->name('leads-master.create');
+    Route::get('leads-master/data', [LeadsMasterController::class, 'data'])->name('leads-master.data');
+    Route::post('leads-master/store', [LeadsMasterController::class, 'store'])->name('leads-master.store');
+    Route::get('leads-master/{id}', [LeadsMasterController::class, 'show'])->name('leads-master.show');
+    Route::get('leads-master/{lead}/edit', [LeadsMasterController::class, 'edit'])->name('leads-master.edit');
+    Route::put('leads-master/{lead}', [LeadsMasterController::class, 'update'])->name('leads-master.update');
+    
+    Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
 });

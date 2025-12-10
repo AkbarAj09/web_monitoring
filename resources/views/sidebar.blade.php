@@ -15,6 +15,7 @@
                 $isAdmin = $user->role === 'Admin';
                 $isTsel = $user->role === 'Tsel';
                 $isTreg = $user->role === 'Treg';
+                $isCanv = $user->role === 'Canvasser';
                 @endphp
 
                 @if($isAdmin && $user->email === 'admin@telkomsel.co.id')
@@ -141,7 +142,7 @@
                             <a href="{{ route('admin.monitoring.referral_canvasser') }}"
                                 class="nav-link {{ request()->routeIs('admin.monitoring.referral_canvasser') ? 'active' : '' }}" style="padding-left: 45px;">
                                 <i class="fa fa-user-check nav-icon"></i>
-                                <p>Canvaser</p>
+                                <p>Canvasser</p>
                             </a>
                         </li>
                     </ul>
@@ -211,6 +212,21 @@
                 </li>
                 @endif
 
+                <li class="nav-header">Report</li>
+                <li class="nav-item">
+                    <a href="{{ route('leads-master.index') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
+                        <p>Lead Master</p>
+                    </a>
+                </li>                
+                <li class="nav-item">
+                    <a href="{{ route('logbook.index') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-book" style="color:rgb(118, 129, 255);"></i>
+                        <p>New Logbook</p>
+                    </a>
+                </li>
                 {{-- ===== Menu khusus ADMIN ===== --}}
                 @if($isAdmin)
                 <li class="nav-header">Upload File</li>
@@ -235,7 +251,7 @@
 
 
                 {{-- ===== Logout untuk semua role yang ditangani di atas ===== --}}
-                @if($isAdmin || $isTreg || $isTsel)
+                @if($isAdmin || $isTreg || $isTsel || $isCanv)
                 <li class="nav-header">LOGOUT</li>
                 <li class="nav-item">
                     <a href="{{ url('logout') }}"
