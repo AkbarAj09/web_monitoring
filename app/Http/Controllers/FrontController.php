@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 
 class FrontController extends Controller
 {
@@ -47,6 +48,46 @@ class FrontController extends Controller
         Auth::logout();
         // Redirect ke halaman utama
         return redirect('/');
+    }
+    public function changePassword()
+    {
+        // Redirect ke halaman utama
+        return view('auth.change-password');
+    }
+    public function updatePassword(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'current_password' => 'required',
+            'current_password_confirmation' => 'required|same:current_password',
+            'new_password' => 'required|min:6',
+            'new_password_confirmation' => 'required|same:new_password',
+        ]);
+
+        // Verify current password
+        if (!Hash::check($request->current_password, auth()->user()->password)) {
+            // session(['password_attempts' => $attempts + 1]);
+
+            return back()->withErrors([
+                'current_password' => 'Current password is incorrect.'
+            ]);
+        }
+
+
+        // Update password
+        auth()->user()->update([
+            'password' => Hash::make($request->new_password)
+        ]);
+
+        // Logout user after password change
+        Auth::logout();
+
+        // Invalidate session
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Redirect to login with success message
+        return redirect()->route('login')->with('success', 'Password changed successfully. Please login again.');
     }
     public function uploadMyAds()
     {

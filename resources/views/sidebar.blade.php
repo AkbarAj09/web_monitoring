@@ -237,13 +237,26 @@
                         <p>Revenue & Program</p>
                     </a>
                 </li>
+                @endif
 
+                @if($isAdmin || $isTreg || $isTsel || $isCanv)
                 <li class="nav-header">System Management</li>
+                @endif
+                @if($isAdmin)
                 <li class="nav-item">
                     <a href="{{ route('users.page') }}"
                         class="nav-link waves-effect {{ request()->routeIs('users.page') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-users-cog" style="color:#28a745;"></i>
                         <p>Manajemen Users</p>
+                    </a>
+                </li>
+                @endif
+                @if($isAdmin || $isTreg || $isTsel || $isCanv)
+                <li class="nav-item">
+                    <a href="{{ url('change-password') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('change-password') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-key" style="color:rgb(173, 176, 86);"></i>
+                        <p>Change Password</p>
                     </a>
                 </li>
                 @endif

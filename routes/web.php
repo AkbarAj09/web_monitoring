@@ -11,6 +11,7 @@ use App\Http\Controllers\LeadsMasterController;
 use App\Http\Controllers\LogbookController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
+Route::get('/login', [FrontController::class, 'index'])->name('login');
 Route::post('/login', [BackController::class, 'login'])->name('login');
 Route::get('/register', [FrontController::class, 'register'])->name('register');
 Route::post('/register-simpan', [BackController::class, 'registerStore'])->name('register.store');
@@ -31,6 +32,8 @@ Route::get('/summary-padi-umkm', [FrontController::class, 'refreshSummaryPadiUmk
 Route::get('/summary-tiktok', [FrontController::class, 'refreshSummarySimpatiTiktok']);
 
 
+Route::get('/change-password', [FrontController::class, 'changePassword'])->name('change-password');
+Route::post('/change-password', [FrontController::class, 'updatePassword'])->name('password.update');
 Route::get('/logout', [FrontController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){

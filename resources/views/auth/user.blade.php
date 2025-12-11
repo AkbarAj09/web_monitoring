@@ -200,6 +200,7 @@
                             <option value="Admin">Admin</option>
                             <option value="Tsel">Tsel</option>
                             <option value="Treg">Treg</option>
+                            <option value="Canvasser">Canvasser</option>
                         </select>
                     </div>
                     
@@ -293,6 +294,8 @@
                             badgeClass = 'badge-success';
                         } else if (data === 'Treg') {
                             badgeClass = 'badge-info';
+                        } else if (data === 'Canvasser') {
+                            badgeClass = 'badge-secondary';
                         }
                         return `<div style="text-align: center;"><span class="badge ${badgeClass}">${data}</span></div>`;
                     }
