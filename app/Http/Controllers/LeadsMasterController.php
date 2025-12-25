@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LeadsMaster;
 use App\Models\LeadsSource;
+use App\Models\User;
 use App\Models\Sector;
 use Illuminate\Validation\Rule; 
 use DataTables;
@@ -17,7 +18,10 @@ class LeadsMasterController extends Controller
      */
     public function index()
     {
-        return view('leads-master.index');
+        return view('leads-master.index', [
+            'canvassers' => User::orderBy('name')->get(),
+            'sources'    => LeadsSource::orderBy('name')->get(),
+        ]);
     }
 
     /**
@@ -25,41 +29,73 @@ class LeadsMasterController extends Controller
      */
     public function data(Request $request)
     {
-        // Load relasi supaya tidak error "undefined relationship"
-        $query = LeadsMaster::with(['user', 'source', 'sector'])->orderBy('created_at', 'asc');
-        
-        // Filter based on role
-        if (!auth()->user()->hasRole('Admin')) { // assuming you use a role system
+        // Base query + eager loading
+        $query = LeadsMaster::with(['user', 'source', 'sector'])
+            ->orderBy('created_at', 'asc');
+
+        // 🔐 Filter berdasarkan role
+        if (!auth()->user()->hasRole('Admin')) {
             $query->where('user_id', auth()->id());
         }
 
+        // =======================
+        // 🔍 FILTER DARI DATATABLE
+        // =======================
+
+        // Filter Canvasser
+        if ($request->canvasser) {
+            $query->where('user_id', $request->canvasser);
+        }
+
+        // Filter Nama Perusahaan
+        if ($request->company) {
+            $query->where('company_name', 'like', '%' . $request->company . '%');
+        }
+
+        // Filter Email
+        if ($request->email) {
+            $query->where('email', 'like', '%' . $request->email . '%');
+        }
+
+        // Filter Lead Source (relasi)
+        if ($request->source) {
+            $query->whereHas('source', function ($q) use ($request) {
+                $q->where('id', $request->source);
+            });
+        }
+
         return datatables()->of($query)
-            ->addColumn('user_name', function($row){
+            ->addColumn('user_name', function ($row) {
                 return $row->user->name ?? '-';
             })
-            ->addColumn('company_name', fn($row) => $row->company_name ?? '-')
-            ->addColumn('email', fn($row) => $row->email ?? '-')
-            ->addColumn('mobile_phone', fn($row) => $row->mobile_phone)
-            // ->addColumn('kode_voucher', fn($row) => $row->kode_voucher)
-            ->addColumn('source_name', fn($row) => $row->source->name ?? '-')
-            ->addColumn('sector_name', fn($row) => $row->sector->name ?? '-')
-           ->addColumn('status', function($row){
-                return $row->status == 1
-                    ? '<span class="badge badge-ok">Ok</span>'
-                    : '<span class="badge badge-no">No</span>';
+            ->addColumn('company_name', function ($row) {
+                return $row->company_name ?? '-';
             })
-            ->addColumn('aksi', function($row){
+            ->addColumn('email', function ($row) {
+                return $row->email ?? '-';
+            })
+            ->addColumn('mobile_phone', function ($row) {
+                return $row->mobile_phone ?? '-';
+            })
+            ->addColumn('source_name', function ($row) {
+                return $row->source->name ?? '-';
+            })
+            ->addColumn('sector_name', function ($row) {
+                return $row->sector->name ?? '-';
+            })
+            ->addColumn('status', function ($row) {
+                return $row->status == 1 ? '<span class="badge badge-ok">Ok</span>' : '<span class="badge badge-no">No</span>';
+            })
+            ->addColumn('aksi', function ($row) {
                 return '
-                    <a href="'.route('leads-master.show', $row->id).'" class="btn btn-sm btn-warning" title="Lihat">
+                    <a href="' . route('leads-master.show', $row->id) . '" class="btn btn-sm btn-warning">
                         <i class="fas fa-search"></i> Lihat
                     </a>
-                    <a href="'.route('leads-master.edit', $row->id).'" class="btn btn-sm btn-primary" title="Edit">
+                    <a href="' . route('leads-master.edit', $row->id) . '" class="btn btn-sm btn-primary">
                         <i class="fas fa-pencil-alt"></i> Edit
                     </a>
                 ';
             })
-            ->rawColumns(['aksi'])
-
             ->rawColumns(['aksi', 'status'])
             ->make(true);
     }

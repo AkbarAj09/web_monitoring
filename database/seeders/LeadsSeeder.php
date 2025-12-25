@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\LeadsMaster;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class LeadsSeeder extends Seeder
 {
@@ -86,8 +87,9 @@ class LeadsSeeder extends Seeder
         $user = User::firstOrCreate(
             ['name' => $name],
             [
-                'email' => strtolower(str_replace(' ', '.', $name)) . '@auto.local',
+                'email' => strtolower(str_replace(' ', '.', $name)) . '@gmail.com',
                 'password' => Hash::make('123456'),
+                'role' =>'Canvasser',
             ]
         );
 
