@@ -220,13 +220,13 @@
                         <p>Lead Master</p>
                     </a>
                 </li>                
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a href="{{ route('logbook.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-book" style="color:rgb(118, 129, 255);"></i>
                         <p>New Logbook</p>
                     </a>
-                </li>
+                </li> --}}
                 {{-- ===== Menu khusus ADMIN ===== --}}
                 @if($isAdmin)
                 <li class="nav-header">Upload File</li>
