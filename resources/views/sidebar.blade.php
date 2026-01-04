@@ -220,6 +220,13 @@
                         <p>Lead Master</p>
                     </a>
                 </li>                
+                <li class="nav-item">
+                    <a href="{{ route('leads-master.index') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
+                        <p>Topup & Client Canvasser</p>
+                    </a>
+                </li>   
                 {{-- <li class="nav-item">
                     <a href="{{ route('logbook.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">

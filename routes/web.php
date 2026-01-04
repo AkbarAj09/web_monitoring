@@ -152,4 +152,7 @@ Route::middleware(['auth', 'checkrole:Admin,Canvasser'])->prefix('report')->grou
     Route::put('leads-master/{lead}', [LeadsMasterController::class, 'update'])->name('leads-master.update');
     
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
+
+    Route::get('topup-canvasser', [ReportTopupController::class, 'topupCanvasser'])->name('topup-canvasser');
+
 });
