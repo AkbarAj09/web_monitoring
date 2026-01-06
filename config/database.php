@@ -85,17 +85,17 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '34.101.214.131'),
-            'port' => env('DB_PORT', '7382'),
-            'database' => env('DB_DATABASE', 'soadb'),
-            'username' => env('DB_USERNAME', 'digiads'),
-            'password' => env('DB_PASSWORD', 'digiads123'),
-            'charset' => env('DB_CHARSET', 'utf8'),
+            'url' => env('PGSQL_URL'),
+            'host' => env('PGSQL_HOST', '127.0.0.1'),
+            'port' => env('PGSQL_PORT', '5432'),
+            'database' => env('PGSQL_DATABASE', 'forge'),
+            'username' => env('PGSQL_USERNAME', 'forge'),
+            'password' => env('PGSQL_PASSWORD', ''),
+            'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => env('PGSQL_SSLMODE', 'prefer'),
         ],
 
         'sqlsrv' => [

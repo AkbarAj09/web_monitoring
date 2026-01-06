@@ -2,13 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use App\Models\LeadsMaster;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use App\Models\LeadsMaster;
+use App\Models\User;
 
 class LeadsSeeder extends Seeder
 {
@@ -38,44 +36,48 @@ class LeadsSeeder extends Seeder
                 $remarks
             ] = array_pad($row, 11, null);
 
-            if (!$company || !$phone) {
-                continue;
+            // -----------------------------
+            // Normalize & fallback values
+            // -----------------------------
+            $normalizedPhone = $this->normalizePhone($phone);
+            if ($normalizedPhone === '' || $normalizedPhone === null) {
+                $normalizedPhone = '-';
             }
 
-            // Duplicate leads
-            if (
-                LeadsMaster::where('mobile_phone', $this->normalizePhone($phone))
-                    ->orWhere('email', $email)
-                    ->exists()
-            ) {
-                continue;
+            if (empty($email)) {
+                $email = '-';
             }
 
             $userId   = $this->getUserIdByName($handledBy);
             $sourceId = $this->getSourceIdByName($source);
 
+            // -----------------------------
+            // INSERT (NO SKIP)
+            // -----------------------------
             LeadsMaster::create([
                 'user_id'      => $userId,
                 'source_id'    => $sourceId,
                 'sector_id'    => 1,
-                'kode_voucher' => $kodeVoucher,
-                'company_name' => $company,
-                'mobile_phone' => $this->normalizePhone($phone),
+                'kode_voucher' => $kodeVoucher ?: '-',
+                'company_name' => $company ?: '-',
+                'mobile_phone' => $normalizedPhone,
                 'email'        => $email,
-                'status'       => str_contains($cek, 'OK') ? 1 : 0,
-                'nama'         => $nama,
-                'remarks'      => $remarks,
+                'status'       => str_contains($cek ?? '', 'OK') ? 1 : 0,
+                'nama'         => $nama ?: '-',
+                'remarks'      => $remarks ?: '-',
             ]);
         }
 
         fclose($handle);
     }
 
-    // 🔑 USER
+    // ----------------------------------
+    // USER (always returns valid ID)
+    // ----------------------------------
     private function getUserIdByName(?string $name): int
     {
-        if (!$name) {
-            return 1;
+        if (empty($name)) {
+            return 1; // default user
         }
 
         $name = trim($name);
@@ -87,20 +89,22 @@ class LeadsSeeder extends Seeder
         $user = User::firstOrCreate(
             ['name' => $name],
             [
-                'email' => strtolower(str_replace(' ', '.', $name)) . '@gmail.com',
+                'email'    => strtolower(str_replace(' ', '.', $name)) . '@gmail.com',
                 'password' => Hash::make('123456'),
-                'role' =>'Canvasser',
+                'role'     => 'Canvasser',
             ]
         );
 
         return $this->userCache[$name] = $user->id;
     }
 
-    // 🔑 LEADS SOURCE (MATCHES LeadSourceSeeder)
+    // ----------------------------------
+    // SOURCE (always returns valid ID)
+    // ----------------------------------
     private function getSourceIdByName(?string $name): int
     {
-        if (!$name) {
-            return 1; // default: Data Sendiri
+        if (empty($name)) {
+            return 1; // Data Sendiri
         }
 
         $name = trim($name);
@@ -113,13 +117,18 @@ class LeadsSeeder extends Seeder
             ->where('name', $name)
             ->first();
 
-        // fallback if source not found
         return $this->sourceCache[$name] = $source?->id ?? 1;
     }
 
-    private function normalizePhone($phone)
+    // ----------------------------------
+    // PHONE NORMALIZER
+    // ----------------------------------
+    private function normalizePhone($phone): ?string
     {
+        if (empty($phone)) {
+            return null;
+        }
+
         return preg_replace('/[^0-9]/', '', $phone);
     }
 }
-

@@ -1,5 +1,5 @@
 @extends('master')
-@section('title') Leads Master @endsection
+@section('title') Topup Client Canvasser @endsection
 
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
@@ -22,73 +22,67 @@
         user-select: none;
     }
     .text-danger { font-size: 13px; }
+
+    /* Optional: limit max width and enable horizontal scroll */
+    .dataTables_wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    table.dataTable th,
+    table.dataTable td {
+        white-space: nowrap; /* prevent wrapping */
+    }
 </style>
 @endsection
 
 @section('content')
-<div class="card">
-    <div class="card-header">
-        <h4 class="font-weight-bold">Leads Master</h4>
-    </ div>
+<div class="container">
+    <h2>Topup & Client Canvasser</h2>
 
-    <div class="card-body">
+    <table id="topupCanvasserTable" border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse; text-align: center;">
+        <thead>
+            <tr style="background-color: #007bff; color: white;">
+                <th rowspan="2">Date</th>
 
-        {{-- FILTER --}}
-        <div class="row mb-3">
-            <div class="col-md-3">
-                <label>Canvasser</label>
-                <select id="filter_canvasser" class="form-control select2">
-                    <option value="">-- Semua --</option>
-                    @foreach($canvassers as $c)
-                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @foreach ($canvassers as $canvasser)
+                    <th colspan="2">{{ $canvasser }}</th>
+                @endforeach
+
+                <th colspan="2">Grand total</th>
+            </tr>
+            <tr style="background-color: #007bff; color: white;">
+                @foreach ($canvassers as $_)
+                    <th>total_settlement_klien</th>
+                    <th>email</th>
+                @endforeach
+                <th>total_settlement_klien</th>
+                <th>email</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach ($data as $row)
+                <tr @if($loop->iteration % 2 == 0) style="background-color: #f0f0f0;" @endif>
+                    <td style="text-align: left; padding-left: 10px;">{{ $row['tanggal'] }}</td>
+
+                    @foreach ($canvassers as $c)
+                        <td style="text-align: right; padding-right: 10px;">
+                            {{ is_numeric($row[$c.'_amount']) ? number_format($row[$c.'_amount'], 0, '.', ',') : $row[$c.'_amount'] }}
+                        </td>
+                        <td>{{ $row[$c.'_email'] }}</td>
                     @endforeach
-                </select>
-            </div>
 
-            <div class="col-md-3">
-                <label>Nama Perusahaan</label>
-                <input type="text" id="filter_company" class="form-control" placeholder="Cari perusahaan">
-            </div>
-
-            <div class="col-md-3">
-                <label>Email</label>
-                <input type="text" id="filter_email" class="form-control" placeholder="Cari email">
-            </div>
-
-            <div class="col-md-3">
-                <label>Lead Source</label>
-                <select id="filter_source" class="form-control select2">
-                    <option value="">-- Semua --</option>
-                    @foreach($sources as $s)
-                        <option value="{{ $s->id }}">{{ $s->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-<div class="d-flex justify-content-end mb-3"> <a href="{{ route('leads-master.create') }}" class="btn btn-info" id="btn-add-lead"> <i class="fas fa-plus"></i> Tambah Leads </a> </div>
-        {{-- TABLE --}}
-        <div class="table-responsive">
-            <table class="table table-bordered table-sm" id="leadsMasterTable">
-                <thead class="bg-dark text-white">
-                    <tr>
-                        <th>Canvasser</th>
-                        <th>Perusahaan</th>
-                        <th>No HP</th>
-                        <th>Email</th>
-                        <th>Lead Source</th>
-                        <th>Nama</th>
-                        <th>Sector</th>
-                        <th>Status</th>
-                        <th>Remarks</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-    </div>
+                    <td style="text-align: right; font-weight: bold; padding-right: 10px;">
+                        {{ is_numeric($row['total_amount']) ? number_format($row['total_amount'], 0, '.', ',') : $row['total_amount'] }}
+                    </td>
+                    <td style="font-weight: bold;">{{ $row['total_email'] }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
 </div>
+
 @endsection
 
 @section('js')
@@ -97,43 +91,20 @@
 
 <script>
 $(function () {
-
     $('.select2').select2({ width: '100%' });
 
-    let table = $('#leadsMasterTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: "{{ route('leads-master.data') }}",
-            data: function (d) {
-                d.canvasser = $('#filter_canvasser').val();
-                d.company   = $('#filter_company').val();
-                d.email     = $('#filter_email').val();
-                d.source    = $('#filter_source').val();
-            }
-        },
-        columns: [
-            { data: 'user_name' },
-            { data: 'company_name' },
-            { data: 'mobile_phone' },
-            { data: 'email' },
-            { data: 'source_name' },
-            { data: 'nama' },
-            { data: 'sector_name' },
-            { data: 'status', orderable:false, searchable:false },
-            { data: 'remarks' },
-            { data: 'aksi', orderable:false, searchable:false }
-        ]
+    $('#topupCanvasserTable').DataTable({
+        scrollX: true,
+        paging: false,
+        searching: false,
+        info: false,
+        ordering: false,
+        // Optional: fixed header
+        // fixedHeader: true,
+        language: {
+            emptyTable: "No data available"
+        }
     });
-
-    $('#filter_canvasser, #filter_source').on('change', function () {
-        table.ajax.reload();
-    });
-
-    $('#filter_company, #filter_email').on('keyup', function () {
-        table.ajax.reload();
-    });
-
 });
 </script>
 @endsection

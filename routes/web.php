@@ -9,6 +9,7 @@ use App\Http\Controllers\TregController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LeadsMasterController;
 use App\Http\Controllers\LogbookController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::get('/login', [FrontController::class, 'index'])->name('login');
@@ -153,6 +154,7 @@ Route::middleware(['auth', 'checkrole:Admin,Canvasser'])->prefix('report')->grou
     
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
 
-    Route::get('topup-canvasser', [ReportTopupController::class, 'topupCanvasser'])->name('topup-canvasser');
+    Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
+    Route::get('region-target', [ReportController::class, 'reportRegionTargetVsTopup'])->name('region-target');
 
 });
