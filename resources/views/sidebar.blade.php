@@ -223,14 +223,14 @@
                 <li class="nav-item">
                     <a href="{{ route('topup-canvasser') }}"
                         class="nav-link waves-effect {{ request()->routeIs('topup-canvasser') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
+                        <i class="nav-icon fa-solid fa-money-bill" style="color:rgb(80, 255, 80);"></i>
                         <p>Topup & Client Canvasser</p>
                     </a>
                 </li>          
                 <li class="nav-item">
                     <a href="{{ route('region-target') }}"
                         class="nav-link waves-effect {{ request()->routeIs('region-target') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
+                        <i class="nav-icon fa-solid fa-chart-line" style="color:rgb(240, 37, 1);"></i>
                         <p>Region Target Topup</p>
                     </a>
                 </li>   

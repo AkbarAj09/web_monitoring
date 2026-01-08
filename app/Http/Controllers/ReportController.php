@@ -10,142 +10,221 @@ use App\Models\LeadsMaster;
 
 class ReportController extends Controller
 {
+     /* ================= PAGE LOAD ================= */
     public function topupCanvasser(Request $request)
     {
-        /* -------------------------------------------------
-        | 1. Date range
-        ------------------------------------------------- */
+        $month = $request->get('month', now()->format('Y-m'));
+
+        $canvassers = DB::connection('mysql')
+            ->table('users')
+            ->where('role', 'Canvasser')
+            ->pluck('name');
+
+        return view('report.topup-client-canvasser', [
+            'month'      => $month,
+            'canvassers' => $canvassers
+        ]);
+    }
+
+    
+public function topupCanvasserData(Request $request)
+{
+    /* ================= DATE RANGE ================= */
+    if ($request->month) {
+        [$year, $month] = explode('-', $request->month);
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end   = Carbon::create($year, $month, 1)->endOfMonth();
+    } else {
         $start = $request->start
             ? Carbon::parse($request->start)->startOfDay()
-            : now()->subMonth()->startOfMonth();
+            : now()->startOfMonth();
 
         $end = $request->end
             ? Carbon::parse($request->end)->endOfDay()
             : now()->endOfMonth();
+    }
 
-        /* -------------------------------------------------
-        | 2. Get TOPUP data (PostgreSQL) – LEFT table
-        ------------------------------------------------- */
-        $topups = DB::connection('pgsql')
-            ->table('em_myads_topup')
-            ->whereBetween('tgl_transaksi', [$start, $end])
-            ->select('tgl_transaksi', 'email_client', 'total_settlement_klien')
-            ->orderBy('tgl_transaksi')
+    /* ================= TOPUP ================= */
+    $topups = DB::connection('pgsql')
+        ->table('em_myads_topup')
+        ->whereBetween('tgl_transaksi', [$start, $end])
+        ->select('tgl_transaksi', 'email_client', 'total_settlement_klien')
+        ->get()
+        ->map(fn($t) => [
+            'date'   => Carbon::parse($t->tgl_transaksi)->format('Y-m-d'),
+            'email'  => strtolower(trim($t->email_client)),
+            'amount' => (float) $t->total_settlement_klien,
+        ]);
+
+    if ($topups->isEmpty()) {
+        return response()->json(['canvassers'=>[], 'rows'=>[]]);
+    }
+
+    $emails = $topups->pluck('email')->unique()->values();
+
+    /* ================= FIX DUPLICATE EMAIL ================= */
+    $sub = DB::connection('mysql')
+        ->table('leads_master')
+        ->selectRaw('LOWER(TRIM(email)) as email, MAX(id) as last_id')
+        ->whereIn(DB::raw('LOWER(TRIM(email))'), $emails)
+        ->groupBy(DB::raw('LOWER(TRIM(email))'));
+
+    $master = DB::connection('mysql')
+        ->table('leads_master as lm')
+        ->joinSub($sub, 'x', function ($j) {
+            $j->on('lm.id', '=', 'x.last_id');
+        })
+        ->join('users', 'users.id', '=', 'lm.user_id')
+        ->where('users.role', 'Canvasser');
+
+    if ($request->canvassers) {
+        $master->whereIn('users.name', $request->canvassers);
+    }
+
+    $master = $master
+        ->selectRaw('LOWER(TRIM(lm.email)) as email, users.name as canvasser')
+        ->get();
+
+    if ($master->isEmpty()) {
+        return response()->json(['canvassers'=>[], 'rows'=>[]]);
+    }
+
+    /* ================= MAP (EMAIL → 1 CANVASSER) ================= */
+    $map = $master->pluck('canvasser', 'email');
+
+    $canvassers = $map->values()->unique()->sort()->values();
+
+    /* ================= BUILD PIVOT ================= */
+    $rows = [];
+
+    foreach ($topups as $t) {
+        if (!isset($map[$t['email']])) continue;
+
+        $c = $map[$t['email']];
+
+        $rows[$t['date']][$c]['amount'] =
+            ($rows[$t['date']][$c]['amount'] ?? 0) + $t['amount'];
+
+        $rows[$t['date']][$c]['emails'][] = $t['email'];
+    }
+
+    return response()->json([
+        'canvassers' => $canvassers,
+        'rows' => $rows
+    ]);
+}
+
+    public function getMoMTopup(Request $request)
+    {
+        // Ambil bulan sekarang dan bulan lalu (full bulan)
+        $now = Carbon::now();
+
+        // Periode bulan ini: mulai tgl 1 sampai akhir bulan sekarang
+        $start1 = $now->copy()->startOfMonth()->startOfDay();
+        $end1   = $now->copy()->endOfMonth()->endOfDay();
+
+        // Periode bulan lalu: mulai tgl 1 sampai akhir bulan lalu
+        $start2 = $now->copy()->subMonth()->startOfMonth()->startOfDay();
+        $end2   = $now->copy()->subMonth()->endOfMonth()->endOfDay();
+
+        // Query topup bulan ini
+        $topupThisMonth = DB::connection('pgsql')->table('em_myads_topup')
+            ->whereBetween('tgl_transaksi', [$start1, $end1])
+            ->select('email_client', DB::raw('SUM(total_settlement_klien) as total'))
+            ->groupBy('email_client')
             ->get()
-            ->map(function ($t) {
-                $t->email = strtolower(trim($t->email_client));
-                $t->amount = (float) $t->total_settlement_klien;
-                $t->date = Carbon::parse($t->tgl_transaksi)->format('Y-m-d');
-                return $t;
-            });
+            ->mapWithKeys(fn($row) => [strtolower(trim($row->email_client)) => (float) $row->total]);
 
-        if ($topups->isEmpty()) {
-            return view('report.topup-client-canvasser', [
-                'canvassers' => [],
-                'data' => [],
-            ]);
-        }
+        // Query topup bulan lalu
+        $topupLastMonth = DB::connection('pgsql')->table('em_myads_topup')
+            ->whereBetween('tgl_transaksi', [$start2, $end2])
+            ->select('email_client', DB::raw('SUM(total_settlement_klien) as total'))
+            ->groupBy('email_client')
+            ->get()
+            ->mapWithKeys(fn($row) => [strtolower(trim($row->email_client)) => (float) $row->total]);
 
-        /* -------------------------------------------------
-        | 3. Collect unique emails (join key)
-        ------------------------------------------------- */
-        $emails = $topups->pluck('email')->unique()->values();
+        // Ambil mapping email -> canvasser dari database MySQL
+        $emails = $topupThisMonth->keys()->merge($topupLastMonth->keys())->unique();
 
-        /* -------------------------------------------------
-        | 4. LEFT JOIN – leads_master (MySQL)
-        ------------------------------------------------- */
-        $masterCvs = DB::connection('mysql')
-            ->table('leads_master')
+        $master = DB::connection('mysql')->table('leads_master')
             ->join('users', 'users.id', '=', 'leads_master.user_id')
             ->where('users.role', 'Canvasser')
             ->whereIn(DB::raw('LOWER(TRIM(leads_master.email))'), $emails)
-            ->whereNotNull('users.name')
-            ->where('users.name', '!=', '')
             ->selectRaw('LOWER(TRIM(leads_master.email)) as email, users.name as canvasser')
-            ->pluck('canvasser', 'email');
-        // dd($masterCvs);
-        // dd($masterCvs);
-        /* -------------------------------------------------
-        | 5. Application-level LEFT JOIN processing
-        ------------------------------------------------- */
-        $rows = [];
-        $dateEmails = [];
-        $canvassersSet = collect();
+            ->get();
 
-        foreach ($topups as $topup) {
-            $email = $topup->email;
+        $map = $master->pluck('canvasser', 'email');
 
-            // Only use leads_master for mapping
-            $canvasser = $masterCvs[$email] ?? null;
+        // Daftar canvasser unik
+        $canvassers = $map->unique()->sort()->values();
 
-            // Behaves like LEFT JOIN → unmatched rows still exist
-            if (!$canvasser) {
-                continue;
-            }
+        // Hitung total per canvasser
+        $totalsThisMonth = [];
+        $totalsLastMonth = [];
 
-            $canvassersSet->push($canvasser);
-            $dateEmails[$topup->date][] = $email;
-
-            $rows[$topup->date][$canvasser]['total_amount'] =
-                ($rows[$topup->date][$canvasser]['total_amount'] ?? 0) + $topup->amount;
-
-            $rows[$topup->date][$canvasser]['emails'][] = $email;
-        }
-        // dd($rows);
-        if (empty($rows)) {
-            return view('report.topup-client-canvasser', [
-                'canvassers' => [],
-                'data' => [],
-            ]);
+        foreach ($canvassers as $c) {
+            $totalsThisMonth[$c] = 0;
+            $totalsLastMonth[$c] = 0;
         }
 
-        /* -------------------------------------------------
-        | 6. Prepare frontend table data
-        ------------------------------------------------- */
-        $dates = collect(array_keys($rows))->sort()->values();
-        $canvassers = $canvassersSet->unique()->sort()->values();
-
-        $data = [];
-
-        foreach ($dates as $date) {
-            $row = [
-                'tanggal' => Carbon::parse($date)->format('d M Y'),
-                'total_amount' => 0,
-                'total_email' => collect($dateEmails[$date] ?? [])
-                    ->unique()
-                    ->count(),
-            ];
-
-            foreach ($canvassers as $c) {
-                $amount = (float) ($rows[$date][$c]['total_amount'] ?? 0);
-                $emails = collect($rows[$date][$c]['emails'] ?? [])
-                    ->unique()
-                    ->count();
-
-                $row[$c . '_amount'] = $amount > 0 ? $amount : '-';
-                $row[$c . '_email'] = $emails > 0 ? $emails : '-';
-
-                $row['total_amount'] += $amount;
-            }
-
-            $data[] = $row;
+        foreach ($topupThisMonth as $email => $total) {
+            $c = $map[$email] ?? null;
+            if ($c) $totalsThisMonth[$c] += $total;
         }
 
-        return view('report.topup-client-canvasser', [
+        foreach ($topupLastMonth as $email => $total) {
+            $c = $map[$email] ?? null;
+            if ($c) $totalsLastMonth[$c] += $total;
+        }
+
+        // Hitung selisih (bulan ini - bulan lalu)
+        $selisih = [];
+        foreach ($canvassers as $c) {
+            $selisih[$c] = $totalsThisMonth[$c] - $totalsLastMonth[$c];
+        }
+
+        // Format response
+        $response = [
             'canvassers' => $canvassers,
-            'data' => $data,
-        ]);
+            'rows' => [
+                'Total ' . $start2->format('M Y') => $totalsLastMonth,
+                'Total ' . $start1->format('M Y') => $totalsThisMonth,
+                'Selisih ' . $start1->format('M Y') . ' - ' . $start2->format('M Y') => $selisih,
+            ]
+        ];
+
+        return response()->json($response);
     }
 
-    public function reportRegionTargetVsTopup()
+    /* ================= EXPORT EXCEL ================= */
+    public function exportTopupCanvasserExcel(Request $request)
     {
-        // Dynamic current month
-        $start = Carbon::now()->startOfMonth();
-        $end   = Carbon::now()->endOfMonth();
+        return Excel::download(
+            new \App\Exports\TopupCanvasserExport($request),
+            'topup-canvasser.xlsx'
+        );
+    }
 
-        /* -----------------------------------------
-        | 1. TOPUP PER REGION (PGSQL)
-        ----------------------------------------- */
+    /* ================= EXPORT PDF ================= */
+    public function exportTopupCanvasserPdf(Request $request)
+    {
+        $data = $this->topupCanvasserData($request)->getData(true);
+
+        $pdf = Pdf::loadView('report.pdf.topup-canvasser', $data)
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('topup-canvasser.pdf');
+    }
+
+    public function reportRegionTargetVsTopup(Request $request)
+    {
+        /* ================= FILTER BULAN ================= */
+        $month = $request->get('month', now()->format('Y-m'));
+
+        $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $end   = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
+
+        /* ================= TOPUP PER REGION ================= */
         $topupPerRegion = DB::connection('pgsql')
             ->table('em_myads_topup as emt')
             ->selectRaw("
@@ -166,38 +245,46 @@ class ReportController extends Controller
                 SUM(emt.total_settlement_klien) AS topup
             ")
             ->whereBetween('emt.tgl_transaksi', [$start, $end])
+            ->whereNotNull('emt.tgl_transaksi')
             ->where('emt.payment_history_status', 'PAID')
             ->groupBy('region')
             ->get()
-            ->mapWithKeys(fn($item) => [strtoupper($item->region) => $item]);;
+            ->mapWithKeys(fn ($item) => [strtoupper($item->region) => $item]);
 
-        /* -----------------------------------------
-        | 2. TARGET CURRENT MONTH
-        ----------------------------------------- */
+        /* ================= TARGET ================= */
         $targets = DB::table('region_target')
             ->whereMonth('date', $start->month)
-            ->whereYear('date', $start->year)      
-            ->get() // get full rows
-            ->mapWithKeys(fn($item) => [strtoupper($item->region_name) => $item]);
+            ->whereYear('date', $start->year)
+            ->get()
+            ->mapWithKeys(fn ($item) => [strtoupper($item->region_name) => $item]);
 
-        /* -----------------------------------------
-        | 3. MERGE + CALCULATE PERCENTAGE
-        ----------------------------------------- */
+        /* ================= LAST UPDATE GLOBAL ================= */
+        $lastUpdate = DB::connection('pgsql')
+            ->table('em_myads_topup')
+            ->whereBetween('tgl_transaksi', [$start, $end])
+            ->whereNotNull('tgl_transaksi')
+            ->where('payment_history_status', 'PAID')
+            ->max('tgl_transaksi');
+
+        /* ================= MERGE DATA ================= */
         $data = [];
 
         $regions = $targets->keys()
             ->merge($topupPerRegion->keys())
             ->unique()
-            ->filter(fn($region) => $region !== 'UNKNOWN');
+            ->filter(fn ($r) => $r !== 'UNKNOWN');
 
         foreach ($regions as $region) {
             $targetRow = $targets[$region] ?? null;
+            $topupRow  = $topupPerRegion[$region] ?? null;
 
             $target = $targetRow ? (float) $targetRow->target_amount : 0;
             $pic    = $targetRow ? ($targetRow->pic ?? '-') : '-';
-            $topup  = (float) ($topupPerRegion[$region]->topup ?? 0);
+            $topup  = (float) ($topupRow->topup ?? 0);
 
-            $percentage = $target > 0 ? round(($topup / $target) * 100, 2) : 0;
+            $percentage = $target > 0
+                ? round(($topup / $target) * 100, 2)
+                : 0;
 
             $data[] = [
                 'region'     => $region,
@@ -208,9 +295,10 @@ class ReportController extends Controller
             ];
         }
 
-        // Return to Blade view
         return view('report.region-target-topup', [
-            'data' => collect($data)->sortBy('id')->values()
+            'data'       => collect($data)->values(),
+            'lastUpdate' => $lastUpdate,
+            'month'      => $month
         ]);
     }
 

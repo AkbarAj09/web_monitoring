@@ -154,7 +154,12 @@ Route::middleware(['auth', 'checkrole:Admin,Canvasser'])->prefix('report')->grou
     
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
 
+    // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
     Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
+    Route::get('topup-canvasser/data', [ReportController::class, 'topupCanvasserData']);
+    Route::get('topup-canvasser/excel', [ReportController::class, 'exportTopupCanvasserExcel'])->name('topup-canvasser.excel');
+    Route::get('topup-canvasser/pdf', [ReportController::class, 'exportTopupCanvasserPdf'])->name('topup-canvasser.pdf');
+
     Route::get('region-target', [ReportController::class, 'reportRegionTargetVsTopup'])->name('region-target');
 
 });
