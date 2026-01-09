@@ -84,7 +84,7 @@ class BackController extends Controller
                     return redirect()->route('admin.home');
                 case 'Treg':
                     return redirect()->route('race_summary_treg');
-                case 'Canvasser':
+                case 'cvsr':
                     return redirect()->route('leads-master.index');
                 default:
                     return redirect()->route('home'); // fallback

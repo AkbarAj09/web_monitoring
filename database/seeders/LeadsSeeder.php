@@ -45,7 +45,7 @@ class LeadsSeeder extends Seeder
             }
 
             if (empty($email)) {
-                $email = '-';
+                continue;
             }
 
             $userId   = $this->getUserIdByName($handledBy);
@@ -91,7 +91,7 @@ class LeadsSeeder extends Seeder
             [
                 'email'    => strtolower(str_replace(' ', '.', $name)) . '@gmail.com',
                 'password' => Hash::make('123456'),
-                'role'     => 'Canvasser',
+                'role'     => 'cvsr',
             ]
         );
 
