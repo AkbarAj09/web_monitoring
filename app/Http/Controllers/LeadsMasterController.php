@@ -47,7 +47,9 @@ class LeadsMasterController extends Controller
         // =======================
         // 🔍 FILTER DARI DATATABLE
         // =======================
-
+        if ($request->regional) {
+            $query->where('regional', $request->regional);
+        }
         // Filter Canvasser
         if ($request->canvasser) {
             $query->where('user_id', $request->canvasser);
@@ -346,8 +348,8 @@ class LeadsMasterController extends Controller
         $lead = LeadsMaster::findOrFail($lead->id);
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'source_id' => 'required|exists:leads_source,id',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'source_id' => 'nullable|exists:leads_source,id',
+            'sector_id' => 'required|exists:sectors,id',
             // 'kode_voucher' => 'string|max:255',
             'company_name' => 'nullable|string|max:255',
             'mobile_phone' => [
@@ -367,6 +369,7 @@ class LeadsMasterController extends Controller
             'nama' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:1000',
             'remarks' => 'nullable|string|max:1000',
+            'myads_account' => 'nullable|string|max:255'
         ]);
 
         $lead->update([
@@ -379,6 +382,7 @@ class LeadsMasterController extends Controller
             'sector_id' => $request->sector_id,
             // 'status' => $request->status == 'Ok' ? 1 : 0,
             'remarks' => $request->remarks,
+            'myads_account' => $request->myads_account,
         ]);
 
         return redirect()->route('leads-master.index')->with('success', 'Lead berhasil diupdate');

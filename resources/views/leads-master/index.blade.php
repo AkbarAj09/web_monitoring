@@ -139,6 +139,7 @@ $(function () {
                 // d.source    = $('#filter_source').val();
                 d.start_date = $('#start_date').val();
                 d.end_date   = $('#end_date').val();
+                d.regional = $('#filter_regional').val();
             }
         },
         columns: [

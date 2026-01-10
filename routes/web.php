@@ -152,8 +152,8 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
     Route::post('leads-master/store', [LeadsMasterController::class, 'store'])->name('leads-master.store');
     Route::post('leads-master/store-existing', [LeadsMasterController::class, 'storeExisting'])->name('leads-master.store-existing');
     Route::get('leads-master/{id}', [LeadsMasterController::class, 'show'])->name('leads-master.show');
-    Route::get('leads-master/{lead}/edit', [LeadsMasterController::class, 'edit'])->name('leads-master.edit');
-    Route::put('leads-master/{lead}', [LeadsMasterController::class, 'update'])->name('leads-master.update');
+    Route::get('leads-master/{lead}/edit', [LeadsMasterController::class, 'edit'])->name('leads-master.edit')->whereNumber('lead');
+    Route::put('leads-master/{lead}', [LeadsMasterController::class, 'update'])->name('leads-master.update')->whereNumber('lead');
 
 
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
