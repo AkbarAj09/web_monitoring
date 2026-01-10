@@ -10,6 +10,7 @@ use App\Models\Sector;
 use Illuminate\Validation\Rule; 
 use DataTables;
 use Validator;
+use Illuminate\Support\Facades\DB;
 
 class LeadsMasterController extends Controller
 {
@@ -21,6 +22,11 @@ class LeadsMasterController extends Controller
         return view('leads-master.index', [
             'canvassers' => User::orderBy('name')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),
+            'regionals'  => DB::table('regional_provinces')
+                                ->select('regional')
+                                ->distinct()
+                                ->orderBy('regional')
+                                ->pluck('regional'),
         ]);
     }
 
