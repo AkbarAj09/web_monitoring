@@ -234,234 +234,89 @@
     </div>
 </div>
 
-<!-- Row 1: User Management & System -->
+<!-- Daily Topup Table -->
 <div class="row mb-4">
-    <div class="col-lg-4 col-md-6">
-        <div class="card bg-gradient-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="text-white mb-0">{{ $data['users']['total_users'] ?? 0 }}</h3>
-                        <p class="text-white-50 mb-0">Total Users</p>
-                    </div>
-                    <div class="text-white">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
-                </div>
-                <hr class="bg-white-50">
-                <small class="text-white">
-                    <i class="fas fa-user-shield"></i> Admin: {{ $data['users']['total_admin'] ?? 0 }} |
-                    <i class="fas fa-user-cog"></i> Tsel: {{ $data['users']['total_tsel'] ?? 0 }} |
-                    <i class="fas fa-user-tag"></i> Treg: {{ $data['users']['total_treg'] ?? 0 }}
-                </small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4 col-md-6">
-        <div class="card bg-gradient-info">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="text-white mb-0">{{ $data['voucher']['total_voucher'] ?? 0 }}</h3>
-                        <p class="text-white-50 mb-0">Total Voucher</p>
-                    </div>
-                    <div class="text-white">
-                        <i class="fas fa-ticket-alt fa-2x"></i>
-                    </div>
-                </div>
-                <hr class="bg-white-50">
-                <small class="text-white">
-                    <i class="fas fa-check-circle"></i> Diklaim: {{ $data['voucher']['total_claimed'] ?? 0 }} |
-                    <i class="fas fa-clock"></i> Tersisa: {{ $data['voucher']['total_not_claimed'] ?? 0 }}
-                </small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4 col-md-6">
-        <div class="card bg-gradient-danger">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="text-white mb-0">{{ $data['treg_race']['total_treg'] ?? 0 }}</h3>
-                        <p class="text-white-50 mb-0">Total TREG</p>
-                    </div>
-                    <div class="text-white">
-                        <i class="fas fa-chart-line fa-2x"></i>
-                    </div>
-                </div>
-                <hr class="bg-white-50">
-                <small class="text-white">
-                    <i class="fas fa-trophy"></i> Akuisisi: {{ $data['treg_race']['total_akuisisi'] ?? 0 }} |
-                    <i class="fas fa-coins"></i> Revenue: Rp {{ number_format($data['treg_race']['total_revenue'] ?? 0, 0, ',', '.') }}
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Row 2: Program Marketing -->
-<div class="row mb-4">
-    <div class="col-lg-3 col-md-6">
-        <div class="card border-left-primary">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Padi UMKM</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $data['padi_umkm']['total_form'] ?? 0 }}</div>
-                        <small class="text-muted">
-                            <i class="fas fa-shopping-cart"></i> Topup: {{ $data['padi_umkm']['jumlah_topup'] ?? 0 }}<br>
-                            <i class="fas fa-money-bill-wave"></i> Total: Rp {{ number_format($data['padi_umkm']['total_topup'] ?? 0, 0, ',', '.') }}
-                        </small>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-store fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-3 col-md-6">
-        <div class="card border-left-warning">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Simpati TikTok</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $data['simpati_tiktok']['total_form'] ?? 0 }}</div>
-                        <small class="text-muted">
-                            <i class="fas fa-shopping-cart"></i> Topup: {{ $data['simpati_tiktok']['jumlah_topup'] ?? 0 }}<br>
-                            <i class="fas fa-money-bill-wave"></i> Total: Rp {{ number_format($data['simpati_tiktok']['total_topup'] ?? 0, 0, ',', '.') }}
-                        </small>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fab fa-tiktok fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-3 col-md-6">
-        <div class="card border-left-success">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Event Sponsorship</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $data['event_sponsorship']['total'] ?? 0 }}</div>
-                        <small class="text-muted">
-                            <i class="fas fa-calendar-alt"></i> Bulan ini: {{ $data['event_sponsorship']['this_month'] ?? 0 }}
-                        </small>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-handshake fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-3 col-md-6">
-        <div class="card border-left-info">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Sultam Racing</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $data['sultam_racing']['total'] ?? 0 }}</div>
-                        <small class="text-muted">
-                            <i class="fas fa-calendar-alt"></i> Bulan ini: {{ $data['sultam_racing']['this_month'] ?? 0 }}
-                        </small>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-car fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Row 3: KOL & Influencer -->
-<div class="row mb-4">
-    <div class="col-lg-4 col-md-6">
-        <div class="card border-left-secondary">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Creator Partner</div>
-                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $data['creator_partner']['total'] ?? 0 }}</div>
-                <div class="mt-2">
-                    <span class="badge badge-warning mr-1">
-                        <i class="fas fa-bullhorn"></i> Buzzer: {{ $data['creator_partner']['buzzer'] ?? 0 }}
-                    </span>
-                    <span class="badge badge-purple">
-                        <i class="fas fa-crown"></i> Influencer: {{ $data['creator_partner']['influencer'] ?? 0 }}
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4 col-md-6">
-        <div class="card border-left-dark">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Rekruter KOL</div>
-                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $data['rekruter_kol']['total'] ?? 0 }}</div>
-                <div class="mt-2">
-                    <span class="badge badge-warning mr-1">
-                        <i class="fas fa-bullhorn"></i> Buzzer: {{ $data['rekruter_kol']['buzzer'] ?? 0 }}
-                    </span>
-                    <span class="badge badge-purple">
-                        <i class="fas fa-crown"></i> Influencer: {{ $data['rekruter_kol']['influencer'] ?? 0 }}
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4 col-md-6">
-        <div class="card border-left-primary">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Area Marcom</div>
-                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $data['area_marcom']['total_areas'] ?? 0 }}</div>
-                <small class="text-muted">
-                    <i class="fas fa-map-marked-alt"></i> Rata-rata KOL per Area: {{ $data['area_marcom']['avg_kol_per_area'] ?? 0 }}
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Row 4: Referral Champion -->
-<div class="row mb-4">
-    <div class="col-lg-6 col-md-12">
-        <div class="card border-left-success">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Referral Champion</div>
-                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $data['referral_champion']['total'] ?? 0 }}</div>
-                <small class="text-muted">
-                    <i class="fas fa-calendar-alt"></i> Bulan ini: {{ $data['referral_champion']['this_month'] ?? 0 }}
-                </small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-6 col-md-12">
+    <div class="col-12">
         <div class="card">
-            <div class="card-body text-center">
-                <h5 class="card-title text-muted">Quick Actions</h5>
-                <div class="btn-group-vertical btn-group-sm">
-                    <a href="{{ route('admin.monitoring.padi_umkm') }}" class="btn btn-outline-primary mb-1">
-                        <i class="fas fa-store"></i> Monitoring Padi UMKM
-                    </a>
-                    <a href="{{ route('admin.monitoring.creator_partner') }}" class="btn btn-outline-warning mb-1">
-                        <i class="fas fa-users"></i> Monitoring Creator Partner
-                    </a>
-                    <a href="{{ route('admin.voucher') }}" class="btn btn-outline-info mb-1">
-                        <i class="fas fa-ticket-alt"></i> Manajemen Voucher
-                    </a>
-                    <a href="{{ route('users.page') }}" class="btn btn-outline-success">
-                        <i class="fas fa-users-cog"></i> Manajemen Users
-                    </a>
+            <div class="card-header bg-gradient-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Daily Topup / Channel</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th rowspan="2" style="vertical-align: middle; text-align: center;">Tanggal</th>
+                                <th colspan="8" class="text-center" style="background-color: #f8d7da;">Source_combined / total_settlement_klien / user_id</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2" class="text-center" style="background-color: #fff3cd;">Mitra SBP</th>
+                                <th colspan="2" class="text-center" style="background-color: #d1ecf1;">Canvasser</th>
+                                <th colspan="2" class="text-center" style="background-color: #d4edda;">Self Service</th>
+                                <th colspan="2" class="text-center" style="background-color: #e2e3e5;">Agency</th>
+                                <th class="text-center" style="background-color: #f8d7da;">Total keseluruhan</th>
+                                <th class="text-center" style="background-color: #f8d7da;">user_id</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th class="text-center">total_settle...</th>
+                                <th class="text-center">user_id</th>
+                                <th class="text-center">total_settle...</th>
+                                <th class="text-center">user_id</th>
+                                <th class="text-center">total_settle...</th>
+                                <th class="text-center">user_id</th>
+                                <th class="text-center">user</th>
+                                <th class="text-center">total_settle...</th>
+                                <th class="text-center">Total keseluruhan</th>
+                                <th class="text-center">user_id</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                $dummyData = [
+                                    ['date' => '9 Jan 2026', 'mitra_sbp_settle' => '21.098.000', 'mitra_sbp_user' => 4, 'canvasser_settle' => '62.049.000', 'canvasser_user' => 21, 'self_service_settle' => '610.500', 'self_service_user' => 2, 'agency_user' => '', 'agency_settle' => '555.000', 'total' => '84.312.500', 'total_user' => 28],
+                                    ['date' => '8 Jan 2026', 'mitra_sbp_settle' => '7.360.000', 'mitra_sbp_user' => 3, 'canvasser_settle' => '8.103.150', 'canvasser_user' => 10, 'self_service_settle' => '854.700', 'self_service_user' => 3, 'agency_user' => '', 'agency_settle' => '-', 'total' => '16.317.850', 'total_user' => 16],
+                                    ['date' => '7 Jan 2026', 'mitra_sbp_settle' => '44.630.000', 'mitra_sbp_user' => 11, 'canvasser_settle' => '38.406.000', 'canvasser_user' => 11, 'self_service_settle' => '55.500', 'self_service_user' => 1, 'agency_user' => '', 'agency_settle' => '-', 'total' => '83.091.500', 'total_user' => 23],
+                                    ['date' => '6 Jan 2026', 'mitra_sbp_settle' => '56.288.587', 'mitra_sbp_user' => 14, 'canvasser_settle' => '4.707.950', 'canvasser_user' => 9, 'self_service_settle' => '55.500', 'self_service_user' => 1, 'agency_user' => '', 'agency_settle' => '-', 'total' => '61.052.037', 'total_user' => 24],
+                                    ['date' => '5 Jan 2026', 'mitra_sbp_settle' => '47.896.149', 'mitra_sbp_user' => 11, 'canvasser_settle' => '6.050.280', 'canvasser_user' => 9, 'self_service_settle' => '1.598.500', 'self_service_user' => 6, 'agency_user' => '', 'agency_settle' => '-', 'total' => '55.544.929', 'total_user' => 26],
+                                    ['date' => '4 Jan 2026', 'mitra_sbp_settle' => '-', 'mitra_sbp_user' => '', 'canvasser_settle' => '555.000', 'canvasser_user' => 1, 'self_service_settle' => '55.500', 'self_service_user' => 1, 'agency_user' => '', 'agency_settle' => '-', 'total' => '610.500', 'total_user' => 2],
+                                    ['date' => '3 Jan 2026', 'mitra_sbp_settle' => '-', 'mitra_sbp_user' => '', 'canvasser_settle' => '610.500', 'canvasser_user' => 2, 'self_service_settle' => '-', 'self_service_user' => '', 'agency_user' => '', 'agency_settle' => '-', 'total' => '610.500', 'total_user' => 2],
+                                    ['date' => '2 Jan 2026', 'mitra_sbp_settle' => '111.000', 'mitra_sbp_user' => 1, 'canvasser_settle' => '2.358.378', 'canvasser_user' => 8, 'self_service_settle' => '5.550.000', 'self_service_user' => 1, 'agency_user' => '', 'agency_settle' => '-', 'total' => '8.019.378', 'total_user' => 10],
+                                    ['date' => '1 Jan 2026', 'mitra_sbp_settle' => '277.500', 'mitra_sbp_user' => 1, 'canvasser_settle' => '-', 'canvasser_user' => '', 'self_service_settle' => '555.000', 'self_service_user' => 1, 'agency_user' => '', 'agency_settle' => '-', 'total' => '832.500', 'total_user' => 2],
+                                ];
+                            @endphp
+                            
+                            @foreach($dummyData as $row)
+                            <tr>
+                                <td class="font-weight-bold">{{ $row['date'] }}</td>
+                                <td class="text-right">{{ $row['mitra_sbp_settle'] }}</td>
+                                <td class="text-center">{{ $row['mitra_sbp_user'] }}</td>
+                                <td class="text-right">{{ $row['canvasser_settle'] }}</td>
+                                <td class="text-center">{{ $row['canvasser_user'] }}</td>
+                                <td class="text-right">{{ $row['self_service_settle'] }}</td>
+                                <td class="text-center">{{ $row['self_service_user'] }}</td>
+                                <td class="text-center">{{ $row['agency_user'] }}</td>
+                                <td class="text-right">{{ $row['agency_settle'] }}</td>
+                                <td class="text-right font-weight-bold">{{ $row['total'] }}</td>
+                                <td class="text-center font-weight-bold">{{ $row['total_user'] }}</td>
+                            </tr>
+                            @endforeach
+                            
+                            <tr class="table-info font-weight-bold">
+                                <td>Total keselur...</td>
+                                <td class="text-right">177.661.236</td>
+                                <td class="text-center">42</td>
+                                <td class="text-right">122.840.258</td>
+                                <td class="text-center">64</td>
+                                <td class="text-right">9.335.200</td>
+                                <td class="text-center">15</td>
+                                <td class="text-center"></td>
+                                <td class="text-right">555.000</td>
+                                <td class="text-right">310.391.694</td>
+                                <td class="text-center">122</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

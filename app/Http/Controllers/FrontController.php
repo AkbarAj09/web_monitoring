@@ -289,4 +289,7 @@ class FrontController extends Controller
     public function raceSummaryTreg(){
         return view('treg.race_summary');
     }
+    public function newLeadsProgram(){
+        return view('admin.LeadsProgram.new_leads_program');
+    }
 }

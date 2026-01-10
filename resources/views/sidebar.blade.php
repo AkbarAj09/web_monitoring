@@ -20,10 +20,12 @@
 
                 @if($isAdmin && $user->email === 'admin@telkomsel.co.id')
                 <span class="badge badge-warning">SUPER ADMIN</span>
-                @elseif($user->role === 'Admin')
+                @elseif($isAdmin)
                 <span class="badge badge-warning">ADMIN</span>
-                @elseif($user->role === 'Tsel')
+                @elseif($isTsel)
                 <span class="badge badge-success">TSEL</span>
+                @elseif($isCanv)
+                <span class="badge badge-primary">CANVASSER</span>
                 @elseif($isTreg)
                 @php
                 $treg_name = DB::table('treg')->where('id', $user->treg_id)->value('treg_name');
@@ -45,114 +47,6 @@
                         class="nav-link waves-effect {{ request()->routeIs('admin.home') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-bullseye" style="color:rgb(240, 236, 1);"></i>
                         <p>Home Dashboard</p>
-                    </a>
-                </li>
-
-                <li class="nav-header">All Program</li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.padi_umkm') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.padi_umkm') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-shop" style="color:#4b66ff;"></i>
-                        <p>Padi UMKM</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.event_sponsorship') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.event_sponsorship') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-handshake" style="color:#ff5733;"></i>
-                        <p>Event Sponsorship</p>
-                    </a>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs([
-                        'admin.monitoring.creator_partner',
-                        'admin.monitoring.rekruter_kol_buzzer',
-                        'admin.monitoring.rekruter_kol_influencer',
-                        'admin.monitoring.area_marcom'
-                    ]) ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link {{ request()->routeIs([
-                            'admin.monitoring.creator_partner',
-                            'admin.monitoring.rekruter_kol_buzzer',
-                            'admin.monitoring.rekruter_kol_influencer',
-                            'admin.monitoring.area_marcom'
-                        ]) ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-users"></i>
-                        <p>Monitoring KOL <i class="right fas fa-angle-left"></i></p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('admin.monitoring.creator_partner') }}"
-                                class="nav-link {{ request()->routeIs('admin.monitoring.creator_partner') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-star nav-icon" style="color:#ffc107;"></i>
-                                <p>Creator Partner</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.monitoring.rekruter_kol_buzzer') }}"
-                                class="nav-link {{ request()->routeIs('admin.monitoring.rekruter_kol_buzzer') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-bullhorn nav-icon" style="color:#e74c3c;"></i>
-                                <p>Rekruter KOL Buzzer</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.monitoring.rekruter_kol_influencer') }}"
-                                class="nav-link {{ request()->routeIs('admin.monitoring.rekruter_kol_influencer') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-crown nav-icon" style="color:#9b59b6;"></i>
-                                <p>Rekruter KOL Influencer</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.monitoring.area_marcom') }}"
-                                class="nav-link {{ request()->routeIs('admin.monitoring.area_marcom') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-map-marked-alt nav-icon" style="color:#3498db;"></i>
-                                <p>Area Marcom KOL</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.simpati_tiktok') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.simpati_tiktok') ? 'active' : '' }}">
-                        <i class="nav-icon fa-brands fa-tiktok" style="color:#fe0404;"></i>
-                        <p>Simpati Tiktok</p>
-                    </a>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs([
-                        'admin.monitoring.referral_tele_am',
-                        'admin.monitoring.referral_canvasser'
-                    ]) ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link {{ request()->routeIs([
-                            'admin.monitoring.referral_tele_am',
-                            'admin.monitoring.referral_canvasser'
-                        ]) ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-users" style="color:#42f554;"></i>
-                        <p>Referral Champion <i class="right fas fa-angle-left"></i></p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('admin.monitoring.referral_tele_am') }}"
-                                class="nav-link {{ request()->routeIs('admin.monitoring.referral_tele_am') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fa fa-user-check nav-icon"></i>
-                                <p>Tele AM</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.monitoring.referral_canvasser') }}"
-                                class="nav-link {{ request()->routeIs('admin.monitoring.referral_canvasser') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fa fa-user-check nav-icon"></i>
-                                <p>Canvasser</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                <li class="nav-item">
-                    <a href="{{ route('admin.monitoring.sultam_racing') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('admin.monitoring.sultam_racing') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-car" style="color:#f39c12;"></i>
-                        <p>Sultam Racing</p>
                     </a>
                 </li>
 
@@ -180,37 +74,6 @@
                 </li>
                 @endif
 
-                {{-- ===== Menu untuk ADMIN dan TREG ===== --}}
-                @if($isTreg || $isAdmin)
-                <li class="nav-item {{ request()->routeIs([
-                        'monitoring_akuisisi_treg',
-                        'race_summary_treg'
-                    ]) ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link {{ request()->routeIs([
-                            'monitoring_akuisisi_treg',
-                            'race_summary_treg'
-                        ]) ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-chart-line" style="color:#dc3545;"></i>
-                        <p>AdsVantage Race <i class="right fas fa-angle-left"></i></p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('monitoring_akuisisi_treg') }}"
-                                class="nav-link {{ request()->routeIs('monitoring_akuisisi_treg') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fa fa-list nav-icon"></i>
-                                <p>Detail Akuisisi</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('race_summary_treg') }}"
-                                class="nav-link {{ request()->routeIs('race_summary_treg') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fa fa-trophy nav-icon"></i>
-                                <p>Race Summary</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                @endif
 
                 <li class="nav-header">Report</li>
                 <li class="nav-item">
