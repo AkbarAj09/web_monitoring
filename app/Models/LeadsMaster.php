@@ -18,6 +18,7 @@ class LeadsMaster extends Model
         'user_id',
         'source_id',
         'sector_id',
+        'regional',
         'kode_voucher',
         'company_name',
         'mobile_phone',
@@ -25,6 +26,8 @@ class LeadsMaster extends Model
         'status',
         'nama',
         'address',
+        'myads_account',
+        'data_type',
         'remarks',
     ];
     

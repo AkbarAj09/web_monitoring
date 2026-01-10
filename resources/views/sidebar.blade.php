@@ -39,7 +39,7 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
                 {{-- ===== ADMIN: bisa akses semua menu (ALL + TREG) ===== --}}
-                @if($isAdmin || $isTsel)
+                @if($isAdmin || $isTsel || $isCanv)
                 <li class="nav-header">ALL DASHBOARD</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.home') }}"
@@ -222,12 +222,19 @@
                     </a>
                 </li>     
                 <li class="nav-item">
-                    <a href="{{ route('leads-master.index') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? '' : '' }}">
+                    <a href="{{ route('leads-master.create') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.create') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-user-pen" style="color:rgb(1, 240, 172);"></i>
+                        <p>New Leads</p>
+                    </a>
+                </li>      
+                <li class="nav-item">
+                    <a href="{{ route('leads-master.create-existing') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.create-existing') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-user-tie" style="color:rgb(143, 142, 142);"></i>
                         <p>Akun Eksisting</p>
                     </a>
-                </li>              
+                </li>             
                 <li class="nav-item">
                     <a href="{{ route('leads-master.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? '' : '' }}">
@@ -235,13 +242,13 @@
                         <p>Logbook</p>
                     </a>
                 </li>           
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a href="{{ route('topup-canvasser') }}"
                         class="nav-link waves-effect {{ request()->routeIs('topup-canvasser') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-money-bill" style="color:rgb(80, 255, 80);"></i>
                         <p>Topup & Client Canvasser</p>
                     </a>
-                </li>          
+                </li>           --}}
                 <li class="nav-item">
                     <a href="{{ route('region-target') }}"
                         class="nav-link waves-effect {{ request()->routeIs('region-target') ? 'active' : '' }}">

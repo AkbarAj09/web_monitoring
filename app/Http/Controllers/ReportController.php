@@ -17,7 +17,7 @@ class ReportController extends Controller
 
         $canvassers = DB::connection('mysql')
             ->table('users')
-            ->where('role', 'Canvasser')
+            ->where('role', 'cvsr')
             ->pluck('name');
 
         return view('report.topup-client-canvasser', [
@@ -75,7 +75,7 @@ public function topupCanvasserData(Request $request)
             $j->on('lm.id', '=', 'x.last_id');
         })
         ->join('users', 'users.id', '=', 'lm.user_id')
-        ->where('users.role', 'Canvasser');
+        ->where('users.role', 'cvsr');
 
     if ($request->canvassers) {
         $master->whereIn('users.name', $request->canvassers);
@@ -148,7 +148,7 @@ public function topupCanvasserData(Request $request)
 
         $master = DB::connection('mysql')->table('leads_master')
             ->join('users', 'users.id', '=', 'leads_master.user_id')
-            ->where('users.role', 'Canvasser')
+            ->where('users.role', 'cvsr')
             ->whereIn(DB::raw('LOWER(TRIM(leads_master.email))'), $emails)
             ->selectRaw('LOWER(TRIM(leads_master.email)) as email, users.name as canvasser')
             ->get();

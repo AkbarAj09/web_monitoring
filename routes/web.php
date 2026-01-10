@@ -143,15 +143,19 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     Route::get('/get-sultam-racing-data', [BackController::class, 'getSultamRacing'])->name('sultam_racing_data');
     
 });
-Route::middleware(['auth', 'checkrole:Admin,Canvasser'])->prefix('report')->group(function (){
+Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
+    Route::get('leads-master/export', [LeadsMasterController::class, 'export'])->name('leads-master.export');
     Route::get('leads-master', [LeadsMasterController::class, 'index'])->name('leads-master.index');
     Route::get('leads-master/create', [LeadsMasterController::class, 'create'])->name('leads-master.create');
+    Route::get('leads-master/create-existing', [LeadsMasterController::class, 'createExisting'])->name('leads-master.create-existing');
     Route::get('leads-master/data', [LeadsMasterController::class, 'data'])->name('leads-master.data');
     Route::post('leads-master/store', [LeadsMasterController::class, 'store'])->name('leads-master.store');
+    Route::post('leads-master/store-existing', [LeadsMasterController::class, 'storeExisting'])->name('leads-master.store-existing');
     Route::get('leads-master/{id}', [LeadsMasterController::class, 'show'])->name('leads-master.show');
     Route::get('leads-master/{lead}/edit', [LeadsMasterController::class, 'edit'])->name('leads-master.edit');
     Route::put('leads-master/{lead}', [LeadsMasterController::class, 'update'])->name('leads-master.update');
-    
+
+
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
 
     // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');

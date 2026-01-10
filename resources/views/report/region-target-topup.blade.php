@@ -29,7 +29,7 @@
                 ({{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('M Y') }})
             </h5>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="height: 400px">
             <canvas id="regionBarChart" height="100"></canvas>
         </div>
     </div>
