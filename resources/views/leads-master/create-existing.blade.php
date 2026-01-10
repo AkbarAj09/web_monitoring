@@ -1,6 +1,6 @@
 @extends('master')
 
-@section('title', 'New Leads')
+@section('title', 'Eksisting Akun')
 
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -28,11 +28,11 @@
 @section('content')
 <div class="card card-primary">
     <div class="card-header">
-        <h3 class="card-title">New Leads</h3>
+        <h3 class="card-title">Eksisting Akun</h3>
     </div>
 
     <div class="card-body">
-        <form action="{{ route('leads-master.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('leads-master.store-existing') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             {{-- USER NAME --}}
@@ -42,21 +42,6 @@
                 <input type="hidden" name="user_id" value="{{ auth()->id() }}">
             </div>
 
-            {{-- LEAD SOURCES --}}
-            <div class="form-group">
-                <label for="source_id">Source Leads</label>
-                <select name="source_id" id="source_id" class="form-control select2" required>
-                    {{-- <option value="">-- Pilih Source --</option> --}}
-                    @foreach ($leadSources as $ls)
-                        <option value="{{ $ls->id }}" {{ old('source_id') == $ls->id ? 'selected' : '' }}>
-                            {{ $ls->name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('source_id')
-                    <small class="text-danger">{{ $message }}</small>
-                @enderror
-            </div>
 
             {{-- NAMA PERUSAHAAN / INSTANSI --}}
             <div class="form-group">
@@ -119,8 +104,8 @@
             <div class="form-group">
                 <label for="myads_account">Akun MyAds</label>
                 <input type="text" id="myads_account" name="myads_account" class="form-control" 
-                    placeholder="Masukkan Akun MyAds" value="{{ old('myads_account') }}">
-                    <small class="text-danger">*) Diisi jika sudah register akun MyAds</small>
+                    placeholder="Masukkan Akun MyAds" value="{{ old('myads_account') }}" required>
+                    {{-- <small class="text-danger">*) Diisi jika sudah register akun MyAds</small> --}}
                 @error('myads_account')
                     <small class="text-danger">{{ $message }}</small>
                 @enderror

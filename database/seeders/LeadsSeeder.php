@@ -45,7 +45,7 @@ class LeadsSeeder extends Seeder
             }
 
             if (empty($email)) {
-                $email = '-';
+                continue;
             }
 
             $userId   = $this->getUserIdByName($handledBy);
@@ -58,12 +58,14 @@ class LeadsSeeder extends Seeder
                 'user_id'      => $userId,
                 'source_id'    => $sourceId,
                 'sector_id'    => 1,
+                'regional'     => '-',
                 'kode_voucher' => $kodeVoucher ?: '-',
                 'company_name' => $company ?: '-',
                 'mobile_phone' => $normalizedPhone,
                 'email'        => $email,
                 'status'       => str_contains($cek ?? '', 'OK') ? 1 : 0,
                 'nama'         => $nama ?: '-',
+                'data_type'    => 'Eksisting Akun',
                 'remarks'      => $remarks ?: '-',
             ]);
         }
@@ -91,7 +93,7 @@ class LeadsSeeder extends Seeder
             [
                 'email'    => strtolower(str_replace(' ', '.', $name)) . '@gmail.com',
                 'password' => Hash::make('123456'),
-                'role'     => 'Canvasser',
+                'role'     => 'cvsr',
             ]
         );
 

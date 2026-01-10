@@ -19,21 +19,21 @@ class UserController extends Controller
 {
     public function index()
     {
-        $treg = DB::table('treg')->select('id', 'treg_name')->get();
-        return view('auth.user', compact('treg'));
+        // $treg = DB::table('treg')->select('id', 'treg_name')->get();
+        return view('auth.user');
     }
     public function getUsers(Request $request)
     {
         $data = DB::table('users')
             ->where('status', 'Aktif')
-            ->select('id', 'name', 'email', 'nohp', 'status', 'role', 'treg_id', 'created_at')
+            ->select('id', 'name', 'email', 'nohp', 'status', 'role', 'created_at')
             ->orderByDesc('created_at');
 
         return datatables()->of($data)
-            ->addColumn('treg_name', function ($row) {
-                if ($row->role !== 'Treg') return '-';
-                return DB::table('treg')->where('id', $row->treg_id)->value('treg_name');
-            })
+            // ->addColumn('treg_name', function ($row) {
+            //     if ($row->role !== 'Treg') return '-';
+            //     return DB::table('treg')->where('id', $row->treg_id)->value('treg_name');
+            // })
             ->addColumn('action', function ($row) {
                 return '
                 <button class="btn btn-sm btn-warning editUser" data-id="' . $row->id . '">Edit</button>
@@ -51,7 +51,7 @@ class UserController extends Controller
             'nohp'  => 'required',
             'email' => 'required|email|unique:users,email',
             'role'  => 'required',
-            'treg_id' => 'nullable'
+            // 'treg_id' => 'nullable'
         ]);
 
         DB::table('users')->insert([
@@ -59,7 +59,7 @@ class UserController extends Controller
             'nohp' => $request->nohp,
             'email' => $request->email,
             'role' => $request->role,
-            'treg_id' => $request->role == 'Treg' ? $request->treg_id : null,
+            // 'treg_id' => $request->role == 'Treg' ? $request->treg_id : null,
             'password' => bcrypt('123456'), // default
             'status' => 'Aktif',
             'created_at' => now()
@@ -86,7 +86,7 @@ class UserController extends Controller
             'nohp'  => 'required',
             'email' => 'required|email|unique:users,email,' . $id,
             'role'  => 'required',
-            'treg_id' => 'nullable'
+            // 'treg_id' => 'nullable'
         ]);
 
         $data = [
@@ -94,7 +94,7 @@ class UserController extends Controller
             'nohp' => $request->nohp,
             'email' => $request->email,
             'role' => $request->role,
-            'treg_id' => $request->role == 'Treg' ? $request->treg_id : null,
+            // 'treg_id' => $request->role == 'Treg' ? $request->treg_id : null,
             'updated_at' => now()
         ];
 

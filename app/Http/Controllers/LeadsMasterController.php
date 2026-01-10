@@ -57,6 +57,15 @@ class LeadsMasterController extends Controller
             $query->where('email', 'like', '%' . $request->email . '%');
         }
 
+        // Filter Email
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('created_at', [
+                $request->start_date . ' 00:00:00',
+                $request->end_date . ' 23:59:59',
+            ]);
+        }
+
+
         // Filter Lead Source (relasi)
         if ($request->source) {
             $query->whereHas('source', function ($q) use ($request) {
@@ -67,6 +76,9 @@ class LeadsMasterController extends Controller
         return datatables()->of($query)
             ->addColumn('user_name', function ($row) {
                 return $row->user->name ?? '-';
+            })            
+            ->addColumn('regional', function ($row) {
+                return $row->regional ?? '-';
             })
             ->addColumn('company_name', function ($row) {
                 return $row->company_name ?? '-';
@@ -77,14 +89,13 @@ class LeadsMasterController extends Controller
             ->addColumn('mobile_phone', function ($row) {
                 return $row->mobile_phone ?? '-';
             })
-            ->addColumn('source_name', function ($row) {
-                return $row->source->name ?? '-';
-            })
-            ->addColumn('sector_name', function ($row) {
-                return $row->sector->name ?? '-';
-            })
             ->addColumn('status', function ($row) {
-                return $row->status == 1 ? '<span class="badge badge-ok">Ok</span>' : '<span class="badge badge-no">No</span>';
+                return $row->status == 1 ? '<span class="badge badge-success">Deal</span>' : '<span class="badge badge-danger">Prospect</span>';
+            })
+            ->addColumn('data_type', function ($row) {
+                return $row->data_type ?? '-';
+            })->editColumn('created_at', function ($row) {
+                return $row->created_at->format('Y-m-d');
             })
             ->addColumn('aksi', function ($row) {
                 return '
@@ -100,6 +111,82 @@ class LeadsMasterController extends Controller
             ->make(true);
     }
 
+    public function export(Request $request)
+    {
+        $query = LeadsMaster::with(['user', 'source', 'sector'])
+            ->orderBy('created_at', 'asc');
+
+        // 🔐 ROLE
+        if (!auth()->user()->hasRole('Admin')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        /* ===== FILTER (SAMA DENGAN DATATABLE) ===== */
+        if ($request->canvasser) {
+            $query->where('user_id', $request->canvasser);
+        }
+
+        if ($request->company) {
+            $query->where('company_name', 'like', '%' . $request->company . '%');
+        }
+
+        if ($request->email) {
+            $query->where('email', 'like', '%' . $request->email . '%');
+        }
+
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('created_at', [
+                $request->start_date . ' 00:00:00',
+                $request->end_date . ' 23:59:59'
+            ]);
+        }
+
+        $filename = 'leads_master_' . now()->format('Ymd_His') . '.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $columns = [
+            'Status',
+            'Canvasser',
+            'Regional',
+            'Nama Perusahaan',
+            'Email',
+            'No HP',
+            'Tipe Data',
+            'Tanggal',
+        ];
+
+        $callback = function () use ($query, $columns) {
+            $file = fopen('php://output', 'w');
+
+            // UTF-8 BOM (biar Excel tidak rusak)
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($file, $columns);
+
+            foreach ($query->cursor() as $row) {
+                fputcsv($file, [
+                    $row->status == 1 ? 'Deal' : 'No Deal',
+                    $row->user->name ?? '-',
+                    $row->regional ?? '-',
+                    $row->company_name ?? '-',
+                    $row->email ?? '-',
+                    $row->mobile_phone ?? '-',
+                    $row->data_type ?? '-',
+                    $row->created_at->format('Y-m-d'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+
     public function create()
     {
         $leadSources = LeadsSource::all();
@@ -107,14 +194,20 @@ class LeadsMasterController extends Controller
 
         return view('leads-master.create', compact('leadSources', 'sectors'));
     }
+    public function createExisting()
+    {
+        $leadSources = LeadsSource::all();
+        $sectors = Sector::all();
 
+        return view('leads-master.create-existing', compact('leadSources', 'sectors'));
+    }
     public function store(Request $request)
     {
         // Custom validation rules
         $rules = [
             'user_id' => 'required|exists:users,id',
             'source_id' => 'required|exists:leads_source,id',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'sector_id' => 'required|exists:sectors,id',
             // 'kode_voucher' => 'nullable|string|max:255',
             'company_name' => 'nullable|string|max:255',
             'mobile_phone' => [
@@ -125,7 +218,7 @@ class LeadsMasterController extends Controller
                 'unique:leads_master,mobile_phone',
             ],
             'email' => [
-                'nullable',
+                'required',
                 'email',
                 'max:255',
                 'unique:leads_master,email',
@@ -134,6 +227,7 @@ class LeadsMasterController extends Controller
             'nama' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:1000',
             'remarks' => 'nullable|string|max:1000',
+            'myads_account' => 'nullable|string|max:255'
         ];
 
         $messages = [
@@ -158,6 +252,67 @@ class LeadsMasterController extends Controller
             'nama' => $validated['nama'],
             'address' => $validated['address'] ?? null,
             'remarks' => $validated['remarks'] ?? null,
+            'myads_account' => $validated['myads_account'] ?? null,
+            'data_type' => 'Leads',
+        ]);
+
+
+        return redirect()->route('leads-master.index')->with('success', 'Leads baru berhasil disimpan.');
+    }
+
+    public function storeExisting(Request $request)
+    {
+        // dd('test');
+        // Custom validation rules
+        $rules = [
+            'user_id' => 'required|exists:users,id',
+            // 'source_id' => 'required|exists:leads_source,id',
+            'sector_id' => 'nullable|exists:sectors,id',
+            'company_name' => 'nullable|string|max:255',
+            'mobile_phone' => [
+                'required',
+                'string',
+                'max:20',
+                'regex:/^62\d{9,12}$/',
+                'unique:leads_master,mobile_phone',
+            ],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:leads_master,email',
+            ],
+            // 'status' => 'required|in:Ok,No',
+            'nama' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:1000',
+            'remarks' => 'nullable|string|max:1000',
+            'myads_account' => 'required|string|max:255'
+        ];
+
+        $messages = [
+            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka.',
+            'mobile_phone.unique' => 'Nomor HP sudah terdaftar.',
+            'email.unique' => 'Email sudah terdaftar.',
+        ];
+
+        $validated = $request->validate($rules, $messages);
+
+        // $statusValue = $validated['status'] === 'Ok' ? 1 : 0;
+        $statusValue = 1; // Default ke 1 (Yes) karena field status di form disembunyikan
+        LeadsMaster::create([
+            'user_id' => $validated['user_id'],
+            'source_id' => null,
+            'sector_id' => $validated['sector_id'] ?? null,
+            // 'kode_voucher' => $validated['kode_voucher'],
+            'company_name' => $validated['company_name'] ?? null,
+            'mobile_phone' => $validated['mobile_phone'],
+            'email' => $validated['email'] ?? null,
+            'status' => $statusValue,  // simpan 1 untuk Ok, 0 untuk No
+            'nama' => $validated['nama'],
+            'address' => $validated['address'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
+            'myads_account' => $validated['myads_account'],
+            'data_type' => 'Eksisting Akun',
         ]);
 
 
