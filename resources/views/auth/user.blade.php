@@ -143,7 +143,7 @@
                             <th class="text-center">Email</th>
                             <th class="text-center">No HP</th>
                             <th class="text-center">Role</th>
-                            <th class="text-center">Treg</th>
+                            {{-- <th class="text-center">Treg</th> --}}
                             <th class="text-center">Status</th>
                             <th class="text-center">Tanggal<br>Dibuat</th>
                             <th class="text-center">Action</th>
@@ -199,12 +199,13 @@
                             <option value="">Pilih Role</option>
                             <option value="Admin">Admin</option>
                             <option value="Tsel">Tsel</option>
-                            <option value="Treg">Treg</option>
-                            <option value="Canvasser">Canvasser</option>
+                            {{-- <option value="Treg">Treg</option> --}}
+                            <option value="cvsr">Canvasser</option>
+                            <option value="PH">PowerHouse</option>
                         </select>
                     </div>
                     
-                    <div class="form-group" id="treg_group" style="display: none;">
+                    {{-- <div class="form-group" id="treg_group" style="display: none;">
                         <label for="treg_id">Treg <span class="text-danger">*</span></label>
                         <select class="form-control" id="treg_id" name="treg_id">
                             <option value="">Pilih Treg</option>
@@ -212,7 +213,7 @@
                                 <option value="{{ $t->id }}">{{ $t->treg_name }}</option>
                             @endforeach
                         </select>
-                    </div>
+                    </div> --}}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
@@ -292,19 +293,13 @@
                             badgeClass = 'badge-danger';
                         } else if (data === 'Tsel') {
                             badgeClass = 'badge-success';
-                        } else if (data === 'Treg') {
-                            badgeClass = 'badge-info';
-                        } else if (data === 'Canvasser') {
+                        } else if (data === 'cvsr') {
                             badgeClass = 'badge-secondary';
+                        } else if (data === 'ph') {
+                            badgeClass = 'badge-info';
                         }
                         return `<div style="text-align: center;"><span class="badge ${badgeClass}">${data}</span></div>`;
                     }
-                },
-                {
-                    data: 'treg_name',
-                    name: 'treg_name',
-                    orderable: false,
-                    render: data => `<div style="text-align: center;">${data || '-'}</div>`
                 },
                 {
                     data: 'status',
@@ -362,18 +357,18 @@
             $('#modalUserLabel').text('Tambah User');
             $('#formUser')[0].reset();
             $('#user_id').val('');
-            $('#treg_group').hide();
+            // $('#treg_group').hide();
         });
 
         // Show/hide treg dropdown based on role
         $('#role').change(function() {
             if ($(this).val() === 'Treg') {
-                $('#treg_group').show();
-                $('#treg_id').attr('required', true);
+                // $('#treg_group').show();
+                // $('#treg_id').attr('required', true);
             } else {
                 $('#treg_group').hide();
-                $('#treg_id').attr('required', false);
-                $('#treg_id').val('');
+                // $('#treg_id').attr('required', false);
+                // $('#treg_id').val('');
             }
         });
 
@@ -444,11 +439,11 @@
                     
                     if (user.role === 'Treg') {
                         $('#treg_group').show();
-                        $('#treg_id').attr('required', true);
-                        $('#treg_id').val(user.treg_id);
+                        // $('#treg_id').attr('required', true);
+                        // $('#treg_id').val(user.treg_id);
                     } else {
                         $('#treg_group').hide();
-                        $('#treg_id').attr('required', false);
+                        // $('#treg_id').attr('required', false);
                     }
                 },
                 error: function(xhr) {

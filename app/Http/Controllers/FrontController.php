@@ -23,7 +23,7 @@ class FrontController extends Controller
                 return redirect()->route('race_summary_treg');
             } else if (in_array(Auth::user()->role, ['Admin', 'Tsel'])) {
                 return redirect('/admin/home');
-            } else if (in_array(Auth::user()->role, ['Admin', 'Canvasser'])) {
+            } else if (in_array(Auth::user()->role, ['Admin', 'cvsr'])) {
                 return redirect()->route('leads-master.index');
             } else {
                 return redirect('/admin/home');

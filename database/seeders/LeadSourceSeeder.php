@@ -13,35 +13,43 @@ class LeadSourceSeeder extends Seeder
      */
     public function run(): void
     {
-        $items = [
-            'Data Sendiri',
-            'OBC Leads',
-            'SMS blast leads',
-            'Enterprise Leads',
-            'UMKM',
-            'Top600',
-            'WhatsApp',
-            'Meta Leads',
-            'Tiktok Leads',
-            'Online Webinar MyAds',
-            'Data Top 10 AAM',
-            'Register Day/Day',
-            'Webinar Growlab',
-            'CERMAD Roadshow',
-            'B2B',
-            'Webinar SATMESIN x Fine Creative',
-            "15% Juli - Haven't top up recently",
-            "20% Juli - Havent top up recently",
-            '30% Juli - First top up',
-            '25% Juli - Regular',
-            '20% Juli - Reguler',
-            '15% Juli - Reguler',
-            'Data Outlet Digipos',
-            'Data complaint CS',
-            'Dormant',
-            'PaDi UMKM',
-        ];
+        // $items = [
+        //     'Data Sendiri',
+        //     'OBC Leads',
+        //     'PaDi UMKM',
+        //     'Enterprise Leads',
+        //     'B2B Leads',
+        //     'SMS blast leads',
+        //     'UMKM',
+        //     'Top600',
+        //     'WhatsApp',
+        //     'Meta Leads',
+        //     'Tiktok Leads',
+        //     'Online Webinar MyAds',
+        //     'Data Top 10 AAM',
+        //     'Register Day/Day',
+        //     'Webinar Growlab',
+        //     'CERMAD Roadshow',
+        //     'Webinar SATMESIN x Fine Creative',
+        //     "15% Juli - Haven't top up recently",
+        //     "20% Juli - Havent top up recently",
+        //     '30% Juli - First top up',
+        //     '25% Juli - Regular',
+        //     '20% Juli - Reguler',
+        //     '15% Juli - Reguler',
+        //     'Data Outlet Digipos',
+        //     'Data complaint CS',
+        //     'Dormant',
+        // ];
 
+        $items = [
+            'Leads OBC',
+            'Leads Enterprise',
+            'Leads PADI UMKM',
+            'Leads B2B',
+            'Leads Mandiri',
+            'Leads Other'
+        ];
         foreach ($items as $name) {
             DB::table('leads_source')->insert([
                 'name' => $name,

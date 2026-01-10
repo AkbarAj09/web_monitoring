@@ -15,7 +15,8 @@
                 $isAdmin = $user->role === 'Admin';
                 $isTsel = $user->role === 'Tsel';
                 $isTreg = $user->role === 'Treg';
-                $isCanv = $user->role === 'Canvasser';
+                $isCanv = $user->role === 'cvsr';
+                $isPH = $user->role === 'PH';
                 @endphp
 
                 @if($isAdmin && $user->email === 'admin@telkomsel.co.id')
@@ -40,13 +41,13 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
                 {{-- ===== ADMIN: bisa akses semua menu (ALL + TREG) ===== --}}
-                @if($isAdmin || $isTsel)
+                @if($isAdmin || $isTsel || $isCanv)
                 <li class="nav-header">ALL DASHBOARD</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.home') }}"
                         class="nav-link waves-effect {{ request()->routeIs('admin.home') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-bullseye" style="color:rgb(240, 236, 1);"></i>
-                        <p>Home Dashboard</p>
+                        <i class="nav-icon fa-solid fa-table-cells" style="color:rgb(255, 255, 255);"></i>
+                        <p>Utama</p>
                     </a>
                 </li>
 
@@ -71,29 +72,50 @@
                             </a>
                         </li>
                     </ul>
-                </li>
+                </li> --}}
                 @endif
 
 
-                <li class="nav-header">Report</li>
+                {{-- <li class="nav-header">Report</li> --}}
                 <li class="nav-item">
                     <a href="{{ route('leads-master.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
-                        <p>Lead Master</p>
+                        <p>Data Leads & Akun</p>
                     </a>
-                </li>                
+                </li>     
                 <li class="nav-item">
+                    <a href="{{ route('leads-master.create') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.create') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-user-pen" style="color:rgb(1, 240, 172);"></i>
+                        <p>New Leads</p>
+                    </a>
+                </li>      
+                <li class="nav-item">
+                    <a href="{{ route('leads-master.create-existing') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.create-existing') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-user-tie" style="color:rgb(143, 142, 142);"></i>
+                        <p>Akun Eksisting</p>
+                    </a>
+                </li>             
+                <li class="nav-item">
+                    <a href="{{ route('leads-master.index') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? '' : '' }}">
+                        <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
+                        <p>Logbook</p>
+                    </a>
+                </li>           
+                {{-- <li class="nav-item">
                     <a href="{{ route('topup-canvasser') }}"
                         class="nav-link waves-effect {{ request()->routeIs('topup-canvasser') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
+                        <i class="nav-icon fa-solid fa-money-bill" style="color:rgb(80, 255, 80);"></i>
                         <p>Topup & Client Canvasser</p>
                     </a>
-                </li>          
+                </li>           --}}
                 <li class="nav-item">
                     <a href="{{ route('region-target') }}"
                         class="nav-link waves-effect {{ request()->routeIs('region-target') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-star" style="color:rgb(240,236,1);"></i>
+                        <i class="nav-icon fa-solid fa-chart-line" style="color:rgb(240, 37, 1);"></i>
                         <p>Region Target Topup</p>
                     </a>
                 </li>   
@@ -105,7 +127,7 @@
                     </a>
                 </li> --}}
                 {{-- ===== Menu khusus ADMIN ===== --}}
-                @if($isAdmin)
+                {{-- @if($isAdmin)
                 <li class="nav-header">Upload File</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.upload') }}"
@@ -114,7 +136,7 @@
                         <p>Revenue & Program</p>
                     </a>
                 </li>
-                @endif
+                @endif --}}
 
                 @if($isAdmin || $isTreg || $isTsel || $isCanv)
                 <li class="nav-header">System Management</li>
