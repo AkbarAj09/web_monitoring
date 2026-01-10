@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class MitraSBPSeeder extends Seeder
 {
@@ -12,32 +13,45 @@ class MitraSBPSeeder extends Seeder
      */
     public function run(): void
     {
-        $path = database_path('seeders/data/mitra_sbp.csv');
+        
+        $filePath = storage_path('app/mitra_sbp.csv');
 
-        if (!File::exists($path)) {
-            $this->command->error("CSV file not found: {$path}");
+        if (!file_exists($filePath)) {
+            $this->command->error("CSV file not found at {$filePath}");
             return;
         }
 
-        $rows = array_map('str_getcsv', file($path));
+        $handle = fopen($filePath, 'r');
 
-        // Ambil header & buang dari data
-        $header = array_map('trim', $rows[0]);
-        unset($rows[0]);
+        // skip header
+        fgetcsv($handle);
 
-        foreach ($rows as $row) {
-            if (count($row) < 4) {
-                continue; // skip baris tidak valid
+        while (($row = fgetcsv($handle)) !== false) {
+
+            // pastikan jumlah kolom aman
+            [$email_myads, $area, $remark, $voucher] = array_pad($row, 4, null);
+
+            if (!$email_myads) {
+                continue;
+            }
+
+            // optional: skip duplicate
+            if (DB::table('mitra_sbp')->where('email_myads', $email_myads)->exists()) {
+                continue;
             }
 
             DB::table('mitra_sbp')->insert([
-                'email_myads' => trim($row[0]),
-                'area'        => trim($row[1]),
-                'remark'      => trim($row[2]),
-                'voucher_83'  => trim($row[3]),
+                'email_myads' => trim($email_myads),
+                'area'        => trim($area),
+                'remark'      => trim($remark),
+                'voucher'     => trim($voucher),
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);
         }
+
+        fclose($handle);
+
+        $this->command->info('CSV import mitra_sbp complete!');
     }
 }

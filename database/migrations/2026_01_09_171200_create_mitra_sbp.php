@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('email_myads')->index();
             $table->string('area')->nullable();
             $table->string('remark')->nullable();
-            $table->string('voucher_83')->nullable();
+            $table->string('voucher')->nullable();
             $table->timestamps();
         });
     }

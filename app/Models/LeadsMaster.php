@@ -28,6 +28,8 @@ class LeadsMaster extends Model
         'address',
         'myads_account',
         'data_type',
+        'komitmen',
+        'plan_min_topup',
         'remarks',
     ];
     
