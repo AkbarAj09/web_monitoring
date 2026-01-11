@@ -239,7 +239,7 @@ class LeadsMasterController extends Controller
         ];
 
         $messages = [
-            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka.',
+            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka (9-12 digit).',
             'mobile_phone.unique' => 'Nomor HP sudah terdaftar.',
             'email.unique' => 'Email sudah terdaftar.',
         ];
@@ -298,7 +298,7 @@ class LeadsMasterController extends Controller
         ];
 
         $messages = [
-            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka.',
+            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka (9-12 digit).',
             'mobile_phone.unique' => 'Nomor HP sudah terdaftar.',
             'email.unique' => 'Email sudah terdaftar.',
         ];
