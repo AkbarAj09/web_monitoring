@@ -10,6 +10,7 @@ use App\Models\Sector;
 use Illuminate\Validation\Rule; 
 use DataTables;
 use Validator;
+use Illuminate\Support\Facades\DB;
 
 class LeadsMasterController extends Controller
 {
@@ -21,6 +22,11 @@ class LeadsMasterController extends Controller
         return view('leads-master.index', [
             'canvassers' => User::orderBy('name')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),
+            'regionals'  => DB::table('regional_provinces')
+                                ->select('regional')
+                                ->distinct()
+                                ->orderBy('regional')
+                                ->pluck('regional'),
         ]);
     }
 
@@ -41,7 +47,9 @@ class LeadsMasterController extends Controller
         // =======================
         // 🔍 FILTER DARI DATATABLE
         // =======================
-
+        if ($request->regional) {
+            $query->where('regional', $request->regional);
+        }
         // Filter Canvasser
         if ($request->canvasser) {
             $query->where('user_id', $request->canvasser);
@@ -231,7 +239,7 @@ class LeadsMasterController extends Controller
         ];
 
         $messages = [
-            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka.',
+            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka (9-12 digit).',
             'mobile_phone.unique' => 'Nomor HP sudah terdaftar.',
             'email.unique' => 'Email sudah terdaftar.',
         ];
@@ -290,7 +298,7 @@ class LeadsMasterController extends Controller
         ];
 
         $messages = [
-            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka.',
+            'mobile_phone.regex' => 'Nomor HP harus diawali dengan kode negara 62 dan hanya angka (9-12 digit).',
             'mobile_phone.unique' => 'Nomor HP sudah terdaftar.',
             'email.unique' => 'Email sudah terdaftar.',
         ];
@@ -340,8 +348,8 @@ class LeadsMasterController extends Controller
         $lead = LeadsMaster::findOrFail($lead->id);
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'source_id' => 'required|exists:leads_source,id',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'source_id' => 'nullable|exists:leads_source,id',
+            'sector_id' => 'required|exists:sectors,id',
             // 'kode_voucher' => 'string|max:255',
             'company_name' => 'nullable|string|max:255',
             'mobile_phone' => [
@@ -361,6 +369,7 @@ class LeadsMasterController extends Controller
             'nama' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:1000',
             'remarks' => 'nullable|string|max:1000',
+            'myads_account' => 'nullable|string|max:255'
         ]);
 
         $lead->update([
@@ -373,6 +382,7 @@ class LeadsMasterController extends Controller
             'sector_id' => $request->sector_id,
             // 'status' => $request->status == 'Ok' ? 1 : 0,
             'remarks' => $request->remarks,
+            'myads_account' => $request->myads_account,
         ]);
 
         return redirect()->route('leads-master.index')->with('success', 'Lead berhasil diupdate');

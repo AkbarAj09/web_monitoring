@@ -34,9 +34,15 @@
     <!-- Filter Tanggal + Buttons -->
     <div class="col-md-6 text-end">
         <div class="d-flex justify-content-end gap-2">
+            <select id="filter_regional" class="form-control" style="max-width: 200px">
+                <option value="">All Regional</option>
+                @foreach($regionals as $regional)
+                    <option value="{{ $regional }}">{{ $regional }}</option>
+                @endforeach
+            </select>
             <input type="date" id="start_date" class="form-control mx-1" style="max-width: 170px">
             <input type="date" id="end_date" class="form-control mx-1" style="max-width: 170px">
-
+            
             <button id="btnRefresh" class="btn btn-secondary mx-1">
                 Refresh
             </button>
@@ -133,6 +139,7 @@ $(function () {
                 // d.source    = $('#filter_source').val();
                 d.start_date = $('#start_date').val();
                 d.end_date   = $('#end_date').val();
+                d.regional = $('#filter_regional').val();
             }
         },
         columns: [
