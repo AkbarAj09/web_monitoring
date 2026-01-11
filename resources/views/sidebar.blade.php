@@ -50,29 +50,6 @@
                         <p>Utama</p>
                     </a>
                 </li>
-
-                <li class="nav-item {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link waves-effect {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-ticket-alt" style="color:#17a2b8;"></i>
-                        <p>Manajemen Voucher <i class="right fas fa-angle-left"></i></p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('admin.voucher') }}"
-                                class="nav-link waves-effect {{ request()->routeIs('admin.voucher') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-clipboard-list nav-icon" style="color:#17a2b8;"></i>
-                                <p>Daftar Voucher</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.claim.voucher') }}"
-                                class="nav-link waves-effect {{ request()->routeIs('admin.claim.voucher') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-hand-holding-usd nav-icon" style="color:#28a745;"></i>
-                                <p>Klaim Voucher</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li> --}}
                 @endif
 
 
