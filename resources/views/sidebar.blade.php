@@ -51,7 +51,7 @@
                     </a>
                 </li>
 
-                <li class="nav-item {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'menu-open' : '' }}">
+                {{--<li class="nav-item {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link waves-effect {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'active' : '' }}">
                         <i class="nav-icon fas fa-ticket-alt" style="color:#17a2b8;"></i>
                         <p>Manajemen Voucher <i class="right fas fa-angle-left"></i></p>
@@ -99,8 +99,8 @@
                     </a>
                 </li>             
                 <li class="nav-item">
-                    <a href="{{ route('leads-master.index') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('leads-master.index') ? '' : '' }}">
+                    <a href="{{ route('logbook.index') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
                         <p>Logbook</p>
                     </a>

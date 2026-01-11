@@ -1,168 +1,221 @@
 @extends('master')
-@section('title') New Logbook @endsection
+@section('title') Logbook @endsection
 
 @section('css')
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet"/>
 <style>
-    /* Loading overlay */
-    #loading-overlay {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7);
-        z-index: 9999;
-        display: none;
-        justify-content: center;
+    .card-title { font-weight: bold; }
+    .form-group label { font-weight: 600; }
+    .select2-container .select2-selection--single {
+        height: 35px !important;
+        padding: 8px 12px;
+        border: 1px solid #ced4da !important;
+        border-radius: 6px !important;
+        display: flex;
         align-items: center;
+        font-size: 15px;
+        background-color: #fff;
     }
-    #loading-message {
-        font-size: 24px;
-        color: white;
-        text-align: center;
+    .d-flex.gap-3 > label {
+        cursor: pointer;
+        user-select: none;
     }
-
-    /* Table styling */
-    .table {
-        background-color: #f9f9f9;
-        border-radius: 8px;
-        overflow: hidden;
-        width: 100%;
-        max-width: 100%;
-        margin-top: 15px;
-        border: 0.5px solid #ccc;
-        table-layout: auto;
-    }
-    .table th, .table td {
-        padding: 8px !important;
-        font-size: 14px !important;
-        border: 0.5px solid #ccc;
-        color: #313131;
-        text-align: center;
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-    .table th {
-        font-weight: bold;
-        background-color: #343a40;
-        color: #ffffff;
-    }
-
-    /* Buttons */
-    .btn-group-sm > .btn, .btn-sm { margin: 0 2px; }
-
-    /* Status badge */
-    .badge-ok { background-color: #28a745; color: #fff; }
-    .badge-no { background-color: #6c757d; color: #fff; }
+    .text-danger { font-size: 13px; }
 </style>
 @endsection
 
 @section('content')
-<div id="loading-overlay">
-    <div id="loading-message">Loading, mohon tunggu...</div>
+<div class="row align-items-end mb-3">
+
+    <!-- Spacer -->
+    <div class="col-md-6"></div>
+
+    <!-- Filter Tanggal + Buttons -->
+    <div class="col-md-6 text-end">
+        <div class="d-flex justify-content-end gap-2">
+            <select id="filter_regional" class="form-control" style="max-width: 200px">
+                <option value="">All Regional</option>
+                @foreach($regionals as $regional)
+                    <option value="{{ $regional }}">{{ $regional }}</option>
+                @endforeach
+            </select>
+            <input type="month" id="periode" class="form-control mx-1" style="max-width: 170px" value="{{ now()->format('Y-m') }}">
+            
+            <button id="btnRefresh" class="btn btn-secondary mx-1">
+                Refresh
+            </button>
+
+            <button id="btnExport" class="btn btn-success">
+                <i class="fa fa-file-excel"></i> XLS
+            </button>
+        </div>
+    </div>
 </div>
 
-<div class="card card-primary">
+<div class="card">
     <div class="card-header">
-        <h3 class="card-title font-weight-bold">Leads Master</h3>
+        <h4 class="font-weight-bold">Logbook</h4>
     </div>
-    <div class="card-body">
-        <div class="d-flex justify-content-end mb-3">
-            <a href="{{ route('leads-master.create') }}" class="btn btn-info" id="btn-add-lead">
-                <i class="fas fa-plus"></i> Tambah Leads
-            </a>
-        </div>
 
+    <div class="card-body">
+
+        {{-- FILTER --}}
+        {{-- <div class="row mb-3">
+            <div class="col-md-3">
+                <label>Canvasser</label>
+                <select id="filter_canvasser" class="form-control select2">
+                    <option value="">-- Semua --</option>
+                    @foreach($canvassers as $c)
+                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>Nama Perusahaan</label>
+                <input type="text" id="filter_company" class="form-control" placeholder="Cari perusahaan">
+            </div>
+
+            <div class="col-md-3">
+                <label>Email</label>
+                <input type="text" id="filter_email" class="form-control" placeholder="Cari email">
+            </div>
+
+            <div class="col-md-3">
+                <label>Lead Source</label>
+                <select id="filter_source" class="form-control select2">
+                    <option value="">-- Semua --</option>
+                    @foreach($sources as $s)
+                        <option value="{{ $s->id }}">{{ $s->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div> --}}
+{{-- <div class="d-flex justify-content-end mb-3"> <a href="{{ route('leads-master.create') }}" class="btn btn-info" id="btn-add-lead"> <i class="fas fa-plus"></i> Tambah Leads </a> </div> --}}
+        {{-- TABLE --}}
         <div class="table-responsive">
-            <table class="table table-sm table-striped table-hover w-100" id="leadsMasterTable">
-                <thead>
+            <table class="table table-bordered table-sm" id="leadsMasterTable">
+                <thead class="bg-dark text-white">
                     <tr>
-                        <th>User Canvasser</th>
-                        {{-- <th>Kode Voucher</th> --}}
-                        <th>Nama Perusahaan / Instansi</th>
-                        <th>No HP Pelanggan</th>
-                        <th>Email Pelanggan</th>
-                        <th>Lead Source</th>
-                        <th>Nama Pelanggan</th>
-                        <th>Sector</th>
                         <th>Status</th>
-                        <th>Remarks</th>
+                        <th>Canvasser</th>
+                        <th>Regional</th>
+                        <th>Nama Perusahaan</th>
+                        <th>Email</th>
+                        <th>No HP</th>
+                        <th>Tipe Data</th>
+                        <th>Tanggal</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
+
     </div>
 </div>
-
-
 @endsection
 
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-$(document).ready(function() {
-    $.ajaxSetup({
-        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-    });
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
-    var table = $('#leadsMasterTable').DataTable({
+<script>
+$(function () {
+
+    $('.select2').select2({ width: '100%' });
+
+    let table = $('#leadsMasterTable').DataTable({
         processing: true,
         serverSide: true,
-        ajax: "{{ route('leads-master.data') }}",
+        ajax: {
+            url: "{{ route('leads-master.data') }}",
+            data: function (d) {
+                // d.canvasser = $('#filter_canvasser').val();
+                // d.company   = $('#filter_company').val();
+                // d.email     = $('#filter_email').val();
+                // d.source    = $('#filter_source').val();
+                d.start_date = $('#start_date').val();
+                d.end_date   = $('#end_date').val();
+                d.regional = $('#filter_regional').val();
+            }
+        },
         columns: [
-            { data: 'user_name', name: 'user_name' },       // User
-            // { data: 'kode_voucher', name: 'kode_voucher' }, // Kode Voucher
-            { data: 'company_name', name: 'company_name' }, // Nama Perusahaan / Instansi
-            { data: 'mobile_phone', name: 'mobile_phone' }, // No HP
-            { data: 'email', name: 'email' },               // Email
-            { data: 'source_name', name: 'source_name' },   // Lead Source
-            { data: 'nama', name: 'nama' },                 // Nama Pelanggan
-            { data: 'sector_name', name: 'sector_name' },   // Sector
-            { data: 'status', name: 'status' },             // Status
-            { data: 'remarks', name: 'remarks' },           // Remarks
-            { data: 'aksi', name: 'aksi', orderable: false, searchable: false } // Aksi
-        ],
-        columnDefs: [
-            { targets: '_all', className: 'text-center' }
+            { data: 'status', orderable:false, searchable:false },
+            { data: 'user_name' },
+            { data: 'regional' },
+            { data: 'company_name' },
+            { data: 'email' },
+            { data: 'mobile_phone' },
+            { data: 'data_type' },
+            { data: 'created_at' },
+            { data: 'aksi', orderable:false, searchable:false }
         ]
     });
 
+    // $('#filter_canvasser, #filter_source').on('change', function () {
+    //     table.ajax.reload();
+    // });
 
-    // Simpan perubahan
-    $('#btn-simpan-user').click(function() {
-        var userId = $('#user_id').val();
-
-        if(!/^62\d+$/.test($('#mobile_phone').val())){
-            Swal.fire('Error!', 'Nomor HP harus diawali dengan 62.', 'error');
-            return false;
-        }
-
-        $(this).html('Menyimpan..');
-
-        $.ajax({
-            url: "{{ url('leads-master/update') }}/" + userId,
-            type: "POST",
-            data: $('#userForm').serialize(),
-            dataType: 'json',
-            success: function(res){
-                $('#userModal').modal('hide');
-                table.ajax.reload(null, false);
-                Swal.fire('Berhasil!', res.success, 'success');
-            },
-            error: function(err){
-                let errors = err.responseJSON.errors;
-                if(errors.nama) $('#nama-error').text(errors.nama[0]);
-                if(errors.email) $('#email-error').text(errors.email[0]);
-            },
-            complete: function(){
-                $('#btn-simpan-user').html('Simpan Perubahan');
-            }
-        });
+    // $('#filter_company, #filter_email').on('keyup', function () {
+    //     table.ajax.reload();
+    // });
+      $('#btnRefresh').on('click', function () {
+        table.ajax.reload(null, false);
     });
+});
+$('#start_date').on('change', function () {
+    let startDate = $(this).val();
 
-    // Tooltip
-    $('[data-toggle="tooltip"]').tooltip();
+    if (startDate) {
+        // End date tidak boleh sebelum start date
+        $('#end_date').attr('min', startDate);
+
+        // Kalau end date < start date → reset
+        if ($('#end_date').val() && $('#end_date').val() < startDate) {
+            $('#end_date').val('');
+        }
+    }
+});
+
+$('#end_date').on('change', function () {
+    let endDate = $(this).val();
+
+    if (endDate) {
+        // Start date tidak boleh setelah end date
+        $('#start_date').attr('max', endDate);
+
+        // Kalau start date > end date → reset
+        if ($('#start_date').val() && $('#start_date').val() > endDate) {
+            $('#start_date').val('');
+        }
+    }
+});
+
+$('#btnExport').on('click', function () {
+
+    let params = {
+        start_date: $('#start_date').val(),
+        end_date: $('#end_date').val(),
+        // canvasser: $('#filter_canvasser').val(),
+        // company: $('#filter_company').val(),
+        // email: $('#filter_email').val(),
+        // source: $('#filter_source').val(),
+    };
+
+    let query = $.param(params);
+
+    window.location = "{{ route('leads-master.export') }}?" + query;
+});
+$('#btnExport').on('click', function () {
+    let params = {
+        start_date: $('#start_date').val(),
+        end_date: $('#end_date').val()
+    };
+
+    window.location =
+        "{{ route('leads-master.export') }}?" + $.param(params);
 });
 </script>
 @endsection

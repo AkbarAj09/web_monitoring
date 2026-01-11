@@ -32,7 +32,7 @@
     </div>
 
     <div class="card-body">
-        <form action="{{ route('leads-master.update', $lead->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('leads-master.update', $lead) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -42,16 +42,26 @@
                 <input type="text" class="form-control" value="{{ $lead->user->name ?? auth()->user()->name }}" disabled>
                 <input type="hidden" name="user_id" value="{{ $lead->user_id ?? auth()->id() }}">
             </div>
-
-            {{-- KODE VOUCHER --}}
-            {{-- <div class="form-group">
-                <label for="kode_voucher">Kode Voucher</label>
-                <input type="text" id="kode_voucher" name="kode_voucher" class="form-control" 
-                    placeholder="Masukkan kode voucher" value="{{ old('kode_voucher', $lead->kode_voucher) }}">
-                @error('kode_voucher')
-                    <small class="text-danger">{{ $message }}</small>
-                @enderror
-            </div> --}}
+            @if(($lead->data_type ?? old('data_type')) === 'Eksisting Akun')
+                    
+            @else
+                {{-- LEAD SOURCES --}}
+                <div class="form-group">
+                    <label for="source_id">Source Leads</label>
+                    <select name="source_id" id="source_id" class="form-control select2">
+                        {{-- <option value="">-- Pilih Source --</option> --}}
+                        @foreach ($leadSources as $ls)
+                            <option value="{{ $ls->id }}" {{ old('source_id', $lead->source_id) == $ls->id ? 'selected' : '' }}>
+                                {{ $ls->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('source_id')
+                        <small class="text-danger">{{ $message }}</small>
+                    @enderror
+                </div>
+            @endif
+            
 
             {{-- NAMA PERUSAHAAN / INSTANSI --}}
             <div class="form-group">
@@ -83,22 +93,6 @@
                 @enderror
             </div>
 
-            {{-- LEAD SOURCES --}}
-            <div class="form-group">
-                <label for="source_id">Source</label>
-                <select name="source_id" id="source_id" class="form-control select2" required>
-                    <option value="">-- Pilih Source --</option>
-                    @foreach ($leadSources as $ls)
-                        <option value="{{ $ls->id }}" {{ old('source_id', $lead->source_id) == $ls->id ? 'selected' : '' }}>
-                            {{ $ls->name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('source_id')
-                    <small class="text-danger">{{ $message }}</small>
-                @enderror
-            </div>
-
             {{-- NAMA PELANGGAN --}}
             <div class="form-group">
                 <label for="nama">Nama Pelanggan</label>
@@ -121,6 +115,27 @@
                     @endforeach
                 </select>
                 @error('sector_id')
+                    <small class="text-danger">{{ $message }}</small>
+                @enderror
+            </div>
+
+            {{-- Akun Myads --}}
+            <div class="form-group">
+                <label for="myads_account">Akun MyAds</label>
+                <input type="text" id="myads_account" name="myads_account" class="form-control" placeholder="Masukkan Akun MyAds" value="{{ old('myads_account', $lead->myads_account ?? '') }}"
+                    @if(($lead->data_type ?? old('data_type')) === 'Eksisting Akun')
+                        required
+                    @endif
+                >
+
+                @if(($lead->data_type ?? old('data_type')) === 'Eksisting Akun')
+                    
+                @else
+                    <small class="text-danger">
+                        *) Diisi jika sudah register akun MyAds
+                    </small>
+                @endif
+                @error('myads_account')
                     <small class="text-danger">{{ $message }}</small>
                 @enderror
             </div>

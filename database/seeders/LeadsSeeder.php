@@ -39,7 +39,8 @@ class LeadsSeeder extends Seeder
             // -----------------------------
             // Normalize & fallback values
             // -----------------------------
-            $normalizedPhone = $this->normalizePhone($phone);
+            // $normalizedPhone = $this->normalizePhone($phone);
+            $normalizedPhone = $phone;
             if ($normalizedPhone === '' || $normalizedPhone === null) {
                 $normalizedPhone = '-';
             }
@@ -125,12 +126,12 @@ class LeadsSeeder extends Seeder
     // ----------------------------------
     // PHONE NORMALIZER
     // ----------------------------------
-    private function normalizePhone($phone): ?string
-    {
-        if (empty($phone)) {
-            return null;
-        }
+    // private function normalizePhone($phone): ?string
+    // {
+    //     if (empty($phone)) {
+    //         return null;
+    //     }
 
-        return preg_replace('/[^0-9]/', '', $phone);
-    }
+    //     return preg_replace('/[^0-9]/', '', $phone);
+    // }
 }
