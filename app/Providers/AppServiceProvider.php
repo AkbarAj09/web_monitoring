@@ -20,7 +20,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
-        DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+        // Only run MySQL-specific commands on MySQL connections
+        try {
+            $driver = config('database.default');
+            $connection = config("database.connections.{$driver}.driver");
+            
+            if ($connection === 'mysql') {
+                DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+            }
+        } catch (\Exception $e) {
+            // Silently fail if there's any issue with database configuration
+            \Log::warning("Could not set MySQL session mode: " . $e->getMessage());
+        }
     }
 }
