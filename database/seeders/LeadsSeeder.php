@@ -107,7 +107,7 @@ class LeadsSeeder extends Seeder
     private function getSourceIdByName(?string $name): int
     {
         if (empty($name)) {
-            return 1; // Data Sendiri
+            return 0; // Data Sendiri
         }
 
         $name = trim($name);
