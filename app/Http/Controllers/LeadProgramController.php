@@ -27,26 +27,22 @@ class LeadProgramController extends Controller
     {
         try {
             // Ambil email dari masing-masing kategori
-            $mitraSbpEmails = DB::connection('mysql')
-                ->table('mitra_sbp')
+            $mitraSbpEmails = DB::table('mitra_sbp')
                 ->where('remark', 'Mitra SBP')
                 ->pluck('email_myads')
                 ->toArray();
 
-            $agencyEmails = DB::connection('mysql')
-                ->table('mitra_sbp')
+            $agencyEmails = DB::table('mitra_sbp')
                 ->where('remark', 'Agency')
                 ->pluck('email_myads')
                 ->toArray();
 
-            $outletEmails = DB::connection('mysql')
-                ->table('mitra_sbp')
+            $outletEmails = DB::table('mitra_sbp')
                 ->where('remark', 'Outlet')
                 ->pluck('email_myads')
                 ->toArray();
 
-            $canvasserEmails = DB::connection('mysql')
-                ->table('leads_master')
+            $canvasserEmails = DB::table('leads_master')
                 ->pluck('email')
                 ->toArray();
 
@@ -67,8 +63,7 @@ class LeadProgramController extends Controller
                 ORDER BY tgl_transaksi DESC";
                 
             
-            $topupData = DB::connection('mysql')
-                ->table('report_balance_top_up as rp')
+            $topupData = DB::table('report_balance_top_up as rp')
                 ->leftJoin('mitra_sbp as m', 'm.email_myads', '=', 'rp.email_client')
                 ->leftJoin('leads_master as lm', 'lm.email', '=', 'rp.email_client')
                 ->select(
