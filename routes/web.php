@@ -10,6 +10,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LeadsMasterController;
 use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\PanenPoinController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::get('/login', [FrontController::class, 'index'])->name('login');
@@ -169,5 +170,12 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
     Route::get('topup-canvasser/pdf', [ReportController::class, 'exportTopupCanvasserPdf'])->name('topup-canvasser.pdf');
 
     Route::get('region-target', [ReportController::class, 'reportRegionTargetVsTopup'])->name('region-target');
+
+    // Panen Poin Routes
+    Route::get('panen-poin/input', [PanenPoinController::class, 'index'])->name('panenpoin.index');
+    Route::post('panen-poin/store', [PanenPoinController::class, 'store'])->name('panenpoin.store');
+    Route::get('panen-poin/report', [PanenPoinController::class, 'report'])->name('panenpoin.report');
+    Route::get('panen-poin/report-data', [PanenPoinController::class, 'getReportData'])->name('panenpoin.report-data');
+    Route::get('panen-poin/export', [PanenPoinController::class, 'export'])->name('panenpoin.export');
 
 });

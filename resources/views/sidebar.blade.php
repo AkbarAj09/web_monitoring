@@ -137,7 +137,30 @@
                     </a>
                 </li>
                 @endif --}}
-
+                @if($isAdmin || $isTreg || $isTsel || $isCanv)
+                <li class="nav-item {{ (request()->routeIs('panenpoin.index') || request()->routeIs('panenpoin.report')) ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link waves-effect {{ (request()->routeIs('panenpoin.index') || request()->routeIs('panenpoin.report')) ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-coins" style="color:#28a745;"></i>
+                        <p>Program Panen Poin <i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('panenpoin.index') }}"
+                                class="nav-link waves-effect {{ request()->routeIs('panenpoin.index') ? 'active' : '' }}" style="padding-left: 45px;">
+                                <i class="fas fa-plus-circle nav-icon" style="color:#17a2b8;"></i>
+                                <p>Input Data</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('panenpoin.report') }}"
+                                class="nav-link waves-effect {{ request()->routeIs('panenpoin.report') ? 'active' : '' }}" style="padding-left: 45px;">
+                                <i class="fas fa-chart-bar nav-icon" style="color:#ffc107;"></i>
+                                <p>Report Poin</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                @endif
                 @if($isAdmin || $isTreg || $isTsel || $isCanv)
                 <li class="nav-header">System Management</li>
                 @endif

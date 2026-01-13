@@ -75,7 +75,6 @@ class BackController extends Controller
                     'email' => 'Akun Anda belum aktif.',
                 ])->withInput();
             }
-                        // dd($user->role);
 
             // 4. Arahkan sesuai role
             switch ($user->role) {

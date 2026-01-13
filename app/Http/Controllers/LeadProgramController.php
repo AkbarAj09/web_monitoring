@@ -444,7 +444,7 @@ class LeadProgramController extends Controller
         try {
             // Agregasi langsung dari database untuk performa lebih baik
             $canvasers = DB::table('users')
-                ->where('role', 'canvasser')
+                ->where('role', 'cvsr')
                 ->pluck('id');
 
             if ($canvasers->isEmpty()) {
