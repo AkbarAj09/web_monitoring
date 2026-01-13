@@ -50,6 +50,9 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
 Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
     Route::get('/get-daily-topup-data', [\App\Http\Controllers\LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
+    Route::get('/get-leads-data-api', [\App\Http\Controllers\LeadProgramController::class, 'getLeadsDataApi'])->name('leads_data_api');
+    Route::get('/get-regional-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalDataTable'])->name('regional_data');
+    Route::get('/get-regional-chart-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalChartData'])->name('regional_chart_data');
 
     Route::get('/upload-file-myads', [FrontController::class, 'uploadMyAds'])->name('admin.upload');
     Route::post('/store-csv-myads', [BackController::class, 'storeUploadMyAds'])->name('upload.myads.store');

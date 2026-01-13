@@ -1,12 +1,20 @@
 @extends('master')
 @section('title') Dashboard @endsection
 @section('css')
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
 <style>
     .btn-ref {
         position: fixed;
         top: 50px;
         left: 1000px;
+    }
+
+    #regionalChart {
+        min-height: 280px;
+        max-height: 330px;
     }
 
     #loading-overlay {
@@ -126,6 +134,7 @@
             opacity: 0;
             transform: translate3d(0, 40px, 0);
         }
+
         to {
             opacity: 1;
             transform: translate3d(0, 0, 0);
@@ -138,14 +147,17 @@
 
     /* Responsive */
     @media (max-width: 768px) {
-        .h3, .h4, .h5 {
+
+        .h3,
+        .h4,
+        .h5 {
             font-size: 1.2rem;
         }
-        
+
         .fa-2x {
             font-size: 1.5em;
         }
-        
+
         .btn-group-vertical .btn {
             font-size: 0.8rem;
             padding: 0.375rem 0.75rem;
@@ -206,6 +218,139 @@
             font-size: 12px;
         }
     }
+
+    /* Custom Select2 Styling */
+    .select2-container--bootstrap-5 .select2-selection {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        min-height: 38px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection:focus {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding-left: 0;
+        color: #212529;
+        line-height: 1.5;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+        right: 8px;
+    }
+
+    .select2-dropdown {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+
+    .select2-container--bootstrap-5 .select2-results__option--highlighted {
+        background-color: #0d6efd;
+        color: #fff;
+    }
+
+    .select2-container--bootstrap-5 .select2-results__option--selected {
+        background-color: #e7f1ff;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .form-label i {
+        margin-right: 5px;
+        color: #6c757d;
+    }
+
+    /* Filter Card Styling */
+    .filter-section {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+
+    .quick-nav-section {
+        background: #fff;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+    }
+
+    /* Button Styling */
+    .btn-group-custom .btn {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-group-custom .btn:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Input Month Styling */
+    input[type="month"] {
+        cursor: pointer;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
+    }
+
+    input[type="month"]:focus {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    /* Divider */
+    .divider {
+        height: 1px;
+        background: linear-gradient(to right, transparent, #dee2e6, transparent);
+        margin: 1rem 0;
+    }
+
+    /* Quick Navigation in Header */
+    .btn-light {
+        transition: all 0.3s ease;
+        padding: 0.5rem 0.25rem;
+        font-weight: 500;
+    }
+
+    .btn-light:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-light i {
+        font-size: 1.2rem;
+    }
+
+    .btn-light small {
+        font-size: 0.75rem;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .btn-light i {
+            font-size: 1rem;
+        }
+        .btn-light small {
+            font-size: 0.65rem;
+        }
+    }
 </style>
 @endsection
 
@@ -226,9 +371,165 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card bg-gradient-primary">
-            <div class="card-body text-white text-center">
-                <h2><i class="fas fa-tachometer-alt"></i> Dashboard MyAds Monitoring</h2>
-                <p class="mb-0">Selamat datang di sistem monitoring MyAds Telkomsel</p>
+            <div class="card-body text-white">
+                <div class="row align-items-center">
+                    <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                        <h2 class="mb-2"><i class="fas fa-tachometer-alt"></i> Dashboard MyAds Monitoring</h2>
+                        <p class="mb-0">Selamat datang di sistem monitoring MyAds Telkomsel</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row g-2">
+                            <div class="col-12 mb-2">
+                                <small class="d-block text-white-50">
+                                    <i class="fas fa-bolt"></i> Quick Navigation
+                                </small>
+                            </div>
+                            <div class="col-md-4 col-4">
+                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('regionalChartCard')">
+                                    <i class="fas fa-chart-bar d-block mb-1"></i>
+                                    <small>Bar Chart</small>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-4">
+                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('canvaserTableCard')">
+                                    <i class="fas fa-table d-block mb-1"></i>
+                                    <small>Regional</small>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-4">
+                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('dailyTopupTableCard')">
+                                    <i class="fas fa-chart-line d-block mb-1"></i>
+                                    <small>Daily Topup</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bar Chart Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card" id="regionalChartCard">
+            <div class="card-header bg-gradient-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Data Prospect & Deal - Regional Canvasser</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="text-center mb-3">Agregasi Data Seluruh Regional</h6>
+                <canvas id="regionalChart" style="height: 140px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Filter & Shortcut Card
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-gradient-warning text-white">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> Filter & Quick Navigation</h5>
+            </div>
+            <div class="card-body">
+                <div class="filter-section">
+                    <div class="mb-3">
+                        <label for="filterArea" class="form-label">
+                            <i class="fas fa-map-marked-alt text-primary"></i> Area
+                        </label>
+                        <select class="form-select select2-custom" id="filterArea" data-placeholder="Pilih Area">
+                            <option value="">Semua Area</option>
+                            <option value="AREA 1">AREA 1</option>
+                            <option value="AREA 2">AREA 2</option>
+                            <option value="AREA 3" selected>AREA 3</option>
+                            <option value="AREA 4">AREA 4</option>
+                            <option value="AREA 5">AREA 5</option>
+                            <option value="AREA 6">AREA 6</option>
+                            <option value="AREA 7">AREA 7</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filterRegional" class="form-label">
+                            <i class="fas fa-map-marker-alt text-success"></i> Regional
+                        </label>
+                        <select class="form-select select2-custom" id="filterRegional" data-placeholder="Pilih Regional">
+                            <option value="">Semua Regional</option>
+                            <option value="JAKARTA">JAKARTA</option>
+                            <option value="BANDUNG">BANDUNG</option>
+                            <option value="SEMARANG">SEMARANG</option>
+                            <option value="SURABAYA">SURABAYA</option>
+                            <option value="MEDAN">MEDAN</option>
+                            <option value="MAKASSAR">MAKASSAR</option>
+                            <option value="DENPASAR">DENPASAR</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filterPeriode" class="form-label">
+                            <i class="fas fa-calendar-alt text-info"></i> Periode
+                        </label>
+                        <input type="month" class="form-control" id="filterPeriode" value="{{ now()->format('Y-m') }}">
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button type="button" class="btn btn-primary btn-sm w-100" id="applyFilter">
+                                <i class="fas fa-check"></i> Terapkan
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="resetFilter">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+<!-- Report Canvaser All Region -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" id="canvaserTableCard">
+            <div class="card-header bg-gradient-success text-white">
+                <h4 class="mb-0"><i class="fas fa-table"></i> Report Canvaser All Region</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm w-100 table-bordered table-hover" id="regionalTable" style="font-size: 11px;">
+                        <thead class="thead-light">
+                            <tr>
+                                <th colspan="11" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }} | AREA: AREA 3</th>
+                            </tr>
+                            <tr>
+                                <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">No</th>
+                                <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Regional</th>
+                                <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Canvaser Name</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2" class="text-center" style="background-color: #cfe2ff;">Data Prospect (Leads & Eksisting Akun)</th>
+                                <th colspan="2" class="text-center" style="background-color: #d1e7dd;">Deal (New Akun & Top UP)</th>
+                                <th colspan="2" style="vertical-align: middle; text-align: center; background-color: #f8d7da;">Top Up (Rp.)</th>
+                            </tr>
+                            <tr>
+                                <th class="text-center" style="background-color: #cfe2ff;">Leads</th>
+                                <th class="text-center" style="background-color: #cfe2ff;">Eksisting Akun</th>
+                                <th class="text-center" style="background-color: #d1e7dd;">New Akun</th>
+                                <th class="text-center" style="background-color: #d1e7dd;">Top UP</th>
+                                <th class="text-center" style="background-color: #f8d7da;">New Akun(Rp.)</th>
+                                <th class="text-center" style="background-color: #f8d7da;">Eksisting Akun(Rp.)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="10" class="text-center">Loading data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -237,7 +538,7 @@
 <!-- Daily Topup Table -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
+        <div class="card" id="dailyTopupTableCard">
             <div class="card-header bg-gradient-danger text-white">
                 <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Daily Topup / Channel</h4>
             </div>
@@ -295,8 +596,142 @@
 @endsection
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    // Register plugin datalabels
+    Chart.register(ChartDataLabels);
+
     $(document).ready(function() {
+        // Initialize Select2 for dropdowns
+        $('.select2-custom').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            dropdownParent: $('.card-body'),
+            allowClear: true,
+            placeholder: function(){
+                return $(this).data('placeholder');
+            }
+        });
+        // Load Chart Data untuk Regional
+        loadRegionalChart();
+
+        // Filter functionality
+        $('#applyFilter').on('click', function() {
+            const area = $('#filterArea').val();
+            const regional = $('#filterRegional').val();
+            const periode = $('#filterPeriode').val();
+            
+            console.log('Filter applied:', { area, regional, periode });
+            
+            // Reload tables dengan filter
+            regionalTable.ajax.reload();
+            $('#dailyTopupTable').DataTable().ajax.reload();
+            
+            // Show notification
+            alert('Filter diterapkan: ' + 
+                (area ? 'Area: ' + area : '') + 
+                (regional ? ', Regional: ' + regional : '') + 
+                (periode ? ', Periode: ' + periode : '')
+            );
+        });
+
+        $('#resetFilter').on('click', function() {
+            $('#filterArea').val('AREA 3').trigger('change');
+            $('#filterRegional').val('').trigger('change');
+            $('#filterPeriode').val('{{ now()->format('Y-m') }}').trigger('change');
+            
+            // Reload tables
+            regionalTable.ajax.reload();
+            $('#dailyTopupTable').DataTable().ajax.reload();
+            
+            console.log('Filter reset');
+        });
+
+        // DataTable untuk Regional Data
+        var regionalTable = $('#regionalTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ordering: false,
+            paging: false,
+            searching: false,
+            ajax: {
+                url: "{{ route('regional_data') }}",
+                type: "GET",
+                dataSrc: function(json) {
+                    console.log("Regional Data:", json);
+                    return json.data || [];
+                }
+            },
+            columns: [{
+                    data: 'no',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'regional',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'canvaser_name',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'leads',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'existing_akun',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'new_akun',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'top_up',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'top_up_new_akun_rp',
+                    className: 'text-right',
+                    render: function(data) {
+                        return `<div style="text-align: right;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'top_up_existing_akun_rp',
+                    className: 'text-right',
+                    render: function(data) {
+                        return `<div style="text-align: right;">${data}</div>`;
+                    }
+                }
+            ]
+        });
+
+        // DataTable untuk Daily Topup
         var table = $('#dailyTopupTable').DataTable({
             processing: true,
             serverSide: true,
@@ -310,8 +745,7 @@
                     return json.data || [];
                 }
             },
-            columns: [
-                {
+            columns: [{
                     data: 'date',
                     render: function(data, type, row) {
                         if (data === 'Total Keseluruhan') {
@@ -399,6 +833,122 @@
         $('#dailyTopupTable').on('error.dt', function(e, settings, techNote, message) {
             console.log("DataTables Error:", message);
         });
+
+        // Function untuk load Regional Chart
+        function loadRegionalChart() {
+            $.ajax({
+                url: "{{ route('regional_chart_data') }}",
+                type: "GET",
+                success: function(response) {
+                    console.log("Chart Data:", response);
+                    renderRegionalChart(response);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading chart data:", error);
+                }
+            });
+        }
+
+        // Function untuk render Chart
+        function renderRegionalChart(data) {
+            var ctx = document.getElementById('regionalChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Leads vs New Akun', 'New Akun vs Top Up New Akun', 'Existing Akun vs Top Up Existing Akun'],
+                    datasets: [{
+                        label: 'Data Prospect',
+                        data: [data.total_leads, data.total_new_akun, data.total_existing_akun],
+                        backgroundColor: '#156082',
+                        barThickness: 35,
+                        categoryPercentage: 1.0,
+                        barPercentage: 1.0
+                    }, {
+                        label: 'Data Deal',
+                        data: [data.total_new_akun, data.total_top_up_new_akun, data.total_top_up_existing_akun],
+                        backgroundColor: '#FFC000',
+                        barThickness: 35,
+                        categoryPercentage: 1.0,
+                        barPercentage: 1.0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            display: true,
+                            grid: {
+                                display: false
+                            },
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += context.parsed.y.toLocaleString('id-ID');
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            offset: -5,
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#000'
+                        }
+                    },
+                    barPercentage: 0.5,
+                    categoryPercentage: 0.5
+                }
+            });
+        }
     });
+
+    // Scroll to section function
+    function scrollToSection(sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+            
+            // Add highlight effect
+            const card = element.closest('.card');
+            if (card) {
+                card.style.transition = 'all 0.3s';
+                card.style.boxShadow = '0 0 20px rgba(0,123,255,0.5)';
+                setTimeout(() => {
+                    card.style.boxShadow = '';
+                }, 2000);
+            }
+        }
+    }
 </script>
 @endsection
