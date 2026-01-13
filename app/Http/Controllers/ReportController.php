@@ -225,8 +225,8 @@ public function topupCanvasserData(Request $request)
         $end   = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
 
         /* ================= TOPUP PER REGION ================= */
-        $topupPerRegion = DB::connection('pgsql')
-            ->table('em_myads_topup as emt')
+        $topupPerRegion = DB::connection('mysql')
+            ->table('report_balance_top_up as emt')
             ->selectRaw("
                 CASE
                     WHEN data_province_name IN ('Sumatera Selatan','Jambi','Bengkulu','Lampung','Bangka Belitung') THEN 'SUMBAGSEL'
@@ -259,8 +259,8 @@ public function topupCanvasserData(Request $request)
             ->mapWithKeys(fn ($item) => [strtoupper($item->region_name) => $item]);
 
         /* ================= LAST UPDATE GLOBAL ================= */
-        $lastUpdate = DB::connection('pgsql')
-            ->table('em_myads_topup')
+        $lastUpdate = DB::connection('mysql')
+            ->table('report_balance_top_up')
             ->whereBetween('tgl_transaksi', [$start, $end])
             ->whereNotNull('tgl_transaksi')
             ->where('payment_history_status', 'PAID')
