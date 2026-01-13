@@ -340,7 +340,7 @@ class LeadProgramController extends Controller
         try {
             // 1. Ambil semua user dengan role 'Canvasser' dari kolom role di tabel users
             $canvasers = DB::table('users')
-                ->where('role', 'canvasser')
+                ->where('role', 'cvsr')
                 ->select('id', 'name')
                 ->get();
 
