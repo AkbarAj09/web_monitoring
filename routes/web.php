@@ -177,5 +177,6 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
     Route::get('panen-poin/report', [PanenPoinController::class, 'report'])->name('panenpoin.report');
     Route::get('panen-poin/report-data', [PanenPoinController::class, 'getReportData'])->name('panenpoin.report-data');
     Route::get('panen-poin/export', [PanenPoinController::class, 'export'])->name('panenpoin.export');
+    Route::get('panen-poin/refresh-summary', [PanenPoinController::class, 'refreshSummaryPanenPoin'])->name('panenpoin.refresh');
 
 });

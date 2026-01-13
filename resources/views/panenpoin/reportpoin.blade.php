@@ -14,7 +14,7 @@
     }
 
     .table thead th {
-        background: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
+        background: linear-gradient(180deg, #df514e 10%, #be2222 100%);
         color: white;
         font-weight: 600;
         border: none;
@@ -36,10 +36,32 @@
 
 @section('content')
 <div class="row mb-3">
-    <div class="col-12 text-right">
-        <button id="btn-export" class="btn btn-success">
-            <i class="fas fa-file-excel mr-2"></i>Export Excel
-        </button>
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">
+                <i class="fas fa-calendar-alt mr-2 text-primary"></i>
+                <strong>Bulan:</strong> 
+                <span id="selectedMonth" class="text-danger">{{ $months[array_search(true, array_column($months, 'selected'))]['label'] ?? 'Januari 2026' }}</span>
+            </h4>
+        </div>
+        <div class="d-flex align-items-center">
+            <button id="showFilterBtn" class="btn btn-outline-primary" type="button" title="Filter Bulan" style="padding: 6px 12px;">
+                <i class="fas fa-filter"></i>
+            </button>
+            <div id="filterContainer" style="display: none; min-width: 220px; margin-left: 10px;">
+                <select id="tanggal" name="tanggal" class="form-control select2"
+                    style="background-color: #313131; color: white;">
+                    @foreach ($months as $month)
+                    <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                        {{ $month['label'] }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <button id="btn-export" class="btn btn-success ml-2">
+                <i class="fas fa-file-excel mr-2"></i>Export Excel
+            </button>
+        </div>
     </div>
 </div>
 
@@ -47,7 +69,7 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header bg-primary">
+            <div class="card-header bg-danger">
                 <h3 class="card-title text-white">
                     <i class="fas fa-chart-line mr-2"></i>Data Poin Canvasser
                 </h3>
@@ -86,7 +108,7 @@
 
 @endsection
 
-@section('scripts')
+@section('js')
 <!-- DataTables JS -->
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
@@ -95,15 +117,20 @@
 
 <script>
     $(document).ready(function() {
+        
+        // Toggle filter visibility
+        $('#showFilterBtn').click(function() {
+            $('#filterContainer').toggle();
+        });
+        
         // Initialize DataTable
         var table = $('#reportTable').DataTable({
             processing: true,
             serverSide: true,
             ajax: {
                 url: "{{ route('panenpoin.report-data') }}",
-                dataSrc: function(json) {
-                    console.log("Response dari server:", json);
-                    return json.data || [];
+                data: function(d) {
+                    d.tanggal = $('#tanggal').val(); // Kirim nilai filter ke server
                 }
             },
             columns: [{
@@ -161,10 +188,22 @@
                 [10, 25, 50, 100, "Semua"]
             ]
         });
+        
+        // Event onchange untuk filter tanggal
+        $('#tanggal').on('change', function() {
+            // Update label bulan yang ditampilkan
+            var selectedText = $('#tanggal option:selected').text();
+            $('#selectedMonth').text(selectedText);
+            
+            // Reload data table
+            table.ajax.reload();
+        });
 
         // Export button click
         $('#btn-export').click(function() {
-            window.location.href = "{{ route('panenpoin.export') }}";
+            var tanggal = $('#tanggal').val();
+            var exportUrl = "{{ route('panenpoin.export') }}" + "?tanggal=" + tanggal;
+            window.location.href = exportUrl;
         });
     });
 </script>

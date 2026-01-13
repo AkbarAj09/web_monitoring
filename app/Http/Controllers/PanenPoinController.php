@@ -48,129 +48,91 @@ class PanenPoinController extends Controller
     // Tampilkan halaman report
     public function report()
     {
-        return view('panenpoin.reportpoin');
+        $months = [];
+
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->format('Y-m-01'); // bulan sekarang, tanggal 01
+
+        for ($i = 1; $i <= 12; ++$i) {
+            $date = Carbon::create($currentYear, $i, 1);
+            $months[] = [
+                'value' => $date->format('Y-m-d'), // e.g., 2025-05-01
+                'label' => $date->translatedFormat('F Y'), // e.g., Mei 2025
+                'selected' => $date->format('Y-m-d') === $currentMonth,
+            ];
+        }
+        return view('panenpoin.reportpoin', compact('months'));
     }
     
     // Get data untuk DataTable
     public function getReportData(Request $request)
     {
+        \Log::info('=== GET REPORT DATA CALLED ===');
+        \Log::info('User: ' . Auth::user()->name);
+        \Log::info('Request URI: ' . $request->getRequestUri());
+        \Log::info('Filter Tanggal: ' . $request->tanggal);
+        
         try {
-            // Ambil bulan dan tahun dari request, default bulan dan tahun sekarang
-            $month = $request->input('month', Carbon::now()->month);
-            $year = $request->input('year', Carbon::now()->year);
-            
-            $result = $this->calculatePanenPoinData($month, $year);
+            \Log::info('Starting calculatePanenPoinData...');
+            $result = $this->calculatePanenPoinData($request->tanggal);
             
             return datatables()->of(collect($result))
-                ->toJson();
+                ->make(true);
                 
         } catch (\Exception $e) {
             \Log::error("Error in getReportData: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     
-    // Hitung data panen poin
-    private function calculatePanenPoinData($month, $year)
+    // Hitung data panen poin (ambil dari summary table)
+    private function calculatePanenPoinData($tanggal = null)
     {
         try {
-            // Tentukan range tanggal bulan yang dipilih
-            $startDate = Carbon::create($year, $month, 1)->startOfMonth()->format('Y-m-d');
-            $endDate = Carbon::create($year, $month, 1)->endOfMonth()->format('Y-m-d');
+            \Log::info("=== READING FROM SUMMARY TABLE ===");
             
-            // Ambil semua canvasser (user dengan role 'cvsr')
-            $canvassers = User::where('role', 'cvsr')->get();
+            $query = DB::table('summary_panen_poin')
+                ->select(
+                    'nama_canvasser',
+                    'email_client',
+                    'nomor_hp_client',
+                    DB::raw('CAST(total_settlement AS DECIMAL(15,2)) as total_settlement_raw'),
+                    DB::raw('FORMAT(total_settlement, 0, "id_ID") as total_settlement'),
+                    'poin_bulan_ini',
+                    'poin_akumulasi',
+                    'poin',
+                    'bulan'
+                );
             
-            \Log::info("=== PANEN POIN DEBUG ===");
-            \Log::info("Total Canvassers: " . $canvassers->count());
-            \Log::info("Date Range: {$startDate} to {$endDate}");
-            
-            $result = [];
-            
-            foreach ($canvassers as $canvasser) {
-                // Ambil email dari user_panen_poin yang diinput oleh canvasser ini
-                $panenPoinData = UserPanenPoin::where('user_id', $canvasser->id)
-                    ->select('akun_myads_pelanggan', 'nomor_hp_pelanggan')
-                    ->get();
-                
-                $clientEmails = [];
-                
-                // Jika ada data di user_panen_poin, gunakan itu
-                if ($panenPoinData->isNotEmpty()) {
-                    foreach ($panenPoinData as $data) {
-                        $clientEmails[] = [
-                            'email' => strtolower(trim($data->akun_myads_pelanggan)),
-                            'nomor_hp' => $data->nomor_hp_pelanggan,
-                            'source' => 'user_panen_poin'
-                        ];
-                    }
-                } else {
-                    // Jika tidak ada di user_panen_poin, ambil dari leads_master
-                    $leadsData = DB::table('leads_master')
-                        ->where('user_id', $canvasser->id)
-                        ->select('email', 'mobile_phone')
-                        ->get();
-                    
-                    foreach ($leadsData as $lead) {
-                        $clientEmails[] = [
-                            'email' => strtolower(trim($lead->email)),
-                            'nomor_hp' => $lead->mobile_phone ?? '-',
-                            'source' => 'leads_master'
-                        ];
-                    }
-                }
-                
-                \Log::info("Canvasser: {$canvasser->name}, Total Clients: " . count($clientEmails));
-                
-                // Loop setiap client dan hitung settlement-nya
-                foreach ($clientEmails as $client) {
-                    // Hitung total settlement bulan ini saja
-                    $totalSettlement = DB::table('report_balance_top_up')
-                        ->whereBetween('tgl_transaksi', [$startDate, $endDate])
-                        ->whereRaw('LOWER(TRIM(email_client)) = ?', [$client['email']])
-                        ->whereNotNull('total_settlement_klien')
-                        ->sum(DB::raw('CAST(total_settlement_klien AS DECIMAL(15,2))'));
-                    
-                    // Hitung poin bulan ini: setiap 250.000 = 1 poin
-                    $poinBulanIni = floor($totalSettlement / 250000);
-                    
-                    // Hitung akumulasi poin dari bulan-bulan sebelumnya (Januari sampai bulan sebelum bulan yang dipilih)
-                    $poinAkumulasi = 0;
-                    
-                    // Hitung poin bulan-bulan sebelumnya di tahun yang sama
-                    if ($month > 1) {
-                        $startYearDate = Carbon::create($year, 1, 1)->startOfMonth()->format('Y-m-d');
-                        $endPreviousMonth = Carbon::create($year, $month, 1)->subMonth()->endOfMonth()->format('Y-m-d');
-                        
-                        $settlementPreviousMonths = DB::table('report_balance_top_up')
-                            ->whereBetween('tgl_transaksi', [$startYearDate, $endPreviousMonth])
-                            ->whereRaw('LOWER(TRIM(email_client)) = ?', [$client['email']])
-                            ->whereNotNull('total_settlement_klien')
-                            ->sum(DB::raw('CAST(total_settlement_klien AS DECIMAL(15,2))'));
-                        
-                        $poinAkumulasi = floor($settlementPreviousMonths / 250000);
-                    }
-                    
-                    // Total poin = poin bulan ini + akumulasi bulan sebelumnya
-                    $totalPoin = $poinBulanIni + $poinAkumulasi;
-                    
-                    \Log::info("Client: {$client['email']}, Settlement Bulan Ini: {$totalSettlement}, Poin Bulan Ini: {$poinBulanIni}, Poin Akumulasi: {$poinAkumulasi}, Total Poin: {$totalPoin}");
-                    
-                    $result[] = [
-                        'nama_canvasser' => $canvasser->name,
-                        'email_client' => $client['email'],
-                        'nomor_hp_client' => $client['nomor_hp'],
-                        'total_settlement' => number_format($totalSettlement, 0, ',', '.'),
-                        'total_settlement_raw' => $totalSettlement,
-                        'poin_bulan_ini' => $poinBulanIni,
-                        'poin_akumulasi' => $poinAkumulasi,
-                        'poin' => $totalPoin, // Total poin yang ditampilkan
-                        'bulan' => Carbon::create($year, $month, 1)->locale('id')->translatedFormat('F Y')
-                    ];
-                }
+            // Filter berdasarkan bulan jika ada parameter tanggal
+            if ($tanggal) {
+                $date = Carbon::parse($tanggal);
+                $month = $date->month;
+                $year = $date->year;
+                $query->whereMonth('created_at', $month)
+                      ->whereYear('created_at', $year);
+                \Log::info("Filtering by Month: {$month}, Year: {$year}");
             }
             
-            \Log::info("Total Results: " . count($result));
+            $result = $query->orderBy('poin', 'desc')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'nama_canvasser' => $item->nama_canvasser,
+                        'email_client' => $item->email_client,
+                        'nomor_hp_client' => $item->nomor_hp_client,
+                        'total_settlement' => number_format($item->total_settlement_raw, 0, ',', '.'),
+                        'total_settlement_raw' => $item->total_settlement_raw,
+                        'poin_bulan_ini' => $item->poin_bulan_ini,
+                        'poin_akumulasi' => $item->poin_akumulasi,
+                        'poin' => $item->poin,
+                        'bulan' => $item->bulan
+                    ];
+                })
+                ->toArray();
+            
+            \Log::info("Total Results from Summary: " . count($result));
             
             return $result;
             
@@ -185,16 +147,13 @@ class PanenPoinController extends Controller
     public function export(Request $request)
     {
         try {
-            $month = $request->input('month', Carbon::now()->month);
-            $year = $request->input('year', Carbon::now()->year);
-            
-            $data = $this->calculatePanenPoinData($month, $year);
+            $data = $this->calculatePanenPoinData($request->tanggal);
             
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             
             // Header
-            $monthYear = Carbon::create($year, $month, 1)->locale('id')->translatedFormat('F Y');
+            $monthYear = Carbon::now()->locale('id')->translatedFormat('F Y');
             $sheet->setCellValue('A1', 'LAPORAN PANEN POIN - ' . strtoupper($monthYear));
             $sheet->mergeCells('A1:F1');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
@@ -245,6 +204,132 @@ class PanenPoinController extends Controller
         } catch (\Exception $e) {
             \Log::error("Error in export: " . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal export data: ' . $e->getMessage());
+        }
+    }
+    
+    // Refresh Summary Panen Poin (untuk di-schedule)
+    public function refreshSummaryPanenPoin()
+    {
+        try {
+            \Log::info('=== REFRESH SUMMARY PANEN POIN STARTED ===');
+            
+            // Tentukan range tanggal bulan berjalan
+            $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+            
+            // Ambil semua canvasser
+            $canvassers = User::where('role', 'cvsr')->get();
+            
+            $totalProcessed = 0;
+            
+            // Hapus data summary bulan ini dulu
+            DB::table('summary_panen_poin')->truncate();
+            
+            foreach ($canvassers as $canvasser) {
+                // Ambil email dari user_panen_poin yang diinput oleh canvasser ini
+                $panenPoinData = UserPanenPoin::where('user_id', $canvasser->id)
+                    ->select('akun_myads_pelanggan', 'nomor_hp_pelanggan')
+                    ->get();
+                
+                $clientEmails = [];
+                
+                if ($panenPoinData->isNotEmpty()) {
+                    foreach ($panenPoinData as $data) {
+                        $clientEmails[] = [
+                            'email' => strtolower(trim($data->akun_myads_pelanggan)),
+                            'nomor_hp' => $data->nomor_hp_pelanggan
+                        ];
+                    }
+                } else {
+                    $leadsData = DB::table('leads_master')
+                        ->where('user_id', $canvasser->id)
+                        ->select('email', 'mobile_phone')
+                        ->get();
+                    
+                    foreach ($leadsData as $lead) {
+                        $clientEmails[] = [
+                            'email' => strtolower(trim($lead->email)),
+                            'nomor_hp' => $lead->mobile_phone ?? '-'
+                        ];
+                    }
+                }
+                
+                if (empty($clientEmails)) {
+                    continue;
+                }
+                
+                $emails = array_column($clientEmails, 'email');
+                
+                // Query settlement bulan ini
+                $settlementsThisMonth = DB::table('report_balance_top_up')
+                    ->select(DB::raw('LOWER(TRIM(email_client)) as email'), DB::raw('SUM(CAST(total_settlement_klien AS DECIMAL(15,2))) as total'))
+                    ->whereBetween('tgl_transaksi', [$startDate, $endDate])
+                    ->whereNotNull('total_settlement_klien')
+                    ->whereIn(DB::raw('LOWER(TRIM(email_client))'), $emails)
+                    ->groupBy(DB::raw('LOWER(TRIM(email_client))'))
+                    ->pluck('total', 'email')
+                    ->toArray();
+                
+                // Query settlement akumulasi
+                $settlementsAccumulated = [];
+                $currentMonth = Carbon::now()->month;
+                if ($currentMonth > 1) {
+                    $startYearDate = Carbon::now()->startOfYear()->format('Y-m-d');
+                    $endPreviousMonth = Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d');
+                    
+                    $settlementsAccumulated = DB::table('report_balance_top_up')
+                        ->select(DB::raw('LOWER(TRIM(email_client)) as email'), DB::raw('SUM(CAST(total_settlement_klien AS DECIMAL(15,2))) as total'))
+                        ->whereBetween('tgl_transaksi', [$startYearDate, $endPreviousMonth])
+                        ->whereNotNull('total_settlement_klien')
+                        ->whereIn(DB::raw('LOWER(TRIM(email_client))'), $emails)
+                        ->groupBy(DB::raw('LOWER(TRIM(email_client))'))
+                        ->pluck('total', 'email')
+                        ->toArray();
+                }
+                
+                // Insert ke summary table
+                foreach ($clientEmails as $client) {
+                    $email = $client['email'];
+                    $totalSettlement = $settlementsThisMonth[$email] ?? 0;
+                    $settlementPrevious = $settlementsAccumulated[$email] ?? 0;
+                    
+                    if ($totalSettlement == 0 && $settlementPrevious == 0) {
+                        continue;
+                    }
+                    
+                    $poinBulanIni = floor($totalSettlement / 250000);
+                    $poinAkumulasi = floor($settlementPrevious / 250000);
+                    $totalPoin = $poinBulanIni + $poinAkumulasi;
+                    
+                    DB::table('summary_panen_poin')->insert([
+                        'user_id' => $canvasser->id,
+                        'nama_canvasser' => $canvasser->name,
+                        'email_client' => $email,
+                        'nomor_hp_client' => $client['nomor_hp'],
+                        'total_settlement' => $totalSettlement,
+                        'poin_bulan_ini' => $poinBulanIni,
+                        'poin_akumulasi' => $poinAkumulasi,
+                        'poin' => $totalPoin,
+                        'bulan' => Carbon::now()->locale('id')->translatedFormat('F Y'),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                    
+                    $totalProcessed++;
+                }
+            }
+            
+            \Log::info("Summary Panen Poin refreshed. Total records: {$totalProcessed}");
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => "Summary Panen Poin updated. Total records: {$totalProcessed}"
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error("Error in refreshSummaryPanenPoin: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }
