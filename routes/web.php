@@ -146,6 +146,10 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     // Sultam Racing
     Route::get('/monitoring-sultam-racing', [FrontController::class, 'monitoringSultamRacing'])->name('admin.monitoring.sultam_racing');
     Route::get('/get-sultam-racing-data', [BackController::class, 'getSultamRacing'])->name('sultam_racing_data');
+
+    // Log Login
+    Route::get('/loglogin', [FrontController::class, 'loglogin'])->name('loglogin');
+    Route::get('/get-loglogin-data', [BackController::class, 'getLogLogin'])->name('loglogin.data');
     
 });
 Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){

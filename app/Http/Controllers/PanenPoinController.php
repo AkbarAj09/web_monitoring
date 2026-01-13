@@ -16,6 +16,7 @@ class PanenPoinController extends Controller
     // Tampilkan halaman input data
     public function index()
     {
+        logUserLogin();
         return view('panenpoin.inputdatapoin');
     }
     
@@ -48,6 +49,7 @@ class PanenPoinController extends Controller
     // Tampilkan halaman report
     public function report()
     {
+        logUserLogin();
         $months = [];
 
         $currentYear = Carbon::now()->year;

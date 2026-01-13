@@ -172,7 +172,16 @@
                         <p>Manajemen Users</p>
                     </a>
                 </li>
-                @endif
+                @endif                
+                @if($isAdmin || $isTsel)
+                <li class="nav-item">
+                    <a href="{{ route('loglogin') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('loglogin') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-history" style="color:#17a2b8;"></i>
+                        <p>Log Login</p>
+                    </a>
+                </li>
+                @endif                
                 @if($isAdmin || $isTreg || $isTsel || $isCanv)
                 <li class="nav-item">
                     <a href="{{ url('change-password') }}"

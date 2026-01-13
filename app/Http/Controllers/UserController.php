@@ -19,6 +19,7 @@ class UserController extends Controller
 {
     public function index()
     {
+        logUserLogin();
         // $treg = DB::table('treg')->select('id', 'treg_name')->get();
         return view('auth.user');
     }

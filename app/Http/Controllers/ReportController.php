@@ -13,6 +13,7 @@ class ReportController extends Controller
      /* ================= PAGE LOAD ================= */
     public function topupCanvasser(Request $request)
     {
+        logUserLogin();
         $month = $request->get('month', now()->format('Y-m'));
 
         $canvassers = DB::connection('mysql')
@@ -218,6 +219,7 @@ public function topupCanvasserData(Request $request)
 
     public function reportRegionTargetVsTopup(Request $request)
     {
+        logUserLogin();
         /* ================= FILTER BULAN ================= */
         $month = $request->get('month', now()->format('Y-m'));
 

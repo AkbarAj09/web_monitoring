@@ -35,10 +35,12 @@ class FrontController extends Controller
     }
     public function register()
     {
+        logUserLogin();
         return view('auth.register');
     }
     public function homeAdmin()
     {
+        logUserLogin();
         return view('admin.home');
     }
     public function logout()
@@ -52,6 +54,7 @@ class FrontController extends Controller
     public function changePassword()
     {
         // Redirect ke halaman utama
+        logUserLogin();
         return view('auth.change-password');
     }
     public function updatePassword(Request $request)
@@ -91,6 +94,7 @@ class FrontController extends Controller
     }
     public function uploadMyAds()
     {
+        logUserLogin();
         $myAdsUploads = [
             "Top Up Naik, Cuan Naik",
             "Top Up Ceria",
@@ -101,6 +105,7 @@ class FrontController extends Controller
     }
     public function monitoring_padi_umkm()
     {
+        logUserLogin();
         $months = [];
 
         $currentYear = Carbon::now()->year;
@@ -118,6 +123,7 @@ class FrontController extends Controller
     }
     public function monitoringEventSponsorship()
     {
+        logUserLogin();
         $months = [];
 
         $currentYear = Carbon::now()->year;
@@ -135,26 +141,32 @@ class FrontController extends Controller
     }
     public function monitoringCreatorPartner()
     {
+        logUserLogin();
         return view('admin.creator_partner');
     }
     public function monitoringSimpatiTiktok()
     {
+        logUserLogin();
         return view('admin.simpati_tiktok');
     }
     public function monitoringReferralChampionAm()
     {
+        logUserLogin();
         return view('admin.referral_champion');
     }
     public function monitoringReferralChampionTeleAm()
     {
+        logUserLogin();
         return view('admin.referral_tele_am');
     }
     public function monitoringReferralChampionCanvasser()
     {
+        logUserLogin();
         return view('admin.referral_canvasser');
     }
     public function monitoringSultamRacing()
     {
+        logUserLogin();
         return view('admin.sultam_racing');
     }
     public function refreshSummarySimpatiTiktok()
@@ -266,30 +278,42 @@ class FrontController extends Controller
     }
     public function rekruterKolBuzzer()
     {
+        logUserLogin();
         return view('admin.kol_buzzer');
     }
     public function rekruterKolInfluencer()
     {
+        logUserLogin();
         return view('admin.kol_influencer');
     }
     public function areaMarkomKol()
     {
+        logUserLogin();
         return view('admin.area_marcom');
     }
     public function botVoucher(){
+        logUserLogin();
         return view('admin.voucher');
     }
     public function claimedVoucher(){
+        logUserLogin();
         return view('admin.user_voucher');
     }
     public function akuisisiVoucherTreg(){
+        logUserLogin();
         return view('treg.race_akuisisi');
     }
     
     public function raceSummaryTreg(){
+        logUserLogin();
         return view('treg.race_summary');
     }
     public function newLeadsProgram(){
+        logUserLogin();
         return view('admin.LeadsProgram.new_leads_program');
+    }
+    public function loglogin(){
+        logUserLogin();
+        return view('auth.loglogin');
     }
 }
