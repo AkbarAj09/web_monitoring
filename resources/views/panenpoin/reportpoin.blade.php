@@ -35,41 +35,11 @@
 @endsection
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="filter-section">
-            <div class="row align-items-center">
-                <div class="col-md-4">
-                    <label for="filter-month">Bulan:</label>
-                    <select id="filter-month" class="form-control">
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maret</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Agustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label>&nbsp;</label><br>
-                    <button id="btn-filter" class="btn btn-primary">
-                        <i class="fas fa-filter mr-2"></i>Filter Data
-                    </button>
-                </div>
-                <div class="col-md-4 text-right">
-                    <label>&nbsp;</label><br>
-                    <button id="btn-export" class="btn btn-success">
-                        <i class="fas fa-file-excel mr-2"></i>Export Excel
-                    </button>
-                </div>
-            </div>
-        </div>
+<div class="row mb-3">
+    <div class="col-12 text-right">
+        <button id="btn-export" class="btn btn-success">
+            <i class="fas fa-file-excel mr-2"></i>Export Excel
+        </button>
     </div>
 </div>
 
@@ -109,7 +79,7 @@
     <div class="col-12">
         <div class="alert alert-info">
             <i class="fas fa-info-circle mr-2"></i>
-            <strong>Keterangan:</strong> Setiap Rp 250.000 settlement = 1 poin. Data dihitung berdasarkan periode bulan yang dipilih.
+            <strong>Keterangan:</strong> Setiap Rp 250.000 settlement = 1 poin. Data menampilkan bulan berjalan dengan akumulasi poin dari bulan sebelumnya di tahun yang sama.
         </div>
     </div>
 </div>
@@ -125,21 +95,15 @@
 
 <script>
     $(document).ready(function() {
-        // Set default to current month and year
-        const currentMonth = new Date().getMonth() + 1;
-        const currentYear = new Date().getFullYear();
-        $('#filter-month').val(currentMonth);
-        $('#filter-year').val(currentYear);
-
         // Initialize DataTable
         var table = $('#reportTable').DataTable({
             processing: true,
             serverSide: true,
             ajax: {
                 url: "{{ route('panenpoin.report-data') }}",
-                data: function(d) {
-                    d.month = $('#filter-month').val();
-                    d.year = $('#filter-year').val();
+                dataSrc: function(json) {
+                    console.log("Response dari server:", json);
+                    return json.data || [];
                 }
             },
             columns: [{
@@ -198,23 +162,9 @@
             ]
         });
 
-        // Filter button click
-        $('#btn-filter').click(function() {
-            table.ajax.reload();
-        });
-
         // Export button click
         $('#btn-export').click(function() {
-            const month = $('#filter-month').val();
-            const year = $('#filter-year').val();
-            window.location.href = "{{ route('panenpoin.export') }}?month=" + month + "&year=" + year;
-        });
-
-        // Reload on Enter key in filter
-        $('#filter-month, #filter-year').keypress(function(e) {
-            if (e.which == 13) {
-                table.ajax.reload();
-            }
+            window.location.href = "{{ route('panenpoin.export') }}";
         });
     });
 </script>
