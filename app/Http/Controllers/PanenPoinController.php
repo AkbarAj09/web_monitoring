@@ -105,6 +105,12 @@ class PanenPoinController extends Controller
                     'bulan'
                 );
             
+            // Filter berdasarkan role: kalau cvsr, hanya tampilkan data dia sendiri
+            if (Auth::user()->role === 'cvsr') {
+                $query->where('user_id', Auth::id());
+                \Log::info("Filtering by User ID: " . Auth::id() . " (Canvasser)");
+            }
+            
             // Filter berdasarkan bulan jika ada parameter tanggal
             if ($tanggal) {
                 $date = Carbon::parse($tanggal);
