@@ -158,6 +158,7 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
 
 
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
+    Route::get('logbook/data', [LogbookController::class, 'data'])->name('logbook.data');
 
     // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
     Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');

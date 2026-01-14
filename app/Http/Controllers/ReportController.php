@@ -226,15 +226,15 @@ public function topupCanvasserData(Request $request)
 
         /* ================= TOPUP PER REGION ================= */
         $topupPerRegion = DB::connection('mysql')
-            ->table('report_balance_top_up as emt')
+            ->table('report_balance_topup as emt')
             ->selectRaw("
                 CASE
-                    WHEN data_province_name IN ('Sumatera Selatan','Jambi','Bengkulu','Lampung','Bangka Belitung') THEN 'SUMBAGSEL'
+                    WHEN data_province_name IN ('Sumatera Selatan','Jambi','Bengkulu','Lampung','Bangka Belitung', 'Kepulauan Bangka Belitung') THEN 'SUMBAGSEL'
                     WHEN data_province_name IN ('Sumatera Barat','Riau','Kepulauan Riau') THEN 'SUMBAGTENG'
                     WHEN data_province_name IN ('Sumatera Utara','Aceh') THEN 'SUMBAGUT'
                     WHEN data_province_name IN ('DKI Jakarta','Banten') THEN 'JABODETABEK'
                     WHEN data_province_name = 'Jawa Barat' THEN 'JABAR'
-                    WHEN data_province_name IN ('Jawa Tengah','Yogyakarta') THEN 'JATENG DIY'
+                    WHEN data_province_name IN ('Jawa Tengah','Yogyakarta', 'DI Yogyakarta') THEN 'JATENG DIY'
                     WHEN data_province_name = 'Jawa Timur' THEN 'JATIM'
                     WHEN data_province_name IN ('Bali','NTB','NTT') THEN 'BALI NUSRA'
                     WHEN data_province_name IN ('Kalimantan Tengah','Kalimantan Barat','Kalimantan Utara','Kalimantan Timur','Kalimantan Selatan') THEN 'KALIMANTAN'
@@ -246,7 +246,7 @@ public function topupCanvasserData(Request $request)
             ")
             ->whereBetween('emt.tgl_transaksi', [$start, $end])
             ->whereNotNull('emt.tgl_transaksi')
-            ->where('emt.payment_history_status', 'PAID')
+            // ->where('emt.payment_history_status', 'PAID')
             ->groupBy('region')
             ->get()
             ->mapWithKeys(fn ($item) => [strtoupper($item->region) => $item]);
@@ -260,7 +260,7 @@ public function topupCanvasserData(Request $request)
 
         /* ================= LAST UPDATE GLOBAL ================= */
         $lastUpdate = DB::connection('mysql')
-            ->table('report_balance_top_up')
+            ->table('report_balance_topup')
             ->whereBetween('tgl_transaksi', [$start, $end])
             ->whereNotNull('tgl_transaksi')
             ->where('payment_history_status', 'PAID')

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('leads_master_id');
             $table->decimal('komitmen', 5, 2)->default(0);   
             $table->integer('plan_min_topup')->default(100000);    
-            $table->string('status')->default('Prospect'); 
+            $table->enum('status', ['Initial', 'Prospect', 'Register', 'Topup', 'Repeat', 'No Response', 'Reject'])->default('Prospect'); 
             $table->integer('bulan'); 
             $table->integer('tahun'); 
             $table->timestamps();
