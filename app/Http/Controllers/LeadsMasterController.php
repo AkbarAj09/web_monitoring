@@ -19,6 +19,7 @@ class LeadsMasterController extends Controller
      */
     public function index()
     {
+        logUserLogin();
         return view('leads-master.index', [
             'canvassers' => User::orderBy('name')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),
@@ -197,6 +198,7 @@ class LeadsMasterController extends Controller
 
     public function create()
     {
+        logUserLogin();
         $leadSources = LeadsSource::all();
         $sectors = Sector::all();
 
@@ -204,6 +206,7 @@ class LeadsMasterController extends Controller
     }
     public function createExisting()
     {
+        logUserLogin();
         $leadSources = LeadsSource::all();
         $sectors = Sector::all();
 
@@ -329,6 +332,7 @@ class LeadsMasterController extends Controller
 
     public function show($id)
     {
+        logUserLogin();
         // Load lead beserta relasi
         $lead = LeadsMaster::with(['user', 'source', 'sector'])->findOrFail($id);
 
@@ -337,6 +341,7 @@ class LeadsMasterController extends Controller
 
     public function edit(LeadsMaster $lead)
     {
+        logUserLogin();
         
         $leadSources = LeadsSource::all();
         $sectors = Sector::all();

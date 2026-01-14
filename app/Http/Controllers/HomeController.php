@@ -15,12 +15,10 @@ class HomeController extends Controller
 {
     public function index()
     {
+        logUserLogin();
         $data = [];
         
         try {
-            // Daily Topup Data (Real)
-            $leadController = new \App\Http\Controllers\LeadProgramController();
-            $data['dailyTopup'] = $leadController->getDailyTopupData(7);
             
             // 1. Padi UMKM Summary
             $data['padi_umkm'] = $this->getPadiUmkmSummary();

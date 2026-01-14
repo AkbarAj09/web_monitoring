@@ -258,4 +258,256 @@ class LeadProgramController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getLeadsAndAccountData()
+    {
+        try {
+            // Tanggal 1 bulan yang lalu
+            $oneMonthAgo = Carbon::now()->subMonth()->format('Y-m-d');
+            
+            // 1. Jumlah Leads dari leads_master dengan data_type = 'leads'
+            $totalLeads = DB::table('leads_master')
+                ->where('data_type', 'leads')
+                ->count();
+            
+            // 2. Query untuk mendapatkan data akun existing dan new
+            $accountData = DB::table('data_registarsi_status_approveorreject as dt')
+                ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                ->join('users as u', 'lm.user_id', '=', 'u.id')
+                ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
+                ->leftJoin('regional_tracers as rt', 'lm.email', '=', 'rt.pic_email')
+                ->select(
+                    'u.name',
+                    'dt.email as email_register',
+                    'dt.tanggal_approval_aktivasi',
+                    DB::raw('CAST(rp.total_settlement_klien AS DECIMAL(15,2)) as total_settlement_klien'),
+                    'rt.regional',
+                    DB::raw("CASE
+                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                        THEN 'akun_existing'
+                        ELSE 'akun_new'
+                    END AS status_akun")
+                )
+                ->get();
+            
+            // Hitung jumlah existing akun
+            $existingAkun = $accountData->where('status_akun', 'akun_existing')->unique('email_register')->count();
+            
+            // Hitung jumlah new akun
+            $newAkun = $accountData->where('status_akun', 'akun_new')->unique('email_register')->count();
+            
+            // Hitung total top up new akun
+            $topUpNewAkun = $accountData->where('status_akun', 'akun_new')
+                ->sum('total_settlement_klien');
+            
+            // Hitung total top up existing akun
+            $topUpExistingAkun = $accountData->where('status_akun', 'akun_existing')
+                ->sum('total_settlement_klien');
+            
+            return [
+                'total_leads' => $totalLeads,
+                'existing_akun' => $existingAkun,
+                'new_akun' => $newAkun,
+                'top_up_new_akun' => $topUpNewAkun,
+                'top_up_existing_akun' => $topUpExistingAkun,
+            ];
+
+        } catch (\Exception $e) {
+            \Log::error("Error in getLeadsAndAccountData: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return [
+                'total_leads' => 0,
+                'existing_akun' => 0,
+                'new_akun' => 0,
+                'top_up_new_akun' => 0,
+                'top_up_existing_akun' => 0,
+            ];
+        }
+    }
+
+    public function getLeadsDataApi()
+    {
+        try {
+            $data = $this->getLeadsAndAccountData();
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getRegionalData()
+    {
+        try {
+            // 1. Ambil semua user dengan role 'Canvasser' dari kolom role di tabel users
+            $canvasers = DB::table('users')
+                ->where('role', 'cvsr')
+                ->select('id', 'name')
+                ->get();
+
+            \Log::info("Total Canvassers found: " . $canvasers->count());
+
+            $result = [];
+            
+            foreach ($canvasers as $index => $canvaser) {
+                // 2. Ambil regional dari leads_master untuk canvaser ini
+                $regional = DB::table('leads_master as lm')
+                    ->leftJoin('regional_tracers as rt', 'lm.email', '=', 'rt.pic_email')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->select('rt.regional')
+                    ->first();
+
+                // 3. Hitung jumlah Leads untuk canvaser ini
+                $totalLeads = DB::table('leads_master')
+                    ->where('user_id', $canvaser->id)
+                    ->where('data_type', 'leads')
+                    ->count();
+
+                // 4. Hitung Existing Akun dan New Akun menggunakan join langsung dengan leads_master
+                $accountStats = DB::table('data_registarsi_status_approveorreject as dt')
+                    ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->select(
+                        DB::raw("COUNT(DISTINCT CASE 
+                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                            THEN dt.email 
+                        END) as existing_akun"),
+                        DB::raw("COUNT(DISTINCT CASE 
+                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                            THEN dt.email 
+                        END) as new_akun")
+                    )
+                    ->first();
+
+                // 5. Hitung Top Up dari report_balance_top_up menggunakan join langsung
+                $topUpStats = DB::table('data_registarsi_status_approveorreject as dt')
+                    ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                    ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->select(
+                        DB::raw("COUNT(CASE 
+                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                            THEN rp.id 
+                        END) as top_up_count"),
+                        DB::raw("SUM(CASE 
+                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                            THEN CAST(rp.total_settlement_klien AS DECIMAL(15,2))
+                            ELSE 0 
+                        END) as top_up_new_akun_rp"),
+                        DB::raw("SUM(CASE 
+                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                            THEN CAST(rp.total_settlement_klien AS DECIMAL(15,2))
+                            ELSE 0 
+                        END) as top_up_existing_akun_rp")
+                    )
+                    ->first();
+
+                $result[] = [
+                    'no' => $index + 1,
+                    'regional' => $regional->regional ?? '-',
+                    'canvaser_name' => $canvaser->name ?? '-',
+                    'leads' => $totalLeads,
+                    'existing_akun' => $accountStats->existing_akun ?? 0,
+                    'new_akun' => $accountStats->new_akun ?? 0,
+                    'top_up' => $topUpStats->top_up_count ?? 0,
+                    'top_up_new_akun_rp' => number_format($topUpStats->top_up_new_akun_rp ?? 0, 0, ',', '.'),
+                    'top_up_existing_akun_rp' => number_format($topUpStats->top_up_existing_akun_rp ?? 0, 0, ',', '.'),
+                ];
+            }
+
+            \Log::info("Total results: " . count($result));
+            return $result;
+
+        } catch (\Exception $e) {
+            \Log::error("Error in getRegionalData: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return [];
+        }
+    }
+
+    public function getRegionalDataTable(Request $request)
+    {
+        try {
+            $result = $this->getRegionalData();
+            
+            return datatables()->of(collect($result))
+                ->make(true);
+
+        } catch (\Exception $e) {
+            \Log::error("Error in getRegionalDataTable: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getRegionalChartData()
+    {
+        try {
+            // Agregasi langsung dari database untuk performa lebih baik
+            $canvasers = DB::table('users')
+                ->where('role', 'cvsr')
+                ->pluck('id');
+
+            if ($canvasers->isEmpty()) {
+                return response()->json([
+                    'total_leads' => 0,
+                    'total_existing_akun' => 0,
+                    'total_new_akun' => 0,
+                    'total_top_up_new_akun' => 0,
+                    'total_top_up_existing_akun' => 0,
+                ]);
+            }
+
+            // Total Leads
+            $totalLeads = DB::table('leads_master')
+                ->whereIn('user_id', $canvasers)
+                ->where('data_type', 'leads')
+                ->count();
+
+            // Total Existing Akun dan New Akun
+            $accountStats = DB::table('data_registarsi_status_approveorreject as dt')
+                ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                ->whereIn('lm.user_id', $canvasers)
+                ->select(
+                    DB::raw("COUNT(DISTINCT CASE 
+                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                        THEN dt.email 
+                    END) as existing_akun"),
+                    DB::raw("COUNT(DISTINCT CASE 
+                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                        THEN dt.email 
+                    END) as new_akun")
+                )
+                ->first();
+
+            // Total Top Up untuk New Akun dan Existing Akun (COUNT)
+            $topUpStats = DB::table('data_registarsi_status_approveorreject as dt')
+                ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
+                ->whereIn('lm.user_id', $canvasers)
+                ->select(
+                    DB::raw("COUNT(DISTINCT CASE 
+                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                        THEN rp.id 
+                    END) as top_up_new_akun"),
+                    DB::raw("COUNT(DISTINCT CASE 
+                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+                        THEN rp.id 
+                    END) as top_up_existing_akun")
+                )
+                ->first();
+            
+            return response()->json([
+                'total_leads' => $totalLeads ?? 0,
+                'total_existing_akun' => $accountStats->existing_akun ?? 0,
+                'total_new_akun' => $accountStats->new_akun ?? 0,
+                'total_top_up_new_akun' => $topUpStats->top_up_new_akun ?? 0,
+                'total_top_up_existing_akun' => $topUpStats->top_up_existing_akun ?? 0,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Error in getRegionalChartData: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

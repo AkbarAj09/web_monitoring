@@ -75,9 +75,11 @@ class BackController extends Controller
                     'email' => 'Akun Anda belum aktif.',
                 ])->withInput();
             }
-                        // dd($user->role);
 
-            // 4. Arahkan sesuai role
+            // 4. Log user login
+            logUserLogin();
+
+            // 5. Arahkan sesuai role
             switch ($user->role) {
                 case 'Admin':
                 case 'Tsel':
@@ -91,7 +93,7 @@ class BackController extends Controller
             }
         }
 
-        // 5. Kalau gagal login
+        // 6. Kalau gagal login
         return back()->withErrors([
             'email' => 'Email atau Password Anda salah.',
         ])->withInput();
@@ -727,5 +729,48 @@ class BackController extends Controller
         // 5. Kembalikan response sebagai file download
         return response()->stream($callback, 200, $headers);
     }
-    
+
+    public function getLogLogin(Request $request)
+    {
+        $query = DB::table('loglogin')
+            ->select([
+                'loglogin.id',
+                'loglogin.user_id',
+                'loglogin.tgl',
+                'loglogin.nama',
+                'loglogin.role',
+                'loglogin.email',
+                'loglogin.created_at',
+                'loglogin.updated_at',
+            ])
+            ->orderBy('loglogin.tgl', 'desc')
+            ->orderBy('loglogin.updated_at', 'desc');
+
+        // Filter by date range
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('loglogin.tgl', [$request->start_date, $request->end_date]);
+        } elseif ($request->filled('start_date')) {
+            $query->where('loglogin.tgl', '>=', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->where('loglogin.tgl', '<=', $request->end_date);
+        }
+
+        // Filter by role
+        if ($request->filled('role') && $request->role != 'all') {
+            $query->where('loglogin.role', $request->role);
+        }
+
+        return DataTables::of($query)
+            ->editColumn('tgl', function ($row) {
+                return \Carbon\Carbon::parse($row->tgl)->format('d-m-Y');
+            })
+            ->editColumn('updated_at', function ($row) {
+                return \Carbon\Carbon::parse($row->updated_at)->format('d-m-Y H:i:s');
+            })
+            ->addColumn('action', function ($row) {
+                return '<span class="badge badge-success">Logged</span>';
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
 }

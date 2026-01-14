@@ -20,6 +20,7 @@ class LogbookController extends Controller
      */
     public function index()
     {
+        logUserLogin();
         return view('logbook.index', [
             'canvassers' => User::orderBy('name')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),

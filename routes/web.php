@@ -10,6 +10,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LeadsMasterController;
 use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\PanenPoinController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::get('/login', [FrontController::class, 'index'])->name('login');
@@ -50,6 +51,9 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
 Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
     Route::get('/get-daily-topup-data', [\App\Http\Controllers\LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
+    Route::get('/get-leads-data-api', [\App\Http\Controllers\LeadProgramController::class, 'getLeadsDataApi'])->name('leads_data_api');
+    Route::get('/get-regional-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalDataTable'])->name('regional_data');
+    Route::get('/get-regional-chart-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalChartData'])->name('regional_chart_data');
 
     Route::get('/upload-file-myads', [FrontController::class, 'uploadMyAds'])->name('admin.upload');
     Route::post('/store-csv-myads', [BackController::class, 'storeUploadMyAds'])->name('upload.myads.store');
@@ -142,6 +146,10 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     // Sultam Racing
     Route::get('/monitoring-sultam-racing', [FrontController::class, 'monitoringSultamRacing'])->name('admin.monitoring.sultam_racing');
     Route::get('/get-sultam-racing-data', [BackController::class, 'getSultamRacing'])->name('sultam_racing_data');
+
+    // Log Login
+    Route::get('/loglogin', [FrontController::class, 'loglogin'])->name('loglogin');
+    Route::get('/get-loglogin-data', [BackController::class, 'getLogLogin'])->name('loglogin.data');
     
 });
 Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
@@ -167,5 +175,13 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
     Route::get('topup-canvasser/pdf', [ReportController::class, 'exportTopupCanvasserPdf'])->name('topup-canvasser.pdf');
 
     Route::get('region-target', [ReportController::class, 'reportRegionTargetVsTopup'])->name('region-target');
+
+    // Panen Poin Routes
+    Route::get('panen-poin/input', [PanenPoinController::class, 'index'])->name('panenpoin.index');
+    Route::post('panen-poin/store', [PanenPoinController::class, 'store'])->name('panenpoin.store');
+    Route::get('panen-poin/report', [PanenPoinController::class, 'report'])->name('panenpoin.report');
+    Route::get('panen-poin/report-data', [PanenPoinController::class, 'getReportData'])->name('panenpoin.report-data');
+    Route::get('panen-poin/export', [PanenPoinController::class, 'export'])->name('panenpoin.export');
+    Route::get('panen-poin/refresh-summary', [PanenPoinController::class, 'refreshSummaryPanenPoin'])->name('panenpoin.refresh');
 
 });

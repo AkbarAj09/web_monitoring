@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Http\Controllers\FrontController;
 use App\Http\Controllers\GetDataController;
+use App\Http\Controllers\PanenPoinController;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -16,6 +17,10 @@ Schedule::call(function () {
 Schedule::call(function () {
     app(FrontController::class)->refreshSummaryPadiUmkm();
 })->everyMinute()->name('refreshSummaryPadiUmkm');
+
+Schedule::call(function () {
+    app(PanenPoinController::class)->refreshSummaryPanenPoin();
+})->everyMinute()->name('refreshSummaryPanenPoin');
 
 Schedule::call(function () {
     app(GetDataController::class)->getDataCreatorPartner();
