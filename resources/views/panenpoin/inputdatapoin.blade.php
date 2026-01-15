@@ -2,6 +2,7 @@
 @section('title') Input Data Panen Poin @endsection
 
 @section('css')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
     .card {
         animation: fadeInUp 0.6s ease-out;
@@ -36,22 +37,13 @@
             <form action="{{ route('panenpoin.store') }}" method="POST">
                 @csrf
                 <div class="card-body">
+                    <!-- Hidden flag untuk mendeteksi success di JavaScript -->
                     @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
+                        <input type="hidden" id="successMessage" value="{{ session('success') }}">
                     @endif
 
                     @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
+                        <input type="hidden" id="errorMessage" value="{{ session('error') }}">
                     @endif
 
                     <div class="form-group">
@@ -123,12 +115,39 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Auto dismiss alerts after 5 seconds
-        setTimeout(function() {
-            $('.alert').fadeOut('slow');
-        }, 5000);
+        // Cek apakah ada success message
+        var successMessage = $('#successMessage').val();
+        if (successMessage) {
+            Swal.fire({
+                title: 'Sukses!',
+                html: successMessage + '<br><br><small style="color: #666;">Halaman akan di-refresh...</small>',
+                icon: 'success',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonColor: '#4e73df',
+                confirmButtonText: 'OK',
+                timer: 3000,
+                timerProgressBar: true,
+            }).then(function() {
+                // Refresh halaman setelah menutup alert
+                window.location.reload();
+            });
+        }
+
+        // Cek apakah ada error message
+        var errorMessage = $('#errorMessage').val();
+        if (errorMessage) {
+            Swal.fire({
+                title: 'Terjadi Kesalahan!',
+                text: errorMessage,
+                icon: 'error',
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Tutup',
+            });
+        }
 
         // Validate phone number
         $('#nomor_hp_pelanggan').on('input', function() {

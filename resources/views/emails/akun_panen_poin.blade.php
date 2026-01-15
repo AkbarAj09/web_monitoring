@@ -86,6 +86,17 @@
             
             <p>Silakan login menggunakan kredensial di atas untuk mengakses sistem Panen Poin.</p>
             
+            <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>🚀 Langkah Selanjutnya:</strong></p>
+                <ol>
+                    <li>Kunjungi website Panen Poin: <strong><a href="https://panenpoin-myads.com/" style="color: #2196F3; text-decoration: none;">https://panenpoin-myads.com/</a></strong></li>
+                    <li>Login menggunakan email dan password di atas</li>
+                    <li>Cek saldo poin Anda di dashboard</li>
+                    <li>Tingkatkan transaksi untuk menambah poin reward</li>
+                    <li>Semakin banyak transaksi = Semakin banyak poin! 💰</li>
+                </ol>
+            </div>
+            
             <div class="warning">
                 <p><strong>⚠️ Perhatian Penting:</strong></p>
                 <ul>
@@ -101,7 +112,7 @@
         </div>
         
         <div class="footer">
-            <p>&copy; {{ date('Y') }} Panen Poin. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} MyAds-Telkomsel-Program Panen Poin. All rights reserved.</p>
         </div>
     </div>
 </body>
