@@ -228,18 +228,30 @@
             </h4>
         </div>
         <div class="d-flex align-items-center">
-            <button id="showFilterBtn" class="btn btn-outline-primary" type="button" title="Filter Bulan" style="padding: 6px 12px;">
+            <button id="showFilterBtn" class="btn btn-outline-primary" type="button" title="Filter" style="padding: 6px 12px;">
                 <i class="fas fa-filter"></i>
             </button>
-            <div id="filterContainer" style="display: none; min-width: 220px; margin-left: 10px;">
-                <select id="tanggal" name="tanggal" class="form-control select2"
-                    style="background-color: #313131; color: white;">
-                    @foreach ($months as $month)
-                    <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
-                        {{ $month['label'] }}
-                    </option>
-                    @endforeach
-                </select>
+            <div id="filterContainer" style="display: none; margin-left: 10px;">
+                <div class="d-flex align-items-center">
+                    <select id="tanggal" name="tanggal" class="form-control mr-2" style="background-color: #313131; color: white; min-width: 180px;">
+                        @foreach ($months as $month)
+                        <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                            {{ $month['label'] }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <select id="source" name="source" class="form-control mr-2" style="background-color: #313131; color: white; min-width: 180px;">
+                        <option value="">Semua Source</option>
+                        <option value="user_panen_poin">User Panen Poin</option>
+                        <option value="leads_master">Leads Master</option>
+                    </select>
+                    <select id="remark" name="remark" class="form-control" style="background-color: #313131; color: white; min-width: 180px;">
+                        <option value="">Semua Remark</option>
+                        <option value="Rookie">🥉 Rookie (0-100)</option>
+                        <option value="Rising Star">🥈 Rising Star (101-200)</option>
+                        <option value="Champion">🥇 Champion (201+)</option>
+                    </select>
+                </div>
             </div>
             <button id="btn-export" class="btn btn-success ml-2">
                 <i class="fas fa-file-excel mr-2"></i>Export Excel
@@ -266,8 +278,12 @@
                                 <th>Nama Canvasser</th>
                                 <th>Email Client</th>
                                 <th>Nomor HP Client</th>
+                                <th>Source</th>
                                 <th>Total Settlement</th>
-                                <th>Poin</th>
+                                <th>Total Poin</th>
+                                <th>Poin Redeem</th>
+                                <th>Poin Sisa</th>
+                                <th>Remark</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -313,7 +329,9 @@
             ajax: {
                 url: "{{ route('panenpoin.report-data') }}",
                 data: function(d) {
-                    d.tanggal = $('#tanggal').val(); // Kirim nilai filter ke server
+                    d.tanggal = $('#tanggal').val();
+                    d.source = $('#source').val();
+                    d.remark = $('#remark').val();
                 }
             },
             columns: [{
@@ -334,6 +352,16 @@
                     data: 'nomor_hp_client'
                 },
                 {
+                    data: 'source',
+                    render: function(data) {
+                        if (data === 'user_panen_poin') {
+                            return '<span class="badge badge-primary"><i class="fas fa-user-edit"></i> Panen Poin</span>';
+                        } else {
+                            return '<span class="badge badge-secondary"><i class="fas fa-database"></i> Leads Master</span>';
+                        }
+                    }
+                },
+                {
                     data: 'total_settlement',
                     render: function(data) {
                         return 'Rp ' + data;
@@ -342,13 +370,38 @@
                 {
                     data: 'poin',
                     render: function(data) {
+                        return '<span class="badge badge-info">' + data + ' Poin</span>';
+                    }
+                },
+                {
+                    data: 'poin_redeem',
+                    render: function(data) {
+                        return '<span class="badge badge-warning">' + data + ' Poin</span>';
+                    }
+                },
+                {
+                    data: 'poin_sisa',
+                    render: function(data) {
                         return '<span class="badge badge-success badge-poin">' + data + ' Poin</span>';
+                    }
+                },
+                {
+                    data: 'remark',
+                    render: function(data) {
+                        if (data === 'Rookie') {
+                            return '<span class="badge badge-pill" style="background: linear-gradient(135deg, #CD7F32 0%, #996515 100%); color: white; font-size: 14px; padding: 8px 15px;"><i class="fas fa-medal"></i> 🥉 Rookie</span>';
+                        } else if (data === 'Rising Star') {
+                            return '<span class="badge badge-pill" style="background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%); color: white; font-size: 14px; padding: 8px 15px;"><i class="fas fa-medal"></i> 🥈 Rising Star</span>';
+                        } else if (data === 'Champion') {
+                            return '<span class="badge badge-pill" style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: white; font-size: 14px; padding: 8px 15px;"><i class="fas fa-medal"></i> 🥇 Champion</span>';
+                        }
+                        return data;
                     }
                 }
             ],
             order: [
-                [5, 'desc']
-            ], // Order by poin descending
+                [8, 'desc']
+            ], // Order by poin_sisa descending
             language: {
                 processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span>',
                 emptyTable: 'Tidak ada data untuk ditampilkan',
@@ -381,11 +434,23 @@
             // Reload data table
             table.ajax.reload();
         });
+        
+        // Event onchange untuk filter source
+        $('#source').on('change', function() {
+            table.ajax.reload();
+        });
+        
+        // Event onchange untuk filter remark
+        $('#remark').on('change', function() {
+            table.ajax.reload();
+        });
 
         // Export button click
         $('#btn-export').click(function() {
             var tanggal = $('#tanggal').val();
-            var exportUrl = "{{ route('panenpoin.export') }}" + "?tanggal=" + tanggal;
+            var source = $('#source').val();
+            var remark = $('#remark').val();
+            var exportUrl = "{{ route('panenpoin.export') }}" + "?tanggal=" + tanggal + "&source=" + source + "&remark=" + remark;
             window.location.href = exportUrl;
         });
     });
