@@ -234,32 +234,31 @@ class PanenPoinController extends Controller
             DB::table('summary_panen_poin')->truncate();
             
             foreach ($canvassers as $canvasser) {
+                $clientEmails = [];
+                
                 // Ambil email dari user_panen_poin yang diinput oleh canvasser ini
                 $panenPoinData = UserPanenPoin::where('user_id', $canvasser->id)
                     ->select('akun_myads_pelanggan', 'nomor_hp_pelanggan')
                     ->get();
                 
-                $clientEmails = [];
+                foreach ($panenPoinData as $data) {
+                    $clientEmails[] = [
+                        'email' => strtolower(trim($data->akun_myads_pelanggan)),
+                        'nomor_hp' => $data->nomor_hp_pelanggan
+                    ];
+                }
                 
-                if ($panenPoinData->isNotEmpty()) {
-                    foreach ($panenPoinData as $data) {
-                        $clientEmails[] = [
-                            'email' => strtolower(trim($data->akun_myads_pelanggan)),
-                            'nomor_hp' => $data->nomor_hp_pelanggan
-                        ];
-                    }
-                } else {
-                    $leadsData = DB::table('leads_master')
-                        ->where('user_id', $canvasser->id)
-                        ->select('email', 'mobile_phone')
-                        ->get();
-                    
-                    foreach ($leadsData as $lead) {
-                        $clientEmails[] = [
-                            'email' => strtolower(trim($lead->email)),
-                            'nomor_hp' => $lead->mobile_phone ?? '-'
-                        ];
-                    }
+                // Ambil juga dari leads_master
+                $leadsData = DB::table('leads_master')
+                    ->where('user_id', $canvasser->id)
+                    ->select('email', 'mobile_phone')
+                    ->get();
+                
+                foreach ($leadsData as $lead) {
+                    $clientEmails[] = [
+                        'email' => strtolower(trim($lead->email)),
+                        'nomor_hp' => $lead->mobile_phone ?? '-'
+                    ];
                 }
                 
                 if (empty($clientEmails)) {
