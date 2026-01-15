@@ -34,17 +34,10 @@
                 <h5 class="mb-0"><i class="fas fa-user-plus mr-2"></i>Form Input Data Pelanggan Panen Poin</h5>
             </div>
 
-            <form id="formInputPanen" action="{{ route('panenpoin.store') }}" method="POST">
+            <form action="{{ route('panenpoin.store') }}" method="POST">
                 @csrf
                 <div class="card-body">
-                    <!-- Hidden flag untuk mendeteksi success di JavaScript -->
-                    @if(session('success'))
-                        <input type="hidden" id="successMessage" value="{{ session('success') }}">
-                    @endif
-
-                    @if(session('error'))
-                        <input type="hidden" id="errorMessage" value="{{ session('error') }}">
-                    @endif
+                    <div class="form-group">
                         <label for="nama_pelanggan" class="form-label">
                             Nama Pelanggan <span class="text-danger">*</span>
                         </label>
@@ -99,7 +92,7 @@
                 </div>
 
                 <div class="card-footer">
-                    <button type="submit" class="btn btn-primary btn-submit" id="btnSubmit">
+                    <button type="submit" class="btn btn-primary btn-submit">
                         <i class="fas fa-save mr-2"></i>Simpan Data
                     </button>
                     <a href="{{ route('panenpoin.report') }}" class="btn btn-secondary">
@@ -112,66 +105,32 @@
 </div>
 @endsection
 
-@section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+@section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
-        // Handle form submit dengan AJAX
-        $('#formInputPanen').on('submit', function(e) {
-            e.preventDefault();
-            
-            // Validasi form
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                $(this).addClass('was-validated');
-                return false;
-            }
-            
-            // Show loading
-            var btnSubmit = $('#btnSubmit');
-            var originalText = btnSubmit.html();
-            btnSubmit.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Sedang memproses...');
-            
-            // Kirim via AJAX
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST',
-                data: $(this).serialize(),
-                success: function(response) {
-                    // Success alert
-                    Swal.fire({
-                        title: 'Sukses! 🎉',
-                        html: 'Data pelanggan berhasil disimpan dan akun telah dibuat!<br><br><small style="color: #666;">Halaman akan di-refresh setelah Anda klik OK...</small>',
-                        icon: 'success',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        confirmButtonColor: '#4caf50',
-                        confirmButtonText: 'OK',
-                    }).then(function() {
-                        // Refresh halaman
-                        window.location.reload();
-                    });
-                },
-                error: function(xhr) {
-                    // Error alert
-                    var errorMsg = 'Gagal menyimpan data!';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    
-                    Swal.fire({
-                        title: 'Terjadi Kesalahan! ⚠️',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonColor: '#dc3545',
-                        confirmButtonText: 'Tutup',
-                    });
-                    
-                    // Reset button
-                    btnSubmit.prop('disabled', false).html(originalText);
-                }
+        // Show success message using SweetAlert
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '{{ session('success') }}',
+                confirmButtonColor: '#4e73df',
+                timer: 3000,
+                showConfirmButton: false
             });
-        });
+        @endif
+
+        // Show error message using SweetAlert
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Terjadi Kesalahan!',
+                text: '{{ session('error') }}',
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Tutup'
+            });
+        @endif
 
         // Validate phone number
         $('#nomor_hp_pelanggan').on('input', function() {
