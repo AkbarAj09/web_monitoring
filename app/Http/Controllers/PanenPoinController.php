@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\UserPanenPoin;
 use App\Models\User;
+use App\Models\AkunPanenPoin;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -99,11 +100,15 @@ class PanenPoinController extends Controller
                     'nama_canvasser',
                     'email_client',
                     'nomor_hp_client',
+                    'source',
                     DB::raw('CAST(total_settlement AS DECIMAL(15,2)) as total_settlement_raw'),
                     DB::raw('FORMAT(total_settlement, 0, "id_ID") as total_settlement'),
                     'poin_bulan_ini',
                     'poin_akumulasi',
                     'poin',
+                    DB::raw('COALESCE(poin_redeem, 0) as poin_redeem'),
+                    DB::raw('(poin - COALESCE(poin_redeem, 0)) as poin_sisa'),
+                    'remark',
                     'bulan'
                 );
             
@@ -123,18 +128,34 @@ class PanenPoinController extends Controller
                 \Log::info("Filtering by Month: {$month}, Year: {$year}");
             }
             
-            $result = $query->orderBy('poin', 'desc')
+            // Filter berdasarkan source
+            if (request()->has('source') && request()->source != '') {
+                $query->where('source', request()->source);
+                \Log::info("Filtering by Source: " . request()->source);
+            }
+            
+            // Filter berdasarkan remark
+            if (request()->has('remark') && request()->remark != '') {
+                $query->where('remark', request()->remark);
+                \Log::info("Filtering by Remark: " . request()->remark);
+            }
+            
+            $result = $query->orderBy('poin_sisa', 'desc')
                 ->get()
                 ->map(function($item) {
                     return [
                         'nama_canvasser' => $item->nama_canvasser,
                         'email_client' => $item->email_client,
                         'nomor_hp_client' => $item->nomor_hp_client,
+                        'source' => $item->source,
                         'total_settlement' => number_format($item->total_settlement_raw, 0, ',', '.'),
                         'total_settlement_raw' => $item->total_settlement_raw,
                         'poin_bulan_ini' => $item->poin_bulan_ini,
                         'poin_akumulasi' => $item->poin_akumulasi,
                         'poin' => $item->poin,
+                        'poin_redeem' => $item->poin_redeem,
+                        'poin_sisa' => $item->poin_sisa,
+                        'remark' => $item->remark,
                         'bulan' => $item->bulan
                     ];
                 })
@@ -163,7 +184,7 @@ class PanenPoinController extends Controller
             // Header
             $monthYear = Carbon::now()->locale('id')->translatedFormat('F Y');
             $sheet->setCellValue('A1', 'LAPORAN PANEN POIN - ' . strtoupper($monthYear));
-            $sheet->mergeCells('A1:F1');
+            $sheet->mergeCells('A1:J1');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
             
@@ -172,11 +193,15 @@ class PanenPoinController extends Controller
             $sheet->setCellValue('B3', 'Nama Canvasser');
             $sheet->setCellValue('C3', 'Email Client');
             $sheet->setCellValue('D3', 'Nomor HP Client');
-            $sheet->setCellValue('E3', 'Total Settlement');
-            $sheet->setCellValue('F3', 'Poin');
+            $sheet->setCellValue('E3', 'Source');
+            $sheet->setCellValue('F3', 'Total Settlement');
+            $sheet->setCellValue('G3', 'Total Poin');
+            $sheet->setCellValue('H3', 'Poin Redeem');
+            $sheet->setCellValue('I3', 'Poin Sisa');
+            $sheet->setCellValue('J3', 'Remark');
             
-            $sheet->getStyle('A3:F3')->getFont()->setBold(true);
-            $sheet->getStyle('A3:F3')->getFill()
+            $sheet->getStyle('A3:J3')->getFont()->setBold(true);
+            $sheet->getStyle('A3:J3')->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                 ->getStartColor()->setARGB('FFD9D9D9');
             
@@ -188,13 +213,17 @@ class PanenPoinController extends Controller
                 $sheet->setCellValue('B' . $row, $item['nama_canvasser']);
                 $sheet->setCellValue('C' . $row, $item['email_client']);
                 $sheet->setCellValue('D' . $row, $item['nomor_hp_client']);
-                $sheet->setCellValue('E' . $row, $item['total_settlement']);
-                $sheet->setCellValue('F' . $row, $item['poin']);
+                $sheet->setCellValue('E' . $row, $item['source']);
+                $sheet->setCellValue('F' . $row, $item['total_settlement']);
+                $sheet->setCellValue('G' . $row, $item['poin']);
+                $sheet->setCellValue('H' . $row, $item['poin_redeem']);
+                $sheet->setCellValue('I' . $row, $item['poin_sisa']);
+                $sheet->setCellValue('J' . $row, $item['remark']);
                 $row++;
             }
             
             // Auto width
-            foreach (range('A', 'F') as $col) {
+            foreach (range('A', 'J') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
             
@@ -229,9 +258,8 @@ class PanenPoinController extends Controller
             $canvassers = User::where('role', 'cvsr')->get();
             
             $totalProcessed = 0;
-            
-            // Hapus data summary bulan ini dulu
-            DB::table('summary_panen_poin')->truncate();
+            $totalUpdated = 0;
+            $totalInserted = 0;
             
             foreach ($canvassers as $canvasser) {
                 $clientEmails = [];
@@ -244,7 +272,8 @@ class PanenPoinController extends Controller
                 foreach ($panenPoinData as $data) {
                     $clientEmails[] = [
                         'email' => strtolower(trim($data->akun_myads_pelanggan)),
-                        'nomor_hp' => $data->nomor_hp_pelanggan
+                        'nomor_hp' => $data->nomor_hp_pelanggan,
+                        'source' => 'user_panen_poin'
                     ];
                 }
                 
@@ -257,7 +286,8 @@ class PanenPoinController extends Controller
                 foreach ($leadsData as $lead) {
                     $clientEmails[] = [
                         'email' => strtolower(trim($lead->email)),
-                        'nomor_hp' => $lead->mobile_phone ?? '-'
+                        'nomor_hp' => $lead->mobile_phone ?? '-',
+                        'source' => 'leads_master'
                     ];
                 }
                 
@@ -277,64 +307,268 @@ class PanenPoinController extends Controller
                     ->pluck('total', 'email')
                     ->toArray();
                 
-                // Query settlement akumulasi
-                $settlementsAccumulated = [];
+                // Ambil poin_sisa dari bulan sebelumnya (untuk akumulasi)
+                $previousMonthPoints = [];
                 $currentMonth = Carbon::now()->month;
+                $currentYear = Carbon::now()->year;
+                
                 if ($currentMonth > 1) {
-                    $startYearDate = Carbon::now()->startOfYear()->format('Y-m-d');
-                    $endPreviousMonth = Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d');
-                    
-                    $settlementsAccumulated = DB::table('report_balance_top_up')
-                        ->select(DB::raw('LOWER(TRIM(email_client)) as email'), DB::raw('SUM(CAST(total_settlement_klien AS DECIMAL(15,2))) as total'))
-                        ->whereBetween('tgl_transaksi', [$startYearDate, $endPreviousMonth])
-                        ->whereNotNull('total_settlement_klien')
-                        ->whereIn(DB::raw('LOWER(TRIM(email_client))'), $emails)
-                        ->groupBy(DB::raw('LOWER(TRIM(email_client))'))
-                        ->pluck('total', 'email')
-                        ->toArray();
+                    // Ambil dari bulan sebelumnya di tahun yang sama
+                    $previousMonth = $currentMonth - 1;
+                    $previousYear = $currentYear;
+                } else {
+                    // Jika bulan Januari, ambil dari Desember tahun sebelumnya
+                    $previousMonth = 12;
+                    $previousYear = $currentYear - 1;
                 }
                 
-                // Insert ke summary table
+                // Query poin_sisa dari summary bulan sebelumnya
+                $previousSummary = DB::table('summary_panen_poin')
+                    ->select('email_client', DB::raw('(poin - COALESCE(poin_redeem, 0)) as poin_sisa'))
+                    ->where('user_id', $canvasser->id)
+                    ->whereMonth('created_at', $previousMonth)
+                    ->whereYear('created_at', $previousYear)
+                    ->get();
+                
+                foreach ($previousSummary as $prev) {
+                    $previousMonthPoints[strtolower(trim($prev->email_client))] = $prev->poin_sisa;
+                }
+                
+                // Hitung total poin yang sudah di-redeem dari table prize_redeem (bulan ini)
+                $totalPoinRedeem = DB::table('prize_redeems')
+                    ->where('user_id', $canvasser->id)
+                    ->whereMonth('created_at', Carbon::now()->month)
+                    ->whereYear('created_at', Carbon::now()->year)
+                    ->sum('point_used') ?? 0;
+                
+                // Update or Insert ke summary table
                 foreach ($clientEmails as $client) {
                     $email = $client['email'];
                     $totalSettlement = $settlementsThisMonth[$email] ?? 0;
-                    $settlementPrevious = $settlementsAccumulated[$email] ?? 0;
                     
-                    if ($totalSettlement == 0 && $settlementPrevious == 0) {
+                    // Ambil poin sisa dari bulan sebelumnya
+                    $poinSisaBulanLalu = $previousMonthPoints[$email] ?? 0;
+                    
+                    if ($totalSettlement == 0 && $poinSisaBulanLalu == 0) {
                         continue;
                     }
                     
                     $poinBulanIni = floor($totalSettlement / 250000);
-                    $poinAkumulasi = floor($settlementPrevious / 250000);
+                    $poinAkumulasi = $poinSisaBulanLalu; // Gunakan poin sisa bulan lalu
                     $totalPoin = $poinBulanIni + $poinAkumulasi;
+                    $poinSisa = $totalPoin - $totalPoinRedeem;
                     
-                    DB::table('summary_panen_poin')->insert([
+                    // Tentukan remark berdasarkan poin_sisa
+                    $remark = $this->calculateRemark($poinSisa);
+                    
+                    // Cek apakah data sudah ada
+                    $existing = DB::table('summary_panen_poin')
+                        ->where('user_id', $canvasser->id)
+                        ->where('email_client', $email)
+                        ->whereMonth('created_at', Carbon::now()->month)
+                        ->whereYear('created_at', Carbon::now()->year)
+                        ->first();
+                    
+                    $dataToSave = [
                         'user_id' => $canvasser->id,
                         'nama_canvasser' => $canvasser->name,
                         'email_client' => $email,
                         'nomor_hp_client' => $client['nomor_hp'],
+                        'source' => $client['source'],
                         'total_settlement' => $totalSettlement,
                         'poin_bulan_ini' => $poinBulanIni,
                         'poin_akumulasi' => $poinAkumulasi,
                         'poin' => $totalPoin,
+                        'poin_redeem' => $totalPoinRedeem,
+                        'remark' => $remark,
                         'bulan' => Carbon::now()->locale('id')->translatedFormat('F Y'),
-                        'created_at' => now(),
                         'updated_at' => now()
-                    ]);
+                    ];
+                    
+                    if ($existing) {
+                        // Update data yang sudah ada, including poin_redeem
+                        DB::table('summary_panen_poin')
+                            ->where('id', $existing->id)
+                            ->update($dataToSave);
+                        $totalUpdated++;
+                    } else {
+                        // Insert data baru
+                        $dataToSave['created_at'] = now();
+                        DB::table('summary_panen_poin')->insert($dataToSave);
+                        $totalInserted++;
+                    }
                     
                     $totalProcessed++;
                 }
             }
             
-            \Log::info("Summary Panen Poin refreshed. Total records: {$totalProcessed}");
+            \Log::info("Summary Panen Poin refreshed. Total: {$totalProcessed}, Updated: {$totalUpdated}, Inserted: {$totalInserted}");
             
             return response()->json([
                 'status' => 'success',
-                'message' => "Summary Panen Poin updated. Total records: {$totalProcessed}"
+                'message' => "Summary Panen Poin updated. Total: {$totalProcessed} (Updated: {$totalUpdated}, Inserted: {$totalInserted})"
             ]);
             
         } catch (\Exception $e) {
             \Log::error("Error in refreshSummaryPanenPoin: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    
+    // Hitung remark berdasarkan poin sisa
+    private function calculateRemark($poinSisa)
+    {
+        if ($poinSisa >= 0 && $poinSisa <= 100) {
+            return 'Rookie';
+        } elseif ($poinSisa >= 101 && $poinSisa <= 200) {
+            return 'Rising Star';
+        } elseif ($poinSisa >= 201) {
+            return 'Champion';
+        }
+        return 'Rookie'; // default
+    }
+    
+    // Update summary setelah redeem (dipanggil dari RedeemController)
+    public function updateSummaryAfterRedeem($userId)
+    {
+        try {
+            \Log::info("=== UPDATE SUMMARY AFTER REDEEM FOR USER: {$userId} ===");
+            
+            $currentMonth = Carbon::now()->month;
+            $currentYear = Carbon::now()->year;
+            
+            // Hitung total poin yang sudah di-redeem user ini bulan ini
+            $totalPoinRedeem = DB::table('prize_redeems')
+                ->where('user_id', $userId)
+                ->whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->sum('point_used') ?? 0;
+            
+            \Log::info("Total poin redeem for user {$userId}: {$totalPoinRedeem}");
+            
+            // Update semua record summary user ini di bulan ini
+            $summaries = DB::table('summary_panen_poin')
+                ->where('user_id', $userId)
+                ->whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->get();
+            
+            $updatedCount = 0;
+            foreach ($summaries as $summary) {
+                $poinSisa = $summary->poin - $totalPoinRedeem;
+                $remark = $this->calculateRemark($poinSisa);
+                
+                DB::table('summary_panen_poin')
+                    ->where('id', $summary->id)
+                    ->update([
+                        'poin_redeem' => $totalPoinRedeem,
+                        'remark' => $remark,
+                        'updated_at' => now()
+                    ]);
+                
+                $updatedCount++;
+            }
+            
+            \Log::info("Updated {$updatedCount} summary records after redeem");
+            
+            return [
+                'success' => true,
+                'updated' => $updatedCount,
+                'total_redeem' => $totalPoinRedeem
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error("Error in updateSummaryAfterRedeem: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+    
+    // Sync Akun Panen Poin dari Summary (untuk di-schedule)
+    public function syncAkunPanenPoin()
+    {
+        try {
+            \Log::info('=== SYNC AKUN PANEN POIN STARTED ===');
+            
+            $currentMonth = Carbon::now()->month;
+            $currentYear = Carbon::now()->year;
+            
+            // Ambil semua data dari summary bulan ini
+            $summaries = DB::table('summary_panen_poin')
+                ->select('user_id', 'email_client', 'source')
+                ->whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('user_id', 'email_client', 'source')
+                ->get();
+            
+            $totalCreated = 0;
+            $totalSkipped = 0;
+            
+            foreach ($summaries as $summary) {
+                // Cek apakah akun sudah ada
+                $exists = AkunPanenPoin::where('user_id', $summary->user_id)
+                    ->where('email_client', $summary->email_client)
+                    ->exists();
+                
+                if ($exists) {
+                    $totalSkipped++;
+                    continue;
+                }
+                
+                // Ambil nama_akun berdasarkan source
+                $namaAkun = null;
+                
+                if ($summary->source === 'user_panen_poin') {
+                    // Ambil dari user_panen_poin
+                    $panenPoin = UserPanenPoin::where('user_id', $summary->user_id)
+                        ->where(DB::raw('LOWER(TRIM(akun_myads_pelanggan))'), strtolower(trim($summary->email_client)))
+                        ->first();
+                    
+                    $namaAkun = $panenPoin ? $panenPoin->nama_pelanggan : null;
+                    
+                } elseif ($summary->source === 'leads_master') {
+                    // Ambil dari report_balance_top_up (company_name)
+                    $balanceData = DB::table('report_balance_top_up')
+                        ->select('company_name')
+                        ->where(DB::raw('LOWER(TRIM(email_client))'), strtolower(trim($summary->email_client)))
+                        ->whereNotNull('company_name')
+                        ->first();
+                    
+                    $namaAkun = $balanceData ? $balanceData->company_name : null;
+                }
+                
+                // Jika nama_akun tidak ditemukan, skip
+                if (!$namaAkun) {
+                    \Log::warning("Nama akun tidak ditemukan untuk email: {$summary->email_client}, source: {$summary->source}");
+                    $totalSkipped++;
+                    continue;
+                }
+                
+                // Create akun baru
+                AkunPanenPoin::create([
+                    'user_id' => $summary->user_id,
+                    'nama_akun' => $namaAkun,
+                    'email_client' => $summary->email_client,
+                    'password' => bcrypt('123456'), // Default password
+                    'source' => $summary->source,
+                ]);
+                
+                $totalCreated++;
+            }
+            
+            \Log::info("Sync Akun Panen Poin completed. Created: {$totalCreated}, Skipped: {$totalSkipped}");
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => "Sync completed. Created: {$totalCreated}, Skipped: {$totalSkipped}"
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error("Error in syncAkunPanenPoin: " . $e->getMessage());
             \Log::error($e->getTraceAsString());
             return response()->json(['error' => $e->getMessage()], 500);
         }
