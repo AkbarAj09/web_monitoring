@@ -29,29 +29,41 @@
 <div class="row align-items-end mb-3">
 
     <!-- Spacer -->
-    <div class="col-md-6"></div>
+    <div class="col-md-4"></div>
 
     <!-- Filter Tanggal + Buttons -->
-    <div class="col-md-6 text-end">
-        <div class="d-flex justify-content-end gap-2">
-            <select id="filter_regional" class="form-control" style="max-width: 200px">
+    <div class="col-md-8">
+        <div class="d-flex flex-column flex-md-row justify-content-md-end gap-2">
+
+            <select id="filter_regional"
+                class="form-select form-control w-100 w-md-auto">
                 <option value="">All Regional</option>
                 @foreach($regionals as $regional)
                     <option value="{{ $regional }}">{{ $regional }}</option>
                 @endforeach
             </select>
-            <input type="date" id="start_date" class="form-control mx-1" style="max-width: 170px">
-            <input type="date" id="end_date" class="form-control mx-1" style="max-width: 170px">
-            
-            <button id="btnRefresh" class="btn btn-secondary mx-1">
+
+            <input type="date"
+                id="start_date"
+                class="form-control w-100 w-md-auto mx-2">
+
+            <input type="date"
+                id="end_date"
+                class="form-control w-100 w-md-auto">
+
+            <button id="btnRefresh"
+                class="btn btn-secondary w-100 w-md-auto mx-2">
                 Refresh
             </button>
 
-            <button id="btnExport" class="btn btn-success">
+            <button id="btnExport"
+                class="btn btn-success w-100 w-md-auto">
                 <i class="fa fa-file-excel"></i> XLS
             </button>
+
         </div>
     </div>
+
 </div>
 
 <div class="card">

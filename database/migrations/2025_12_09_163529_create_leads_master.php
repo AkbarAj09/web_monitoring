@@ -26,7 +26,7 @@ return new class extends Migration
                 $table->string('nama')->nullable();    // Nama
                 $table->text('address')->nullable();  // Address
                 $table->string('myads_account')->nullable();   // Akun MyAds kalau ada
-                $table->string('data_type');   // Data Type
+                $table->enum('data_type', ['Leads', 'Eksisting Akun']);   // Data Type
                 $table->decimal('komitmen', 5, 2)->default(0);   // Data Type
                 $table->integer('plan_min_topup')->default(0);   // Data Type
                 $table->text('remarks')->nullable();   // Remarks
