@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('pic');
             $table->date('date');
             $table->integer('target_amount');
+            $table->enum('data_type', ['PowerHouse', 'Mitra SBP', 'Agency', 'Internal']);
             $table->timestamps();
         });
     }
