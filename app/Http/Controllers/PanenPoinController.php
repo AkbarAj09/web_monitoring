@@ -31,16 +31,54 @@ class PanenPoinController extends Controller
         ]);
         
         try {
-            UserPanenPoin::create([
+            DB::beginTransaction();
+            
+            // Simpan ke user_panen_poin
+            $panenPoin = UserPanenPoin::create([
                 'user_id' => Auth::id(),
                 'nama_pelanggan' => $request->nama_pelanggan,
                 'akun_myads_pelanggan' => strtolower($request->akun_myads_pelanggan),
                 'nomor_hp_pelanggan' => $request->nomor_hp_pelanggan,
             ]);
             
+            // Auto-create akun di akun_panen_poin
+            $emailClient = strtolower(trim($request->akun_myads_pelanggan));
+            
+            // Cek apakah akun sudah ada
+            $existingAkun = AkunPanenPoin::where('user_id', Auth::id())
+                ->where('email_client', $emailClient)
+                ->first();
+            
+            if (!$existingAkun) {
+                // Create akun baru
+                $akun = AkunPanenPoin::create([
+                    'user_id' => Auth::id(),
+                    'nama_akun' => $request->nama_pelanggan,
+                    'email_client' => $emailClient,
+                    'password' => bcrypt('123456'), // Default password
+                    'source' => 'user_panen_poin',
+                ]);
+                
+                \Log::info("Akun created for: {$emailClient}");
+                
+                // Kirim notifikasi email & WhatsApp
+                $this->sendAccountNotification(
+                    $akun,
+                    $request->nomor_hp_pelanggan,
+                    '123456' // Plain password untuk notifikasi
+                );
+            } else {
+                \Log::info("Akun already exists for: {$emailClient}");
+            }
+            
+            DB::commit();
+            
             return redirect()->route('panenpoin.index')
-                ->with('success', 'Data pelanggan berhasil disimpan!');
+                ->with('success', 'Data pelanggan berhasil disimpan dan akun telah dibuat!');
+                
         } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Error in store: " . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
                 ->withInput();
@@ -557,8 +595,26 @@ class PanenPoinController extends Controller
                     'source' => $summary->source,
                 ]);
                 
-                $totalCreated++;
-            }
+                $totalCreated++;                
+                // Kirim notifikasi email & WhatsApp
+                // Ambil nomor HP dari user_panen_poin atau leads_master
+                $nomorHp = null;
+                if ($summary->source === 'user_panen_poin') {
+                    $panenPoin = UserPanenPoin::where('user_id', $summary->user_id)
+                        ->where(DB::raw('LOWER(TRIM(akun_myads_pelanggan))'), strtolower(trim($summary->email_client)))
+                        ->first();
+                    $nomorHp = $panenPoin ? $panenPoin->nomor_hp_pelanggan : null;
+                } elseif ($summary->source === 'leads_master') {
+                    $lead = DB::table('leads_master')
+                        ->where('user_id', $summary->user_id)
+                        ->where(DB::raw('LOWER(TRIM(email))'), strtolower(trim($summary->email_client)))
+                        ->first();
+                    $nomorHp = $lead ? $lead->mobile_phone : null;
+                }
+                
+                if ($nomorHp) {
+                    $this->sendAccountNotification($akun, $nomorHp, '123456');
+                }            }
             
             \Log::info("Sync Akun Panen Poin completed. Created: {$totalCreated}, Skipped: {$totalSkipped}");
             
@@ -571,6 +627,116 @@ class PanenPoinController extends Controller
             \Log::error("Error in syncAkunPanenPoin: " . $e->getMessage());
             \Log::error($e->getTraceAsString());
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    
+    // Kirim notifikasi akun via Email & WhatsApp
+    private function sendAccountNotification($akun, $nomorHp, $plainPassword)
+    {
+        try {
+            \Log::info("Sending notification to: {$akun->email_client}");
+            
+            // Data untuk notifikasi
+            $data = [
+                'nama_akun' => $akun->nama_akun,
+                'email' => $akun->email_client,
+                'password' => $plainPassword,
+                'uuid' => $akun->uuid,
+            ];
+            
+            // Kirim Email
+            $this->sendEmailNotification($data);
+            
+            // Kirim WhatsApp
+            if ($nomorHp) {
+                $this->sendWhatsAppNotification($nomorHp, $data);
+            }
+            
+            \Log::info("Notification sent successfully to: {$akun->email_client}");
+            
+        } catch (\Exception $e) {
+            \Log::error("Error sending notification: " . $e->getMessage());
+            // Don't throw exception, just log it
+        }
+    }
+    
+    // Kirim Email
+    private function sendEmailNotification($data)
+    {
+        try {
+            \Mail::send('emails.akun_panen_poin', $data, function($message) use ($data) {
+                $message->to($data['email'], $data['nama_akun'])
+                    ->subject('Akun Panen Poin Anda Telah Dibuat');
+            });
+            
+            \Log::info("Email sent to: {$data['email']}");
+            
+        } catch (\Exception $e) {
+            \Log::error("Error sending email: " . $e->getMessage());
+        }
+    }
+    
+    // Kirim WhatsApp menggunakan Bot WA Baileys (HTTP API)
+    private function sendWhatsAppNotification($nomorHp, $data)
+    {
+        try {
+            // Format nomor HP (hapus 0 di depan, tambah 62)
+            $phone = preg_replace('/^0/', '62', $nomorHp);
+            
+            // URL Bot WA API (sesuaikan dengan config)
+            $botUrl = env('WA_BOT_URL') . '/api/send-wa';
+            
+            \Log::info("Sending WhatsApp to: {$phone} via Bot API: {$botUrl}");
+            
+            // Data yang akan dikirim ke bot
+            $postData = [
+                'phone' => $phone,
+                'nama_akun' => $data['nama_akun'],
+                'email' => $data['email'],
+                'password' => $data['password'],
+                'uuid' => $data['uuid'],
+                'message' => '' // Bot akan format otomatis jika ada data akun
+            ];
+            
+            // Kirim via HTTP POST ke Bot WA
+            $ch = curl_init($botUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($postData),
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ],
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_CONNECTTIMEOUT => 5,
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+            
+            if ($error) {
+                throw new \Exception("cURL Error: {$error}");
+            }
+            
+            if ($httpCode !== 200) {
+                throw new \Exception("Bot API returned HTTP {$httpCode}: {$response}");
+            }
+            
+            $result = json_decode($response, true);
+            
+            if (isset($result['success']) && $result['success']) {
+                \Log::info("WhatsApp sent successfully to: {$phone}");
+            } else {
+                $errorMsg = $result['error'] ?? 'Unknown error';
+                throw new \Exception("Bot API error: {$errorMsg}");
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error("Error sending WhatsApp: " . $e->getMessage());
+            // Don't throw, just log - agar proses lain tetap jalan
         }
     }
 }

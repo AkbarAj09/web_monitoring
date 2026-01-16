@@ -2,6 +2,7 @@
 @section('title') Input Data Panen Poin @endsection
 
 @section('css')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
     .card {
         animation: fadeInUp 0.6s ease-out;
@@ -36,24 +37,6 @@
             <form action="{{ route('panenpoin.store') }}" method="POST">
                 @csrf
                 <div class="card-body">
-                    @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    @endif
-
-                    @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    @endif
-
                     <div class="form-group">
                         <label for="nama_pelanggan" class="form-label">
                             Nama Pelanggan <span class="text-danger">*</span>
@@ -122,13 +105,32 @@
 </div>
 @endsection
 
-@section('scripts')
+@section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
-        // Auto dismiss alerts after 5 seconds
-        setTimeout(function() {
-            $('.alert').fadeOut('slow');
-        }, 5000);
+        // Show success message using SweetAlert
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '{{ session('success') }}',
+                confirmButtonColor: '#4e73df',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        @endif
+
+        // Show error message using SweetAlert
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Terjadi Kesalahan!',
+                text: '{{ session('error') }}',
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Tutup'
+            });
+        @endif
 
         // Validate phone number
         $('#nomor_hp_pelanggan').on('input', function() {
