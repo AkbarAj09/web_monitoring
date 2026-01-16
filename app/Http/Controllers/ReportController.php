@@ -228,7 +228,7 @@ public function topupCanvasserData(Request $request)
 
         /* ================= TOPUP PER REGION ================= */
         $topupPerRegion = DB::connection('mysql')
-            ->table('report_balance_topup as emt')
+            ->table('report_balance_top_up as emt')
             ->selectRaw("
                 CASE
                     WHEN data_province_name IN ('Sumatera Selatan','Jambi','Bengkulu','Lampung','Bangka Belitung', 'Kepulauan Bangka Belitung') THEN 'SUMBAGSEL'
@@ -262,7 +262,7 @@ public function topupCanvasserData(Request $request)
 
         /* ================= LAST UPDATE GLOBAL ================= */
         $lastUpdate = DB::connection('mysql')
-            ->table('report_balance_topup')
+            ->table('report_balance_top_up')
             ->whereBetween('tgl_transaksi', [$start, $end])
             ->whereNotNull('tgl_transaksi')
             ->where('payment_history_status', 'PAID')

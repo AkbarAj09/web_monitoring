@@ -11,6 +11,7 @@ use App\Http\Controllers\LeadsMasterController;
 use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PanenPoinController;
+use App\Http\Controllers\CalendarController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::get('/login', [FrontController::class, 'index'])->name('login');
@@ -183,5 +184,12 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
     Route::get('panen-poin/report-data', [PanenPoinController::class, 'getReportData'])->name('panenpoin.report-data');
     Route::get('panen-poin/export', [PanenPoinController::class, 'export'])->name('panenpoin.export');
     Route::get('panen-poin/refresh-summary', [PanenPoinController::class, 'refreshSummaryPanenPoin'])->name('panenpoin.refresh');
+
+
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
+    Route::get('/calendar/events', [CalendarController::class, 'events']);
+    Route::post('/calendar/store', [CalendarController::class, 'store']);
+    Route::delete('/calendar/delete/{id}', [CalendarController::class, 'delete']);
+    Route::get('/calendar/download', [CalendarController::class, 'download']);
 
 });

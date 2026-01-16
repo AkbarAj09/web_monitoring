@@ -38,114 +38,131 @@ class LogbookController extends Controller
     public function data(Request $request)
     {
         // =======================
-    // BASE QUERY + JOIN LOGBOOK
-    // =======================
-    $query = LeadsMaster::query()
-        ->with(['user', 'source', 'sector'])
-        ->leftJoin('logbooks', 'logbooks.leads_master_id', '=', 'leads_masters.id')
-        ->select(
-            'leads_masters.*',
-            'logbooks.komitmen',
-            'logbooks.plan_min_topup'
-        )
-        ->orderBy('leads_masters.created_at', 'asc');
+        // BASE QUERY + JOIN LOGBOOK
+        // =======================
+        $query = LeadsMaster::query()
+            ->leftJoin('users', 'users.id', '=', 'leads_master.user_id')
+            ->join('logbook', 'logbook.leads_master_id', '=', 'leads_master.id')
+            ->leftJoin('report_balance_top_up', function ($join) {
+                    $join->whereRaw(
+                        'LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)'
+                    );
+                })
+            ->select([
+                'leads_master.id',
+                'users.name as user_name',
+                'leads_master.regional',
+                'leads_master.company_name',
+                'leads_master.myads_account',
+                'leads_master.mobile_phone',
+                'leads_master.data_type',
+                'leads_master.created_at',
+                'logbook.komitmen',
+                'logbook.plan_min_topup',
+                DB::raw('SUM(report_balance_top_up.total_settlement_klien) as total_settlement_klien'),
+            ])
+            ->groupBy(
+                'leads_master.id',
+                'users.name',
+                'leads_master.regional',
+                'leads_master.company_name',
+                'leads_master.myads_account',
+                'leads_master.mobile_phone',
+                'leads_master.data_type',
+                'leads_master.created_at',
+                'logbook.komitmen',
+                'logbook.plan_min_topup'
+            )
+        ->orderBy('leads_master.created_at', 'desc');
 
-    // =======================
-    // 🔐 FILTER ROLE
-    // =======================
-    if (!auth()->user()->hasRole('Admin')) {
-        $query->where('leads_masters.user_id', auth()->id());
-    }
+        // =======================
+        // 🔐 FILTER ROLE
+        // =======================
+        if (!auth()->user()->hasRole('Admin')) {
+            $query->where('leads_master.user_id', auth()->id());
+        }
 
-    // =======================
-    // 🔍 FILTER DATATABLE
-    // =======================
-    if ($request->regional) {
-        $query->where('leads_masters.regional', $request->regional);
-    }
+        // =======================
+        // 🔍 FILTER DATATABLE
+        // =======================
+        if ($request->regional) {
+            $query->where('leads_master.regional', $request->regional);
+        }
 
-    if ($request->canvasser) {
-        $query->where('leads_masters.user_id', $request->canvasser);
-    }
+        if ($request->canvasser) {
+            $query->where('leads_master.user_id', $request->canvasser);
+        }
 
-    if ($request->company) {
-        $query->where('leads_masters.company_name', 'like', '%' . $request->company . '%');
-    }
+        // if ($request->company) {
+        //     $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
+        // }
 
-    if ($request->email) {
-        $query->where('leads_masters.email', 'like', '%' . $request->email . '%');
-    }
+        // if ($request->email) {
+        //     $query->where('leads_master.email', 'like', '%' . $request->email . '%');
+        // }
 
-    if ($request->start_date && $request->end_date) {
-        $query->whereBetween('leads_masters.created_at', [
-            $request->start_date . ' 00:00:00',
-            $request->end_date . ' 23:59:59',
-        ]);
-    }
+        if ($request->start_date && $request->end_date) {
+            
+            $date = Carbon\Carbon::createFromFormat('Y-m', $request->month);
+            $query->whereBetween('leads_master.created_at', [
+                $date->startOfMonth(),
+                $date->endOfMonth(),
+            ]);
+        }
 
-    if ($request->source) {
-        $query->whereHas('source', function ($q) use ($request) {
-            $q->where('id', $request->source);
-        });
-    }
+        // if ($request->source) {
+        //     $query->whereHas('source', function ($q) use ($request) {
+        //         $q->where('id', $request->source);
+        //     });
+        // }
 
-    // =======================
-    // DATATABLE RESPONSE
-    // =======================
-    return datatables()->of($query)
+        // =======================
+        // DATATABLE RESPONSE
+        // =======================
+        return datatables()->of($query)
 
-        ->addColumn('user_name', function ($row) {
-            return $row->user->name ?? '-';
-        })
+            ->addColumn('user_name', function ($row) {
+                return $row->user_name ?? '-';
+            })
 
-        ->addColumn('regional', function ($row) {
-            return $row->regional ?? '-';
-        })
+            ->addColumn('regional', function ($row) {
+                return $row->regional ?? '-';
+            })
 
-        ->addColumn('company_name', function ($row) {
-            return $row->company_name ?? '-';
-        })
+            ->addColumn('company_name', function ($row) {
+                return $row->company_name ?? '-';
+            })
 
-        ->addColumn('email', function ($row) {
-            return $row->email ?? '-';
-        })
+            ->addColumn('myads_account', function ($row) {
+                return $row->myads_account ?? '-';
+            })
 
-        ->addColumn('mobile_phone', function ($row) {
-            return $row->mobile_phone ?? '-';
-        })
+            ->addColumn('mobile_phone', function ($row) {
+                return $row->mobile_phone ?? '-';
+            })
 
-        ->addColumn('status', function ($row) {
-            return $row->status == 1
-                ? '<span class="badge badge-success">Deal</span>'
-                : '<span class="badge badge-danger">Prospect</span>';
-        })
+            ->addColumn('data_type', function ($row) {
+                return $row->data_type ?? '-';
+            })
 
-        ->addColumn('komitmen', function ($row) {
-            return $row->komitmen ?? '-';
-        })
+            ->editColumn('created_at', function ($row) {
+                return $row->created_at->format('Y-m-d');
+            })
 
-        ->addColumn('plan_min_topup', function ($row) {
-            return $row->plan_min_topup
-                ? number_format($row->plan_min_topup, 0, ',', '.')
-                : '-';
-        })
+            ->addColumn('komitmen', function ($row) {
+                return $row->komitmen ?? '-';
+            })
 
-        ->editColumn('created_at', function ($row) {
-            return $row->created_at->format('Y-m-d');
-        })
-
-        ->addColumn('aksi', function ($row) {
-            return '
-                <a href="' . route('leads-master.show', $row->id) . '" class="btn btn-sm btn-warning">
-                    <i class="fas fa-search"></i> Lihat
-                </a>
-                <a href="' . route('leads-master.edit', $row->id) . '" class="btn btn-sm btn-primary">
-                    <i class="fas fa-pencil-alt"></i> Edit
-                </a>
-            ';
-        })
-
-        ->rawColumns(['aksi', 'status'])
-        ->make(true);
-    }
+            ->addColumn('plan_min_topup', function ($row) {
+                return $row->plan_min_topup
+                    ? number_format($row->plan_min_topup, 0, ',', '.')
+                    : '-';
+            })
+             ->addColumn('total_settlement_klien', function ($row) {
+                return $row->total_settlement_klien
+                    ? number_format($row->total_settlement_klien, 0, ',', '.')
+                    : '-';
+            })
+            ->make(true);
+        }
 }

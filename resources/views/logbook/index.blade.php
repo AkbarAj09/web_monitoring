@@ -31,8 +31,9 @@
             </select>
 
             {{-- Date --}}
-            <input type="date" id="start_date" class="form-control" style="max-width: 160px">
-            <input type="date" id="end_date" class="form-control" style="max-width: 160px">
+            <input type="month" id="month" class="form-control" style="max-width: 160px"
+       value="{{ now()->format('Y-m') }}">
+            {{-- <input type="date" id="end_date" class="form-control" style="max-width: 160px"> --}}
 
             <button id="btnRefresh" class="btn btn-secondary">
                 Refresh
@@ -56,16 +57,16 @@
         <table class="table table-bordered table-sm" id="leadsMasterTable">
             <thead class="bg-dark text-white">
                 <tr>
-                    <th>Status</th>
                     <th>Canvasser</th>
                     <th>Regional</th>
                     <th>Nama Perusahaan</th>
-                    <th>Email</th>
+                    <th>Akun Myads</th>
                     <th>No HP</th>
+                    <th>Tipe Data</th>
+                    <th>Tanggal</th>
                     <th>Komitmen</th>
                     <th>Plan Min Topup</th>
-                    <th>Tanggal</th>
-                    <th>Aksi</th>
+                    <th>Realisasi Topup</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -94,16 +95,16 @@ $(function () {
             }
         },
         columns: [
-            { data: 'status', orderable:false, searchable:false },
             { data: 'user_name' },
             { data: 'regional' },
             { data: 'company_name' },
-            { data: 'email' },
+            { data: 'myads_account' },
             { data: 'mobile_phone' },
+            { data: 'data_type' },
+            { data: 'created_at' },
             { data: 'komitmen' },
             { data: 'plan_min_topup' },
-            { data: 'created_at' },
-            { data: 'aksi', orderable:false, searchable:false }
+            { data: 'total_settlement_klien' },
         ]
     });
 
@@ -116,8 +117,8 @@ $(function () {
     $('#btnExport').on('click', function () {
         let params = {
             regional: $('#filter_regional').val(),
-            start_date: $('#start_date').val(),
-            end_date: $('#end_date').val()
+            month: $('#month').val(),
+            // end_date: $('#end_date').val()
         };
 
         window.location =
