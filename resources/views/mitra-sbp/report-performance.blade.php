@@ -1,55 +1,64 @@
 @extends('master')
 
-@section('title', 'Report Target vs Topup Region')
+@section('title', 'Report Performance')
 
 @section('content')
+
 <table>
 <tbody>
 
 @foreach($grouped as $area => $rows)
 
-    {{-- HEADER AREA --}}
-    <tr class="table-success font-weight-bold">
-        <td>{{ $area }}</td>
-        <td>{{ number_format($rows->sum('target')) }}</td>
-        <td>{{ number_format($rows->sum('mitra_sbp')) }}</td>
-        <td>
-            {{ 
-                $rows->sum('target') > 0 
-                ? round(($rows->sum('mitra_sbp') / $rows->sum('target')) * 100, 2) 
-                : 0 
-            }}%
-        </td>
-    </tr>
+@php
+    $areaTarget = $rows->sum('target_amount');
+    $areaMitra  = $rows->sum('mitra_sbp');
+@endphp
 
-    {{-- DETAIL REGION --}}
-    @foreach($rows as $row)
-    <tr>
-        <td>{{ $row->region_name }}</td>
-        <td>{{ number_format($row->target_amount) }}</td>
-        <td>{{ number_format($row->mitra_sbp) }}</td>
-        <td>{{ $row->ach_to_target }}%</td>
-    </tr>
-    @endforeach
+{{-- HEADER AREA --}}
+<tr class="table-success font-weight-bold">
+    <td>{{ $area }}</td>
+    <td>{{ number_format($areaTarget) }}</td>
+    <td>{{ number_format($areaMitra) }}</td>
+    <td>
+        {{ $areaTarget > 0 ? round(($areaMitra / $areaTarget) * 100, 2) : 0 }}%
+    </td>
+</tr>
+
+{{-- DETAIL REGION --}}
+@foreach($rows as $row)
+<tr>
+    <td>{{ $row->region_name }}</td>
+    <td>{{ number_format($row->target_amount) }}</td>
+    <td>{{ number_format($row->mitra_sbp) }}</td>
+    <td>
+        {{ $row->target_amount > 0
+            ? round(($row->mitra_sbp / $row->target_amount) * 100, 2)
+            : 0
+        }}%
+    </td>
+</tr>
+@endforeach
 
 @endforeach
 
-{{-- TOTAL KESELURUHAN --}}
+{{-- TOTAL --}}
+@php
+    $totalTarget = $data->sum('target_amount');
+    $totalMitra  = $data->sum('mitra_sbp');
+@endphp
+
 <tr class="table-danger font-weight-bold">
     <td>Total</td>
-    <td>{{ number_format($data->sum('target')) }}</td>
-    <td>{{ number_format($data->sum('mitra_sbp')) }}</td>
+    <td>{{ number_format($totalTarget) }}</td>
+    <td>{{ number_format($totalMitra) }}</td>
     <td>
-        {{ 
-            $data->sum('target') > 0 
-            ? round(($data->sum('mitra_sbp') / $data->sum('target')) * 100, 2) 
-            : 0 
-        }}%
+        {{ $totalTarget > 0 ? round(($totalMitra / $totalTarget) * 100, 2) : 0 }}%
     </td>
 </tr>
 
 </tbody>
 </table>
+
 
 
 

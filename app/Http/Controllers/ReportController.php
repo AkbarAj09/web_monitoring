@@ -311,26 +311,30 @@ public function topupCanvasserData(Request $request)
     {
         $data = DB::table('region_target as rt')
             ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
-            ->leftJoin('report_balance_top_up as rbt', 'rbt.email_client', '=', 'ms.email_myads')
+            ->leftJoin('report_balance_top_up as rbt', function ($join) {
+                $join->on('rbt.email_client', '=', 'ms.email_myads')
+                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+            })
             ->select(
+                'ms.area',
                 'rt.region_name',
-                DB::raw('rt.target_amount'),
-                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as mitra_sbp'),
-                DB::raw('ROUND(
-                    (COALESCE(SUM(rbt.total_settlement_klien), 0) / rt.target_amount) * 100
-                , 2) as ach_to_target')
+                'rt.target_amount',
+                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as mitra_sbp')
             )
+            ->where('rt.data_type', 'Mitra SBP')
             ->groupBy(
+                'ms.area',
                 'rt.region_name',
                 'rt.target_amount'
             )
-            ->where('rt.data_type', '=', 'Mitra SBP')
+            ->orderBy('ms.area')
+            ->orderBy('rt.region_name')
             ->get();
-
 
         $grouped = $data->groupBy('area');
 
         return view('mitra-sbp.report-performance', compact('grouped', 'data'));
     }
+
     
 }
