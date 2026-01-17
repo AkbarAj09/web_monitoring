@@ -47,9 +47,16 @@
                     <a href="{{ route('admin.home') }}"
                         class="nav-link waves-effect {{ request()->routeIs('admin.home') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-table-cells" style="color:rgb(255, 255, 255);"></i>
-                        <p>Utama</p>
+                        <p>Report Canvasser</p>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('region-target') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('region-target') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-chart-line" style="color:rgb(240, 37, 1);"></i>
+                        <p>Report Powerhouse</p>
+                    </a>
+                </li>   
 
                 {{--<li class="nav-item {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link waves-effect {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'active' : '' }}">
@@ -113,13 +120,6 @@
                     </a>
                 </li>           --}}
                 <li class="nav-item">
-                    <a href="{{ route('region-target') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('region-target') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-chart-line" style="color:rgb(240, 37, 1);"></i>
-                        <p>Region Target Topup</p>
-                    </a>
-                </li>   
-                <li class="nav-item">
                     <a href="{{ route('calendar') }}"
                         class="nav-link waves-effect {{ request()->routeIs('calendar') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-calendar" style="color:rgb(178, 192, 126);"></i>
@@ -145,30 +145,53 @@
                 </li>
                 @endif --}}
                 @if($isAdmin || $isTreg || $isTsel || $isCanv)
-                <li class="nav-item {{ (request()->routeIs('panenpoin.index') || request()->routeIs('panenpoin.report')) ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link waves-effect {{ (request()->routeIs('panenpoin.index') || request()->routeIs('panenpoin.report')) ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-coins" style="color:#28a745;"></i>
-                        <p>Program Panen Poin <i class="right fas fa-angle-left"></i></p>
+                <li class="nav-item {{ request()->routeIs('panenpoin.*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link waves-effect {{ request()->routeIs('panenpoin.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-layer-group"></i>
+                        <p>
+                            Program Campaign
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
                     </a>
+
                     <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('panenpoin.index') }}"
-                                class="nav-link waves-effect {{ request()->routeIs('panenpoin.index') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-plus-circle nav-icon" style="color:#17a2b8;"></i>
-                                <p>Input Data</p>
+
+                        <!-- Program Panen Poin -->
+                        <li class="nav-item {{ request()->routeIs('panenpoin.*') ? 'menu-open' : '' }} ml-2">
+                            <a href="#" class="nav-link {{ request()->routeIs('panenpoin.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-coins" style="color:#28a745;"></i>
+                                <p>
+                                    Program Panen Poin
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
+
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('panenpoin.index') }}"
+                                    class="nav-link {{ request()->routeIs('panenpoin.index') ? 'active' : '' }}"
+                                    style="padding-left: 60px;">
+                                        <i class="fas fa-plus-circle nav-icon" style="color:#17a2b8;"></i>
+                                        <p>Input Data</p>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a href="{{ route('panenpoin.report') }}"
+                                    class="nav-link {{ request()->routeIs('panenpoin.report') ? 'active' : '' }}"
+                                    style="padding-left: 60px;">
+                                        <i class="fas fa-chart-bar nav-icon" style="color:#ffc107;"></i>
+                                        <p>Report Poin</p>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('panenpoin.report') }}"
-                                class="nav-link waves-effect {{ request()->routeIs('panenpoin.report') ? 'active' : '' }}" style="padding-left: 45px;">
-                                <i class="fas fa-chart-bar nav-icon" style="color:#ffc107;"></i>
-                                <p>Report Poin</p>
-                            </a>
-                        </li>
+
                     </ul>
                 </li>
+
                 @endif
-                @if($isAdmin || $isTreg || $isTsel || $isCanv)
+                @if($isAdmin || $isTreg || $isTsel )
                 <li class="nav-header">System Management</li>
                 @endif
                 @if($isAdmin)

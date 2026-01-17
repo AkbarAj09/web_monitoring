@@ -41,7 +41,7 @@
             <div id="captureTable">
 
                 <h5 class="text-center mb-3">
-                    Target vs Topup per Region –
+                    Report Powerhouse –
                     {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('M Y') }}
                 </h5>
 

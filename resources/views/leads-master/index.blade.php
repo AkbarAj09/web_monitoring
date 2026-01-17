@@ -29,11 +29,17 @@
 <div class="row align-items-end mb-3">
 
     <!-- Spacer -->
-    <div class="col-md-4"></div>
+    <div class="col-md-2"></div>
 
     <!-- Filter Tanggal + Buttons -->
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="d-flex flex-column flex-md-row justify-content-md-end gap-2">
+            <select id="filter_canvasser" class="form-control select2">
+                <option value="">Semua Canvasser</option>
+                @foreach($canvassers as $c)
+                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
 
             <select id="filter_regional"
                 class="form-select form-control w-100 w-md-auto">
@@ -145,7 +151,7 @@ $(function () {
         ajax: {
             url: "{{ route('leads-master.data') }}",
             data: function (d) {
-                // d.canvasser = $('#filter_canvasser').val();
+                d.canvasser = $('#filter_canvasser').val();
                 // d.company   = $('#filter_company').val();
                 // d.email     = $('#filter_email').val();
                 // d.source    = $('#filter_source').val();
@@ -211,7 +217,7 @@ $('#btnExport').on('click', function () {
     let params = {
         start_date: $('#start_date').val(),
         end_date: $('#end_date').val(),
-        // canvasser: $('#filter_canvasser').val(),
+        canvasser: $('#filter_canvasser').val(),
         // company: $('#filter_company').val(),
         // email: $('#filter_email').val(),
         // source: $('#filter_source').val(),

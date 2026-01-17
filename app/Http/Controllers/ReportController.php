@@ -255,6 +255,7 @@ public function topupCanvasserData(Request $request)
 
         /* ================= TARGET ================= */
         $targets = DB::table('region_target')
+            ->where('data_type', 'PowerHouse')
             ->whereMonth('date', $start->month)
             ->whereYear('date', $start->year)
             ->get()
