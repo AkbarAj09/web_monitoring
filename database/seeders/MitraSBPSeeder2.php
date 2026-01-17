@@ -6,7 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class MitraSBPSeeder extends Seeder
+class MitraSBPSeeder2 extends Seeder
 {
     /**
      * Run the database seeds.
@@ -14,7 +14,7 @@ class MitraSBPSeeder extends Seeder
     public function run(): void
     {
         
-        $filePath = storage_path('app/mitra_sbp.csv');
+        $filePath = storage_path('app/sbp_agency_internal.csv');
 
         if (!file_exists($filePath)) {
             $this->command->error("CSV file not found at {$filePath}");
@@ -29,23 +29,23 @@ class MitraSBPSeeder extends Seeder
         while (($row = fgetcsv($handle)) !== false) {
 
             // pastikan jumlah kolom aman
-            [$email_myads, $area, $remark, $voucher] = array_pad($row, 4, null);
+            [$area,$region,$email,$remarks] = array_pad($row, 4, null);
 
-            if (!$email_myads) {
+            if (!$email) {
                 continue;
             }
 
             // optional: skip duplicate
-            if (DB::table('mitra_sbp')->where('email_myads', $email_myads)->exists()) {
+            if (DB::table('mitra_sbp')->where('email_myads', $email)->exists()) {
                 continue;
             }
 
             DB::table('mitra_sbp')->insert([
-                'email_myads' => trim($email_myads),
+                'email_myads' => trim($email),
                 'area'        => trim($area),
-                'regional'    => null,
-                'remark'      => trim($remark),
-                'voucher'     => trim($voucher),
+                'regional'    => trim($region),
+                'remark'      => trim($remarks),
+                'voucher'     => null,
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);

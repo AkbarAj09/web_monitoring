@@ -304,4 +304,32 @@ public function topupCanvasserData(Request $request)
         ]);
     }
 
+
+
+    public function reportMitraSBP()
+    {
+        $data = DB::table('region_target as rt')
+            ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
+            ->leftJoin('report_balance_top_up as rbt', 'rbt.email_client', '=', 'ms.email_myads')
+            ->select(
+                'rt.region_name',
+                DB::raw('rt.target_amount'),
+                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as mitra_sbp'),
+                DB::raw('ROUND(
+                    (COALESCE(SUM(rbt.total_settlement_klien), 0) / rt.target_amount) * 100
+                , 2) as ach_to_target')
+            )
+            ->groupBy(
+                'rt.region_name',
+                'rt.target_amount'
+            )
+            ->where('rt.data_type', '=', 'Mitra SBP')
+            ->get();
+
+
+        $grouped = $data->groupBy('area');
+
+        return view('mitra-sbp.report-performance', compact('grouped', 'data'));
+    }
+    
 }
