@@ -231,12 +231,12 @@ public function topupCanvasserData(Request $request)
             ->table('report_balance_top_up as emt')
             ->selectRaw("
                 CASE
-                    WHEN data_province_name IN ('Sumatera Selatan','Jambi','Bengkulu','Lampung','Bangka Belitung') THEN 'SUMBAGSEL'
+                    WHEN data_province_name IN ('Sumatera Selatan','Jambi','Bengkulu','Lampung','Bangka Belitung', 'Kepulauan Bangka Belitung') THEN 'SUMBAGSEL'
                     WHEN data_province_name IN ('Sumatera Barat','Riau','Kepulauan Riau') THEN 'SUMBAGTENG'
                     WHEN data_province_name IN ('Sumatera Utara','Aceh') THEN 'SUMBAGUT'
                     WHEN data_province_name IN ('DKI Jakarta','Banten') THEN 'JABODETABEK'
                     WHEN data_province_name = 'Jawa Barat' THEN 'JABAR'
-                    WHEN data_province_name IN ('Jawa Tengah','Yogyakarta') THEN 'JATENG DIY'
+                    WHEN data_province_name IN ('Jawa Tengah','Yogyakarta', 'DI Yogyakarta') THEN 'JATENG DIY'
                     WHEN data_province_name = 'Jawa Timur' THEN 'JATIM'
                     WHEN data_province_name IN ('Bali','NTB','NTT') THEN 'BALI NUSRA'
                     WHEN data_province_name IN ('Kalimantan Tengah','Kalimantan Barat','Kalimantan Utara','Kalimantan Timur','Kalimantan Selatan') THEN 'KALIMANTAN'
@@ -248,13 +248,14 @@ public function topupCanvasserData(Request $request)
             ")
             ->whereBetween('emt.tgl_transaksi', [$start, $end])
             ->whereNotNull('emt.tgl_transaksi')
-            ->where('emt.payment_history_status', 'PAID')
+            // ->where('emt.payment_history_status', 'PAID')
             ->groupBy('region')
             ->get()
             ->mapWithKeys(fn ($item) => [strtoupper($item->region) => $item]);
 
         /* ================= TARGET ================= */
         $targets = DB::table('region_target')
+            ->where('data_type', 'PowerHouse')
             ->whereMonth('date', $start->month)
             ->whereYear('date', $start->year)
             ->get()
@@ -304,4 +305,36 @@ public function topupCanvasserData(Request $request)
         ]);
     }
 
+
+
+    public function reportMitraSBP()
+    {
+        $data = DB::table('region_target as rt')
+            ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
+            ->leftJoin('report_balance_top_up as rbt', function ($join) {
+                $join->on('rbt.email_client', '=', 'ms.email_myads')
+                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+            })
+            ->select(
+                'ms.area',
+                'rt.region_name',
+                'rt.target_amount',
+                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as mitra_sbp')
+            )
+            ->where('rt.data_type', 'Mitra SBP')
+            ->groupBy(
+                'ms.area',
+                'rt.region_name',
+                'rt.target_amount'
+            )
+            ->orderBy('ms.area')
+            ->orderBy('rt.region_name')
+            ->get();
+
+        $grouped = $data->groupBy('area');
+
+        return view('mitra-sbp.report-performance', compact('grouped', 'data'));
+    }
+
+    
 }

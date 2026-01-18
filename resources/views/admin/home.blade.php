@@ -518,7 +518,7 @@
                                 <th class="text-center" style="background-color: #cfe2ff;">Leads</th>
                                 <th class="text-center" style="background-color: #cfe2ff;">Eksisting Akun</th>
                                 <th class="text-center" style="background-color: #d1e7dd;">New Akun</th>
-                                <th class="text-center" style="background-color: #d1e7dd;">Top UP</th>
+                                <th class="text-center" style="background-color: #d1e7dd;">Eksisting Akun Top UP</th>
                                 <th class="text-center" style="background-color: #f8d7da;">New Akun(Rp.)</th>
                                 <th class="text-center" style="background-color: #f8d7da;">Eksisting Akun(Rp.)</th>
                             </tr>

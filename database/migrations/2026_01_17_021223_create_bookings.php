@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('region_target', function (Blueprint $table) {
+        Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            $table->string('region_name');
-            $table->string('pic');
-            $table->date('date');
-            $table->integer('target_amount');
-            $table->enum('data_type', ['PowerHouse', 'Mitra SBP', 'Agency', 'Internal']);
+            $table->string('nama');
+            $table->string('lokasi');
+            $table->text('keterangan')->nullable();
+            $table->date('tanggal');
+            $table->time('waktu_mulai');
+            $table->time('waktu_selesai');
+            $table->string('warna')->nullable(); // warna per nama
             $table->timestamps();
         });
     }
@@ -27,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('region_target');
+        Schema::dropIfExists('bookings');
     }
 };
