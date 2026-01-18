@@ -393,7 +393,7 @@
                             <div class="col-md-4 col-4">
                                 <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('canvaserTableCard')">
                                     <i class="fas fa-table d-block mb-1"></i>
-                                    <small>Regional</small>
+                                    <small>Canvasser</small>
                                 </button>
                             </div>
                             <div class="col-md-4 col-4">
