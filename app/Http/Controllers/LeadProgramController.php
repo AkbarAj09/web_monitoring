@@ -346,6 +346,14 @@ class LeadProgramController extends Controller
 
             \Log::info("Total Canvassers found: " . $canvasers->count());
 
+            // Hitung sisa hari di bulan berjalan
+            $today = Carbon::now();
+            $endOfMonth = Carbon::now()->endOfMonth();
+            $remainingDays = $today->diffInDays($endOfMonth) + 1; // +1 untuk include hari ini
+
+            // Ambil bulan berjalan (format: YYYY-MM)
+            $currentMonth = $today->format('Y-m');
+
             $result = [];
             
             foreach ($canvasers as $index => $canvaser) {
@@ -401,6 +409,30 @@ class LeadProgramController extends Controller
                     )
                     ->first();
 
+                // 6. Ambil target dari tabel target_canvaser untuk bulan berjalan
+                $targetData = DB::table('target_canvaser')
+                    ->where('user_id', $canvaser->id)
+                    ->where('bulan', $currentMonth)
+                    ->first();
+
+                // Hitung total topup (new akun + existing akun)
+                $topUpNewAkun = $topUpStats->top_up_new_akun_rp ?? 0;
+                $topUpExistingAkun = $topUpStats->top_up_existing_akun_rp ?? 0;
+                $totalTopUp = $topUpNewAkun + $topUpExistingAkun;
+
+                // Ambil target atau set 0 jika tidak ada
+                $target = $targetData->target ?? 0;
+
+                // Hitung achievement percentage
+                $achievementPercent = $target > 0 ? ($totalTopUp / $target) * 100 : 0;
+
+                // Hitung gap (berapa rupiah lagi untuk capai target)
+                $gap = $target - $totalTopUp;
+                $gap = $gap > 0 ? $gap : 0; // Jika sudah exceed target, gap = 0
+
+                // Hitung gap target daily (gap dibagi sisa hari)
+                $gapDaily = $remainingDays > 0 ? $gap / $remainingDays : 0;
+
                 $result[] = [
                     'no' => $index + 1,
                     'regional' => $regional->regional ?? '-',
@@ -411,6 +443,11 @@ class LeadProgramController extends Controller
                     'top_up' => $topUpStats->top_up_count ?? 0,
                     'top_up_new_akun_rp' => number_format($topUpStats->top_up_new_akun_rp ?? 0, 0, ',', '.'),
                     'top_up_existing_akun_rp' => number_format($topUpStats->top_up_existing_akun_rp ?? 0, 0, ',', '.'),
+                    'target' => number_format($target, 0, ',', '.'),
+                    'achievement_percent' => number_format($achievementPercent, 2, ',', '.') . '%',
+                    'gap' => number_format($gap, 0, ',', '.'),
+                    'gap_daily' => number_format($gapDaily, 0, ',', '.'),
+                    'remaining_days' => $remainingDays,
                 ];
             }
 

@@ -502,7 +502,7 @@
                     <table class="table table-sm w-100 table-bordered table-hover" id="regionalTable" style="font-size: 11px;">
                         <thead class="thead-light">
                             <tr>
-                                <th colspan="11" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }} | AREA: AREA 3</th>
+                                <th colspan="15" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }} | AREA: AREA 3</th>
                             </tr>
                             <tr>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">No</th>
@@ -513,6 +513,7 @@
                                 <th colspan="2" class="text-center" style="background-color: #cfe2ff;">Data Prospect (Leads & Eksisting Akun)</th>
                                 <th colspan="2" class="text-center" style="background-color: #d1e7dd;">Deal (New Akun & Top UP)</th>
                                 <th colspan="2" style="vertical-align: middle; text-align: center; background-color: #f8d7da;">Top Up (Rp.)</th>
+                                <th colspan="4" style="vertical-align: middle; text-align: center; background-color: #fff3cd;">Target & Achievement</th>
                             </tr>
                             <tr>
                                 <th class="text-center" style="background-color: #cfe2ff;">Leads</th>
@@ -521,11 +522,15 @@
                                 <th class="text-center" style="background-color: #d1e7dd;">Eksisting Akun Top UP</th>
                                 <th class="text-center" style="background-color: #f8d7da;">New Akun(Rp.)</th>
                                 <th class="text-center" style="background-color: #f8d7da;">Eksisting Akun(Rp.)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Target (Rp)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Achievement (%)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Gap (Rp)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Gap Daily (Rp)</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="10" class="text-center">Loading data...</td>
+                                <td colspan="14" class="text-center">Loading data...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -726,6 +731,36 @@
                     className: 'text-right',
                     render: function(data) {
                         return `<div style="text-align: right;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'target',
+                    className: 'text-right',
+                    render: function(data) {
+                        return `<div style="text-align: right; font-weight: bold; color: #0d6efd;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'achievement_percent',
+                    className: 'text-center',
+                    render: function(data) {
+                        let percent = parseFloat(data.replace(',', '.').replace('%', ''));
+                        let color = percent >= 100 ? '#28a745' : (percent >= 75 ? '#ffc107' : '#dc3545');
+                        return `<div style="text-align: center; font-weight: bold; color: ${color};">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'gap',
+                    className: 'text-right',
+                    render: function(data) {
+                        return `<div style="text-align: right; color: #dc3545;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'gap_daily',
+                    className: 'text-right',
+                    render: function(data) {
+                        return `<div style="text-align: right; color: #fd7e14; font-weight: bold;">${data}</div>`;
                     }
                 }
             ]
