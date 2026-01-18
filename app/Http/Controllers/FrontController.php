@@ -43,6 +43,12 @@ class FrontController extends Controller
         logUserLogin();
         return view('admin.home');
     }
+    
+    public function dailyTopupChannel()
+    {
+        logUserLogin();
+        return view('dailytopup.daily_topup');
+    }
     public function logout()
     {
         // Menghapus sesi dan logout

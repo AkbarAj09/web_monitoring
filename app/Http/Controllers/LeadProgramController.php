@@ -395,6 +395,20 @@ class LeadProgramController extends Controller
 
             $result = [];
             
+            // Initialize totals
+            $totals = [
+                'leads' => 0,
+                'existing_akun' => 0,
+                'new_akun' => 0,
+                'top_up_new_akun_count' => 0,
+                'top_up_existing_akun_count' => 0,
+                'top_up_new_akun_rp' => 0,
+                'top_up_existing_akun_rp' => 0,
+                'total_top_up_rp' => 0,
+                'target' => 0,
+                'gap' => 0,
+            ];
+            
             foreach ($canvasers as $index => $canvaser) {
                 // 2. Ambil regional dari leads_master untuk canvaser ini
                 $regional = DB::table('leads_master as lm')
@@ -403,17 +417,21 @@ class LeadProgramController extends Controller
                     ->select('rt.regional')
                     ->first();
 
-                // 3. Hitung jumlah Leads untuk canvaser ini
-                $totalLeads = DB::table('leads_master')
-                    ->where('user_id', $canvaser->id)
-                    ->where('data_type', 'leads')
-                    ->count();
+                // 3. Hitung jumlah Leads untuk canvaser ini - dari table logbook
+                $totalLeads = DB::table('logbook as lb')
+                    ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'leads')
+                    ->distinct()
+                    ->count('lb.leads_master_id');
 
-                // 4. Hitung Existing Akun dari leads_master yang data_type = 'Eksisting Akun'
-                $existingAkun = DB::table('leads_master')
-                    ->where('user_id', $canvaser->id)
-                    ->where('data_type', 'Eksisting Akun')
-                    ->count();
+                // 4. Hitung Existing Akun dari table logbook yang join dengan leads_master
+                $existingAkun = DB::table('logbook as lb')
+                    ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'Eksisting Akun')
+                    ->distinct()
+                    ->count('lb.leads_master_id');
 
                 // 5. Hitung New Akun dari data_registarsi yang disetujui dalam 1 bulan terakhir
                 $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
@@ -443,6 +461,7 @@ class LeadProgramController extends Controller
                     ->where('lm.data_type', 'Eksisting Akun')
                     ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])    
                     ->select(
+                        DB::raw("COUNT(DISTINCT lm.email) as top_up_existing_akun_count"),
                         DB::raw("SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as top_up_existing_akun_rp")
                     )
                     ->first();
@@ -478,15 +497,29 @@ class LeadProgramController extends Controller
                     'leads' => $totalLeads,
                     'existing_akun' => $existingAkun,
                     'new_akun' => $newAkun,
-                    'top_up' => $topUpNewAkunStats->top_up_count ?? 0,
+                    'top_up_new_akun_count' => $topUpNewAkunStats->top_up_count ?? 0,
+                    'top_up_existing_akun_count' => $topUpExistingAkunStats->top_up_existing_akun_count ?? 0,
                     'top_up_new_akun_rp' => number_format($topUpNewAkunRp, 0, ',', '.'),
                     'top_up_existing_akun_rp' => number_format($topUpExistingAkunRp, 0, ',', '.'),
+                    'total_top_up_rp' => number_format($totalTopUp, 0, ',', '.'),
                     'target' => number_format($target, 0, ',', '.'),
                     'achievement_percent' => number_format($achievementPercent, 2, ',', '.') . '%',
                     'gap' => number_format($gap, 0, ',', '.'),
                     'gap_daily' => number_format($gapDaily, 0, ',', '.'),
                     'remaining_days' => $remainingWorkingDays, // Sisa hari kerja
                 ];
+
+                // Akumulasi totals
+                $totals['leads'] += $totalLeads;
+                $totals['existing_akun'] += $existingAkun;
+                $totals['new_akun'] += $newAkun;
+                $totals['top_up_new_akun_count'] += $topUpNewAkunStats->top_up_count ?? 0;
+                $totals['top_up_existing_akun_count'] += $topUpExistingAkunStats->top_up_existing_akun_count ?? 0;
+                $totals['top_up_new_akun_rp'] += $topUpNewAkunRp;
+                $totals['top_up_existing_akun_rp'] += $topUpExistingAkunRp;
+                $totals['total_top_up_rp'] += $totalTopUp;
+                $totals['target'] += $target;
+                $totals['gap'] += $gap;
             }
 
             // Sort by achievement percentage (highest first)
@@ -495,6 +528,32 @@ class LeadProgramController extends Controller
                 $percentB = floatval(str_replace(['%', ','], ['.', '.'], $b['achievement_percent']));
                 return $percentB <=> $percentA; // Descending order
             });
+
+            // Add total row at the end
+            if (!empty($result)) {
+                $totalAchievementPercent = $totals['target'] > 0 ? ($totals['total_top_up_rp'] / $totals['target']) * 100 : 0;
+                $totalGapDaily = $remainingWorkingDays > 0 ? $totals['gap'] / $remainingWorkingDays : 0;
+
+                $result[] = [
+                    'no' => '',
+                    'regional' => '',
+                    'canvaser_name' => 'TOTAL',
+                    'leads' => $totals['leads'],
+                    'existing_akun' => $totals['existing_akun'],
+                    'new_akun' => $totals['new_akun'],
+                    'top_up_new_akun_count' => $totals['top_up_new_akun_count'],
+                    'top_up_existing_akun_count' => $totals['top_up_existing_akun_count'],
+                    'top_up_new_akun_rp' => number_format($totals['top_up_new_akun_rp'], 0, ',', '.'),
+                    'top_up_existing_akun_rp' => number_format($totals['top_up_existing_akun_rp'], 0, ',', '.'),
+                    'total_top_up_rp' => number_format($totals['total_top_up_rp'], 0, ',', '.'),
+                    'target' => number_format($totals['target'], 0, ',', '.'),
+                    'achievement_percent' => number_format($totalAchievementPercent, 2, ',', '.') . '%',
+                    'gap' => number_format($totals['gap'], 0, ',', '.'),
+                    'gap_daily' => number_format($totalGapDaily, 0, ',', '.'),
+                    'remaining_days' => $remainingWorkingDays,
+                    'is_total' => true // Flag untuk styling di frontend
+                ];
+            }
 
             \Log::info("Total results: " . count($result));
             return $result;
@@ -543,11 +602,13 @@ class LeadProgramController extends Controller
             $result = [];
 
             foreach ($canvasers as $canvaser) {
-                // 1. New Leads (prospect) - data_type = 'leads'
-                $newLeads = DB::table('leads_master')
-                    ->where('user_id', $canvaser->id)
-                    ->where('data_type', 'leads')
-                    ->count();
+                // 1. New Leads (prospect) - dari table logbook
+                $newLeads = DB::table('logbook as lb')
+                    ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'leads')
+                    ->distinct()
+                    ->count('lb.leads_master_id');
 
                 // 2. New Akun (deal) - dari data_registarsi yang disetujui dalam 1 bulan terakhir
                 $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
@@ -557,18 +618,22 @@ class LeadProgramController extends Controller
                     ->distinct()
                     ->count('dt.email');
 
-                // 3. Existing Akun Count (prospect) - data_type = 'Eksisting Akun'
-                $existingAkunCount = DB::table('leads_master')
-                    ->where('user_id', $canvaser->id)
-                    ->where('data_type', 'Eksisting Akun')
-                    ->count();
+                // 3. Existing Akun Count (prospect) - dari table logbook
+                $existingAkunCount = DB::table('logbook as lb')
+                    ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'Eksisting Akun')
+                    ->distinct()
+                    ->count('lb.leads_master_id');
 
-                // 4. Top Up Existing Akun Count (deal) - jumlah transaksi topup dari existing akun
+                // 4. Top Up Existing Akun Count (deal) - jumlah AKUN existing yang melakukan topup (DISTINCT)
                 $topUpExistingAkunCount = DB::table('leads_master as lm')
                     ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
                     ->where('lm.user_id', $canvaser->id)
                     ->where('lm.data_type', 'Eksisting Akun')
-                    ->count('rp.id');
+                    ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
+                    ->distinct()
+                    ->count('lm.email');
 
                 // 5. Target dari target_canvaser
                 $targetData = DB::table('target_canvaser')

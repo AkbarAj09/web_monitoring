@@ -44,6 +44,13 @@
                 @if($isAdmin || $isTsel || $isCanv)
                 <li class="nav-header">ALL DASHBOARD</li>
                 <li class="nav-item">
+                    <a href="{{ route('daily.topup.channel') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('daily.topup.channel') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-chart-line" style="color:rgb(255, 159, 64);"></i>
+                        <p>Daily Top Up Channel</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.home') }}"
                         class="nav-link waves-effect {{ request()->routeIs('admin.home') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-table-cells" style="color:rgb(255, 255, 255);"></i>
@@ -102,7 +109,7 @@
                     <a href="{{ route('leads-master.create-existing') }}"
                         class="nav-link waves-effect {{ request()->routeIs('leads-master.create-existing') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-user-tie" style="color:rgb(143, 142, 142);"></i>
-                        <p>Akun Eksisting</p>
+                        <p>New/Eksisting Akun</p>
                     </a>
                 </li>             
                 <li class="nav-item">
