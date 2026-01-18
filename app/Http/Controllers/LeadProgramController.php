@@ -349,7 +349,44 @@ class LeadProgramController extends Controller
             // Hitung sisa hari di bulan berjalan
             $today = Carbon::now();
             $endOfMonth = Carbon::now()->endOfMonth();
-            $remainingDays = $today->diffInDays($endOfMonth) + 1; // +1 untuk include hari ini
+
+            // Daftar tanggal merah Indonesia 2026 (bisa disesuaikan atau query dari database)
+            $holidays = [
+                '2026-01-01', // Tahun Baru
+                '2026-02-17', // Isra Miraj (estimasi)
+                '2026-03-22', // Nyepi
+                '2026-03-23', // Idul Fitri (estimasi)
+                '2026-03-24', // Idul Fitri (estimasi)
+                '2026-04-10', // Wafat Yesus Kristus
+                '2026-05-01', // Hari Buruh
+                '2026-05-02', // Cuti Bersama (estimasi)
+                '2026-05-21', // Kenaikan Yesus Kristus
+                '2026-05-30', // Idul Adha (estimasi)
+                '2026-06-01', // Hari Pancasila
+                '2026-06-20', // Tahun Baru Islam (estimasi)
+                '2026-08-17', // Hari Kemerdekaan
+                '2026-08-29', // Maulid Nabi (estimasi)
+                '2026-12-25', // Hari Natal
+            ];
+
+            // Hitung hanya hari kerja (Senin-Jumat) yang tersisa, exclude weekend dan tanggal merah
+            $remainingWorkingDays = 0;
+            $currentDate = $today->copy();
+            
+            while ($currentDate->lte($endOfMonth)) {
+                // Cek apakah hari ini adalah weekday (Senin-Jumat)
+                $isWeekday = $currentDate->isWeekday(); // true jika Senin-Jumat
+                
+                // Cek apakah bukan tanggal merah
+                $isNotHoliday = !in_array($currentDate->format('Y-m-d'), $holidays);
+                
+                // Jika weekday dan bukan tanggal merah, hitung sebagai hari kerja
+                if ($isWeekday && $isNotHoliday) {
+                    $remainingWorkingDays++;
+                }
+                
+                $currentDate->addDay();
+            }
 
             // Ambil bulan berjalan (format: YYYY-MM)
             $currentMonth = $today->format('Y-m');
@@ -370,55 +407,52 @@ class LeadProgramController extends Controller
                     ->where('data_type', 'leads')
                     ->count();
 
-                // 4. Hitung Existing Akun dan New Akun menggunakan join langsung dengan leads_master
-                $accountStats = DB::table('data_registarsi_status_approveorreject as dt')
+                // 4. Hitung Existing Akun dari leads_master yang data_type = 'Eksisting Akun'
+                $existingAkun = DB::table('leads_master')
+                    ->where('user_id', $canvaser->id)
+                    ->where('data_type', 'Eksisting Akun')
+                    ->count();
+
+                // 5. Hitung New Akun dari data_registarsi yang disetujui dalam 1 bulan terakhir
+                $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
                     ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
                     ->where('lm.user_id', $canvaser->id)
-                    ->select(
-                        DB::raw("COUNT(DISTINCT CASE 
-                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                            THEN dt.email 
-                        END) as existing_akun"),
-                        DB::raw("COUNT(DISTINCT CASE 
-                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                            THEN dt.email 
-                        END) as new_akun")
-                    )
-                    ->first();
+                    ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                    ->distinct()
+                    ->count('dt.email');
 
-                // 5. Hitung Top Up dari report_balance_top_up menggunakan join langsung
-                $topUpStats = DB::table('data_registarsi_status_approveorreject as dt')
+                // 6. Hitung Top Up untuk New Akun (yang disetujui dalam 1 bulan terakhir)
+                $topUpNewAkunStats = DB::table('data_registarsi_status_approveorreject as dt')
                     ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
                     ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
                     ->where('lm.user_id', $canvaser->id)
+                    ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
                     ->select(
-                        DB::raw("COUNT(CASE 
-                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                            THEN rp.id 
-                        END) as top_up_count"),
-                        DB::raw("SUM(CASE 
-                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                            THEN CAST(rp.total_settlement_klien AS DECIMAL(15,2))
-                            ELSE 0 
-                        END) as top_up_new_akun_rp"),
-                        DB::raw("SUM(CASE 
-                            WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                            THEN CAST(rp.total_settlement_klien AS DECIMAL(15,2))
-                            ELSE 0 
-                        END) as top_up_existing_akun_rp")
+                        DB::raw("COUNT(rp.id) as top_up_count"),
+                        DB::raw("SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as top_up_new_akun_rp")
                     )
                     ->first();
 
-                // 6. Ambil target dari tabel target_canvaser untuk bulan berjalan
+                // 7. Hitung Top Up untuk Existing Akun (dari leads_master yang data_type = 'Eksisting Akun')
+                $topUpExistingAkunStats = DB::table('leads_master as lm')
+                    ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'Eksisting Akun')
+                    ->select(
+                        DB::raw("SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as top_up_existing_akun_rp")
+                    )
+                    ->first();
+
+                // 8. Ambil target dari tabel target_canvaser untuk bulan berjalan
                 $targetData = DB::table('target_canvaser')
                     ->where('user_id', $canvaser->id)
                     ->where('bulan', $currentMonth)
                     ->first();
 
                 // Hitung total topup (new akun + existing akun)
-                $topUpNewAkun = $topUpStats->top_up_new_akun_rp ?? 0;
-                $topUpExistingAkun = $topUpStats->top_up_existing_akun_rp ?? 0;
-                $totalTopUp = $topUpNewAkun + $topUpExistingAkun;
+                $topUpNewAkunRp = $topUpNewAkunStats->top_up_new_akun_rp ?? 0;
+                $topUpExistingAkunRp = $topUpExistingAkunStats->top_up_existing_akun_rp ?? 0;
+                $totalTopUp = $topUpNewAkunRp + $topUpExistingAkunRp;
 
                 // Ambil target atau set 0 jika tidak ada
                 $target = $targetData->target ?? 0;
@@ -430,26 +464,33 @@ class LeadProgramController extends Controller
                 $gap = $target - $totalTopUp;
                 $gap = $gap > 0 ? $gap : 0; // Jika sudah exceed target, gap = 0
 
-                // Hitung gap target daily (gap dibagi sisa hari)
-                $gapDaily = $remainingDays > 0 ? $gap / $remainingDays : 0;
+                // Hitung gap target daily (gap dibagi sisa hari kerja)
+                $gapDaily = $remainingWorkingDays > 0 ? $gap / $remainingWorkingDays : 0;
 
                 $result[] = [
                     'no' => $index + 1,
                     'regional' => $regional->regional ?? '-',
                     'canvaser_name' => $canvaser->name ?? '-',
                     'leads' => $totalLeads,
-                    'existing_akun' => $accountStats->existing_akun ?? 0,
-                    'new_akun' => $accountStats->new_akun ?? 0,
-                    'top_up' => $topUpStats->top_up_count ?? 0,
-                    'top_up_new_akun_rp' => number_format($topUpStats->top_up_new_akun_rp ?? 0, 0, ',', '.'),
-                    'top_up_existing_akun_rp' => number_format($topUpStats->top_up_existing_akun_rp ?? 0, 0, ',', '.'),
+                    'existing_akun' => $existingAkun,
+                    'new_akun' => $newAkun,
+                    'top_up' => $topUpNewAkunStats->top_up_count ?? 0,
+                    'top_up_new_akun_rp' => number_format($topUpNewAkunRp, 0, ',', '.'),
+                    'top_up_existing_akun_rp' => number_format($topUpExistingAkunRp, 0, ',', '.'),
                     'target' => number_format($target, 0, ',', '.'),
                     'achievement_percent' => number_format($achievementPercent, 2, ',', '.') . '%',
                     'gap' => number_format($gap, 0, ',', '.'),
                     'gap_daily' => number_format($gapDaily, 0, ',', '.'),
-                    'remaining_days' => $remainingDays,
+                    'remaining_days' => $remainingWorkingDays, // Sisa hari kerja
                 ];
             }
+
+            // Sort by achievement percentage (highest first)
+            usort($result, function($a, $b) {
+                $percentA = floatval(str_replace(['%', ','], ['.', '.'], $a['achievement_percent']));
+                $percentB = floatval(str_replace(['%', ','], ['.', '.'], $b['achievement_percent']));
+                return $percentB <=> $percentA; // Descending order
+            });
 
             \Log::info("Total results: " . count($result));
             return $result;
@@ -479,66 +520,87 @@ class LeadProgramController extends Controller
     public function getRegionalChartData()
     {
         try {
-            // Agregasi langsung dari database untuk performa lebih baik
+            // Ambil semua canvasser
             $canvasers = DB::table('users')
                 ->where('role', 'cvsr')
-                ->pluck('id');
+                ->select('id', 'name')
+                ->get();
 
             if ($canvasers->isEmpty()) {
                 return response()->json([
-                    'total_leads' => 0,
-                    'total_existing_akun' => 0,
-                    'total_new_akun' => 0,
-                    'total_top_up_new_akun' => 0,
-                    'total_top_up_existing_akun' => 0,
+                    'canvassers' => []
                 ]);
             }
 
-            // Total Leads
-            $totalLeads = DB::table('leads_master')
-                ->whereIn('user_id', $canvasers)
-                ->where('data_type', 'leads')
-                ->count();
+            $today = Carbon::now();
+            $currentMonth = $today->format('Y-m');
+            $result = [];
 
-            // Total Existing Akun dan New Akun
-            $accountStats = DB::table('data_registarsi_status_approveorreject as dt')
-                ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
-                ->whereIn('lm.user_id', $canvasers)
-                ->select(
-                    DB::raw("COUNT(DISTINCT CASE 
-                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                        THEN dt.email 
-                    END) as existing_akun"),
-                    DB::raw("COUNT(DISTINCT CASE 
-                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                        THEN dt.email 
-                    END) as new_akun")
-                )
-                ->first();
+            foreach ($canvasers as $canvaser) {
+                // 1. New Leads (prospect) - data_type = 'leads'
+                $newLeads = DB::table('leads_master')
+                    ->where('user_id', $canvaser->id)
+                    ->where('data_type', 'leads')
+                    ->count();
 
-            // Total Top Up untuk New Akun dan Existing Akun (COUNT)
-            $topUpStats = DB::table('data_registarsi_status_approveorreject as dt')
-                ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
-                ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
-                ->whereIn('lm.user_id', $canvasers)
-                ->select(
-                    DB::raw("COUNT(DISTINCT CASE 
-                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                        THEN rp.id 
-                    END) as top_up_new_akun"),
-                    DB::raw("COUNT(DISTINCT CASE 
-                        WHEN STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') <= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-                        THEN rp.id 
-                    END) as top_up_existing_akun")
-                )
-                ->first();
-            
+                // 2. New Akun (deal) - dari data_registarsi yang disetujui dalam 1 bulan terakhir
+                $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
+                    ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                    ->distinct()
+                    ->count('dt.email');
+
+                // 3. Existing Akun Count (prospect) - data_type = 'Eksisting Akun'
+                $existingAkunCount = DB::table('leads_master')
+                    ->where('user_id', $canvaser->id)
+                    ->where('data_type', 'Eksisting Akun')
+                    ->count();
+
+                // 4. Top Up Existing Akun Count (deal) - jumlah transaksi topup dari existing akun
+                $topUpExistingAkunCount = DB::table('leads_master as lm')
+                    ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'Eksisting Akun')
+                    ->count('rp.id');
+
+                // 5. Target dari target_canvaser
+                $targetData = DB::table('target_canvaser')
+                    ->where('user_id', $canvaser->id)
+                    ->where('bulan', $currentMonth)
+                    ->first();
+                
+                $target = $targetData->target ?? 0;
+
+                // 6. ACV (Actual Achievement Value) - total topup dalam rupiah (new + existing)
+                $topUpNewAkunRp = DB::table('data_registarsi_status_approveorreject as dt')
+                    ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                    ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                    ->sum(DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2))"));
+
+                $topUpExistingAkunRp = DB::table('leads_master as lm')
+                    ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'Eksisting Akun')
+                    ->sum(DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2))"));
+
+                $acv = ($topUpNewAkunRp ?? 0) + ($topUpExistingAkunRp ?? 0);
+
+                $result[] = [
+                    'name' => $canvaser->name,
+                    'new_leads' => $newLeads,
+                    'new_akun' => $newAkun,
+                    'existing_akun_count' => $existingAkunCount,
+                    'top_up_existing_akun_count' => $topUpExistingAkunCount,
+                    'target' => $target,
+                    'acv' => $acv,
+                ];
+            }
+
             return response()->json([
-                'total_leads' => $totalLeads ?? 0,
-                'total_existing_akun' => $accountStats->existing_akun ?? 0,
-                'total_new_akun' => $accountStats->new_akun ?? 0,
-                'total_top_up_new_akun' => $topUpStats->top_up_new_akun ?? 0,
-                'total_top_up_existing_akun' => $topUpStats->top_up_existing_akun ?? 0,
+                'canvassers' => $result
             ]);
 
         } catch (\Exception $e) {

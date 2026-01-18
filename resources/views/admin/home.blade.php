@@ -12,9 +12,9 @@
         left: 1000px;
     }
 
-    #regionalChart {
-        min-height: 280px;
-        max-height: 330px;
+    #chart1, #chart2, #chart3 {
+        min-height: 400px;
+        max-height: 500px;
     }
 
     #loading-overlay {
@@ -385,9 +385,9 @@
                                 </small>
                             </div>
                             <div class="col-md-4 col-4">
-                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('regionalChartCard')">
+                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('chart1Card')">
                                     <i class="fas fa-chart-bar d-block mb-1"></i>
-                                    <small>Bar Chart</small>
+                                    <small>Charts</small>
                                 </button>
                             </div>
                             <div class="col-md-4 col-4">
@@ -412,14 +412,38 @@
 
 <!-- Bar Chart Section -->
 <div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card" id="regionalChartCard">
+    <!-- Card 1: Prospect Leads vs Deal New Akun -->
+    <div class="col-md-4">
+        <div class="card" id="chart1Card">
             <div class="card-header bg-gradient-info text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Data Prospect & Deal - Regional Canvasser</h5>
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Prospect Leads vs Deal New Akun</h6>
             </div>
             <div class="card-body">
-                <h6 class="text-center mb-3">Agregasi Data Seluruh Regional</h6>
-                <canvas id="regionalChart" style="height: 140px; width: 100%;"></canvas>
+                <canvas id="chart1" style="height: 400px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Prospect Existing Akun vs Deal Top Up -->
+    <div class="col-md-4">
+        <div class="card" id="chart2Card">
+            <div class="card-header bg-gradient-success text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Prospect Existing Akun vs Deal Top Up</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chart2" style="height: 400px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Target vs ACV -->
+    <div class="col-md-4">
+        <div class="card" id="chart3Card">
+            <div class="card-header bg-gradient-danger text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Target vs ACV (Juta Rp)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chart3" style="height: 400px; width: 100%;"></canvas>
             </div>
         </div>
     </div>
@@ -502,11 +526,10 @@
                     <table class="table table-sm w-100 table-bordered table-hover" id="regionalTable" style="font-size: 11px;">
                         <thead class="thead-light">
                             <tr>
-                                <th colspan="15" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }} | AREA: AREA 3</th>
+                                <th colspan="15" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }}</th>
                             </tr>
                             <tr>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">No</th>
-                                <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Regional</th>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Canvaser Name</th>
                             </tr>
                             <tr>
@@ -673,15 +696,8 @@
             columns: [{
                     data: 'no',
                     className: 'text-center',
-                    render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
-                    }
-                },
-                {
-                    data: 'regional',
-                    className: 'text-center',
-                    render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                    render: function(data, type, row, meta) {
+                        return `<div style="text-align: center;">${meta.row + 1}</div>`;
                     }
                 },
                 {
@@ -695,49 +711,49 @@
                     data: 'leads',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
                     data: 'existing_akun',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
                     data: 'new_akun',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
                     data: 'top_up',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
                     data: 'top_up_new_akun_rp',
-                    className: 'text-right',
+                    className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: right;">${data}</div>`;
+                        return `<div style="text-align: center;">${data}</div>`;
                     }
                 },
                 {
                     data: 'top_up_existing_akun_rp',
-                    className: 'text-right',
+                    className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: right;">${data}</div>`;
+                        return `<div style="text-align: center;">${data}</div>`;
                     }
                 },
                 {
                     data: 'target',
-                    className: 'text-right',
+                    className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: right; font-weight: bold; color: #0d6efd;">${data}</div>`;
+                        return `<div style="text-align: center; font-weight: bold; color: #0d6efd;">${data}</div>`;
                     }
                 },
                 {
@@ -751,16 +767,16 @@
                 },
                 {
                     data: 'gap',
-                    className: 'text-right',
+                    className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: right; color: #dc3545;">${data}</div>`;
+                        return `<div style="text-align: center; color: #dc3545;">${data}</div>`;
                     }
                 },
                 {
                     data: 'gap_daily',
-                    className: 'text-right',
+                    className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: right; color: #fd7e14; font-weight: bold;">${data}</div>`;
+                        return `<div style="text-align: center; color: #fd7e14; font-weight: bold;">${data}</div>`;
                     }
                 }
             ]
@@ -886,82 +902,143 @@
 
         // Function untuk render Chart
         function renderRegionalChart(data) {
-            var ctx = document.getElementById('regionalChart').getContext('2d');
+            const canvassers = data.canvassers || [];
+            const labels = canvassers.map(c => c.name);
 
-            new Chart(ctx, {
+            // Chart 1: Prospect New Leads vs Deal New Akun
+            const ctx1 = document.getElementById('chart1').getContext('2d');
+            new Chart(ctx1, {
                 type: 'bar',
                 data: {
-                    labels: ['Leads vs New Akun', 'New Akun vs Top Up New Akun', 'Existing Akun vs Top Up Existing Akun'],
+                    labels: labels,
                     datasets: [{
-                        label: 'Data Prospect',
-                        data: [data.total_leads, data.total_new_akun, data.total_existing_akun],
-                        backgroundColor: '#156082',
-                        barThickness: 35,
-                        categoryPercentage: 1.0,
-                        barPercentage: 1.0
+                        label: 'Prospect: New Leads',
+                        data: canvassers.map(c => c.new_leads),
+                        backgroundColor: '#EE3124', // Merah Telkomsel
                     }, {
-                        label: 'Data Deal',
-                        data: [data.total_new_akun, data.total_top_up_new_akun, data.total_top_up_existing_akun],
-                        backgroundColor: '#FFC000',
-                        barThickness: 35,
-                        categoryPercentage: 1.0,
-                        barPercentage: 1.0
+                        label: 'Deal: New Akun',
+                        data: canvassers.map(c => c.new_akun),
+                        backgroundColor: '#F26522', // Orange
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            display: true,
-                            grid: {
-                                display: false
-                            },
+                options: getChartOptions('count')
+            });
+
+            // Chart 2: Prospect Existing Akun vs Deal Top Up Existing Akun
+            const ctx2 = document.getElementById('chart2').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Prospect: Existing Akun',
+                        data: canvassers.map(c => c.existing_akun_count),
+                        backgroundColor: '#C8102E', // Merah Tua
+                    }, {
+                        label: 'Deal: Top Up Count',
+                        data: canvassers.map(c => c.top_up_existing_akun_count),
+                        backgroundColor: '#FF6B35', // Orange Terang
+                    }]
+                },
+                options: getChartOptions('count')
+            });
+
+            // Chart 3: Target vs ACV (dalam jutaan)
+            const ctx3 = document.getElementById('chart3').getContext('2d');
+            new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Target (Juta Rp)',
+                        data: canvassers.map(c => c.target / 1000000),
+                        backgroundColor: '#EE3124', // Merah Telkomsel
+                    }, {
+                        label: 'ACV (Juta Rp)',
+                        data: canvassers.map(c => c.acv / 1000000),
+                        backgroundColor: '#D94E1F', // Orange Gelap
+                    }]
+                },
+                options: getChartOptions('currency')
+            });
+        }
+
+        // Helper function untuk chart options
+        function getChartOptions(type) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true
                         },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    weight: 'bold'
-                                }
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('id-ID');
                             }
-                        },
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    label += context.parsed.y.toLocaleString('id-ID');
-                                    return label;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'top',
-                            offset: -5,
-                            font: {
-                                weight: 'bold',
-                                size: 14
-                            },
-                            color: '#000'
                         }
                     },
-                    barPercentage: 0.5,
-                    categoryPercentage: 0.5
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                weight: 'bold',
+                                size: 9
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (type === 'currency') {
+                                    label += context.parsed.x.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Jt';
+                                } else {
+                                    label += context.parsed.x.toLocaleString('id-ID');
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        offset: 2,
+                        font: {
+                            weight: 'bold',
+                            size: 8
+                        },
+                        color: '#000',
+                        formatter: function(value) {
+                            if (value === 0) return '';
+                            if (type === 'currency') {
+                                return value.toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                            }
+                            return value.toLocaleString('id-ID');
+                        }
+                    }
                 }
-            });
+            };
         }
     });
 
