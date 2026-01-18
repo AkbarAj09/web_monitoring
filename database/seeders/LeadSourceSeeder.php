@@ -43,6 +43,7 @@ class LeadSourceSeeder extends Seeder
         // ];
 
         $items = [
+            'Daftar Sendiri',
             'Leads OBC',
             'Leads Enterprise',
             'Leads PADI UMKM',

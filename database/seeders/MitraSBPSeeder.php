@@ -14,7 +14,7 @@ class MitraSBPSeeder extends Seeder
     public function run(): void
     {
         
-        $filePath = storage_path('app/mitra_sbp.csv');
+        $filePath = storage_path('app/merged_mitra_sbp.csv');
 
         if (!file_exists($filePath)) {
             $this->command->error("CSV file not found at {$filePath}");
@@ -29,23 +29,23 @@ class MitraSBPSeeder extends Seeder
         while (($row = fgetcsv($handle)) !== false) {
 
             // pastikan jumlah kolom aman
-            [$email_myads, $area, $remark, $voucher] = array_pad($row, 4, null);
+            [$email, $area, $region, $remark] = array_pad($row, 4, null);
 
-            if (!$email_myads) {
+            if (!$email) {
                 continue;
             }
 
             // optional: skip duplicate
-            if (DB::table('mitra_sbp')->where('email_myads', $email_myads)->exists()) {
+            if (DB::table('mitra_sbp')->where('email_myads', $email)->exists()) {
                 continue;
             }
 
             DB::table('mitra_sbp')->insert([
-                'email_myads' => trim($email_myads),
+                'email_myads' => trim($email),
                 'area'        => trim($area),
-                'regional'    => null,
+                'regional'    => trim($region),
                 'remark'      => trim($remark),
-                'voucher'     => trim($voucher),
+                'voucher'     => null,
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);
