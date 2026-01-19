@@ -198,7 +198,7 @@
                 </li>
 
                 @endif
-                @if($isAdmin || $isTreg || $isTsel )
+                @if($isAdmin || $isTreg || $isTsel ||$isCanv || $isPH)
                 <li class="nav-header">System Management</li>
                 @endif
                 @if($isAdmin)
