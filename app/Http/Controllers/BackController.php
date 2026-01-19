@@ -774,17 +774,218 @@ class BackController extends Controller
             ->make(true);
     }
 
+    /**     * Export PowerHouse Voucher Report to Excel
+     */
+    public function exportPowerHouseVoucher()
+    {
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Voucher codes untuk PowerHouse
+        $powerHouseCodes = ['SUPER1', 'SUPER2', 'SUPER3', 'SUPER4', 'SUPER5', 'SUPER6', 'SUPER7', 'SUPER8'];
+        
+        // Query dengan JOIN untuk mendapatkan data lengkap
+        $data = DB::table('report_balance_top_up as rb')
+            ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
+            ->select(
+                'rb.email_client',
+                'rb.company_name',
+                'dv.voucher_code',
+                DB::raw('CAST(rb.amount AS DECIMAL(15,2)) as amount'),
+                DB::raw('CAST(rb.discount_voucer AS DECIMAL(15,2)) as discount'),
+                DB::raw('CAST(rb.total_settlement_klien AS DECIMAL(15,2)) as total'),
+                'rb.payment_method_name',
+                'rb.paid_date'
+            )
+            ->whereIn('dv.voucher_code', $powerHouseCodes)
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->orderBy('dv.voucher_code')
+            ->get();
+        
+        // Mapping untuk PowerHouse names
+        $powerHouseMapping = [
+            'SUPER1' => 'Angga Satria Gusti',
+            'SUPER2' => 'Abdul Halim',
+            'SUPER3' => 'Raden Agie S. Akbar',
+            'SUPER4' => 'Sony Widjaya',
+            'SUPER5' => 'Deni Setiawan',
+            'SUPER6' => 'Muhammad Arief Syahbana',
+            'SUPER7' => 'Naqsyabandi',
+            'SUPER8' => 'Ikrar Dharmawan',
+        ];
+        
+        // Transform data untuk Excel
+        $exportData = $data->map(function ($item) use ($powerHouseMapping) {
+            return [
+                'Email' => $item->email_client,
+                'Perusahaan' => $item->company_name,
+                'Voucher Code' => $item->voucher_code,
+                'PowerHouse' => $powerHouseMapping[$item->voucher_code] ?? '-',
+                'Amount' => $item->amount,
+                'Discount' => $item->discount,
+                'Total Settlement' => $item->total,
+                'Payment Method' => $item->payment_method_name,
+                'Tanggal Pembayaran' => Carbon::parse($item->paid_date)->format('d-m-Y H:i:s')
+            ];
+        });
+        
+        // Create Excel file
+        $fileName = 'PowerHouse_Referral_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
+        
+        return response()->streamDownload(function () use ($exportData) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Set header
+            $headers = ['Email', 'Perusahaan', 'Voucher Code', 'PowerHouse', 'Amount', 'Discount', 'Total Settlement', 'Payment Method', 'Tanggal Pembayaran'];
+            $sheet->fromArray($headers, null, 'A1');
+            
+            // Style header
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '667EEA']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+            ];
+            $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+            
+            // Add data
+            $row = 2;
+            foreach ($exportData as $item) {
+                $sheet->fromArray((array)$item, null, 'A' . $row);
+                $row++;
+            }
+            
+            // Set column widths
+            $sheet->getColumnDimension('A')->setWidth(25);
+            $sheet->getColumnDimension('B')->setWidth(25);
+            $sheet->getColumnDimension('C')->setWidth(15);
+            $sheet->getColumnDimension('D')->setWidth(25);
+            $sheet->getColumnDimension('E')->setWidth(15);
+            $sheet->getColumnDimension('F')->setWidth(15);
+            $sheet->getColumnDimension('G')->setWidth(18);
+            $sheet->getColumnDimension('H')->setWidth(20);
+            $sheet->getColumnDimension('I')->setWidth(20);
+            
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName);
+    }
+    
+    /**
+     * Export Canvasser Voucher Report to Excel
+     */
+    public function exportCanvasserVoucher()
+    {
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Voucher codes untuk Canvasser
+        $canvasserCodes = ['EXTRA1', 'EXTRA2', 'EXTRA3', 'EXTRA4', 'EXTRA5', 'EXTRA6', 'EXTRA7', 'EXTRA8', 'EXTRA9', 'EXTRA10', 'EXTRA11', 'EXTRA12', 'EXTRA13'];
+        
+        // Query dengan JOIN
+        $data = DB::table('report_balance_top_up as rb')
+            ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
+            ->select(
+                'rb.email_client',
+                'rb.company_name',
+                'dv.voucher_code',
+                DB::raw('CAST(rb.amount AS DECIMAL(15,2)) as amount'),
+                DB::raw('CAST(rb.discount_voucer AS DECIMAL(15,2)) as discount'),
+                DB::raw('CAST(rb.total_settlement_klien AS DECIMAL(15,2)) as total'),
+                'rb.payment_method_name',
+                'rb.paid_date'
+            )
+            ->whereIn('dv.voucher_code', $canvasserCodes)
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->orderBy('dv.voucher_code')
+            ->get();
+        
+        // Mapping untuk Canvasser names
+        $canvasserMapping = [
+            'EXTRA1' => 'Amanah',
+            'EXTRA2' => 'Indah',
+            'EXTRA3' => 'Maria',
+            'EXTRA4' => 'Meisya',
+            'EXTRA5' => 'Hardi',
+            'EXTRA6' => 'Bustomi',
+            'EXTRA7' => 'Intan',
+            'EXTRA8' => 'Hika Rochmah',
+            'EXTRA9' => 'Akbar Zikron',
+            'EXTRA10' => 'Riva',
+            'EXTRA11' => 'Fanni',
+            'EXTRA12' => 'Majph',
+            'EXTRA13' => 'Rizky'
+        ];
+        
+        // Transform data untuk Excel
+        $exportData = $data->map(function ($item) use ($canvasserMapping) {
+            return [
+                'Email' => $item->email_client,
+                'Perusahaan' => $item->company_name,
+                'Voucher Code' => $item->voucher_code,
+                'Canvasser' => $canvasserMapping[$item->voucher_code] ?? '-',
+                'Amount' => $item->amount,
+                'Discount' => $item->discount,
+                'Total Settlement' => $item->total,
+                'Payment Method' => $item->payment_method_name,
+                'Tanggal Pembayaran' => Carbon::parse($item->paid_date)->format('d-m-Y H:i:s')
+            ];
+        });
+        
+        // Create Excel file
+        $fileName = 'Canvasser_Referral_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
+        
+        return response()->streamDownload(function () use ($exportData) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Set header
+            $headers = ['Email', 'Perusahaan', 'Voucher Code', 'Canvasser', 'Amount', 'Discount', 'Total Settlement', 'Payment Method', 'Tanggal Pembayaran'];
+            $sheet->fromArray($headers, null, 'A1');
+            
+            // Style header
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '667EEA']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+            ];
+            $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+            
+            // Add data
+            $row = 2;
+            foreach ($exportData as $item) {
+                $sheet->fromArray((array)$item, null, 'A' . $row);
+                $row++;
+            }
+            
+            // Set column widths
+            $sheet->getColumnDimension('A')->setWidth(25);
+            $sheet->getColumnDimension('B')->setWidth(25);
+            $sheet->getColumnDimension('C')->setWidth(15);
+            $sheet->getColumnDimension('D')->setWidth(15);
+            $sheet->getColumnDimension('E')->setWidth(15);
+            $sheet->getColumnDimension('F')->setWidth(15);
+            $sheet->getColumnDimension('G')->setWidth(18);
+            $sheet->getColumnDimension('H')->setWidth(20);
+            $sheet->getColumnDimension('I')->setWidth(20);
+            
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName);
+    }
+
     /**
      * Get PowerHouse Referral Report
-     * Data dari tabel data_voucher, mapping ke PowerHouse dengan sistem POIN
+     * Data dari JOIN report_balance_top_up + data_voucher dengan sistem POIN
      * 1 Poin = 1 juta rupiah
      */
     public function getPowerHouseVoucher(Request $request)
     {
         $currentMonth = Carbon::now()->format('Y-m');
         
+        // Voucher codes untuk PowerHouse
+        $powerHouseCodes = ['SUPER1', 'SUPER2', 'SUPER3', 'SUPER4', 'SUPER5', 'SUPER6', 'SUPER7', 'SUPER8'];
+        
         // Mapping voucher code ke nama PowerHouse
-        $voucherPowerHouseMapping = [
+        $powerHouseMapping = [
             'SUPER1' => 'Angga Satria Gusti',
             'SUPER2' => 'Abdul Halim',
             'SUPER3' => 'Raden Agie S. Akbar',
@@ -795,21 +996,24 @@ class BackController extends Controller
             'SUPER8' => 'Ikrar Dharmawan',
         ];
 
-        // Ambil semua data dari data_voucher untuk bulan ini
-        $voucherData = DB::table('data_voucher')
+        // Ambil data dari JOIN report_balance_top_up + data_voucher
+        $voucherData = DB::table('report_balance_top_up as rb')
+            ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
             ->select(
-                'voucher_code',
+                'dv.voucher_code',
                 DB::raw('COUNT(*) as jumlah_akun'),
-                DB::raw('SUM(CAST(top_up_amount AS DECIMAL(15,2))) as total_topup')
+                DB::raw('SUM(CAST(rb.amount AS DECIMAL(15,2))) as total_topup'),
+                DB::raw('MAX(rb.tgl_transaksi) as tgl_transaksi_terakhir')
             )
-            ->whereRaw('DATE_FORMAT(created_at, "%Y-%m") = ?', [$currentMonth])
-            ->groupBy('voucher_code')
+            ->whereIn('dv.voucher_code', $powerHouseCodes)
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->groupBy('dv.voucher_code')
             ->get()
             ->keyBy('voucher_code');
 
         // Build result dari mapping
         $result = [];
-        foreach ($voucherPowerHouseMapping as $voucherCode => $powerHouseName) {
+        foreach ($powerHouseMapping as $voucherCode => $powerHouseName) {
             $voucherInfo = $voucherData->get($voucherCode);
             
             if ($voucherInfo) {
@@ -817,12 +1021,16 @@ class BackController extends Controller
                 // Hitung POIN: 1 Poin = 1 juta rupiah
                 $poin = floor($totalTopup / 1000000);
 
+                $tglFormatted = $voucherInfo->tgl_transaksi_terakhir ? 
+                    Carbon::parse($voucherInfo->tgl_transaksi_terakhir)->format('d M Y') : '-';
+                    
                 $result[] = [
                     'referral_code' => $voucherCode,
                     'team_powerhouse' => $powerHouseName,
                     'jumlah_akun' => (int)($voucherInfo->jumlah_akun ?? 0),
                     'total_topup' => $totalTopup,
                     'poin' => $poin,
+                    'tgl_transaksi_terakhir' => $tglFormatted,
                 ];
             } else {
                 // Voucher tanpa data
@@ -832,6 +1040,7 @@ class BackController extends Controller
                     'jumlah_akun' => 0,
                     'total_topup' => 0,
                     'poin' => 0,
+                    'tgl_transaksi_terakhir' => '-',
                 ];
             }
         }
@@ -849,14 +1058,17 @@ class BackController extends Controller
 
     /**
      * Get Canvasser Voucher Report
-     * Data dari tabel data_voucher, mapping ke user dengan role cvsr yang status Aktif
+     * Data dari JOIN report_balance_top_up + data_voucher
      */
     public function getCanvasserVoucher(Request $request)
     {
         $currentMonth = Carbon::now()->format('Y-m');
         
-        // Mapping voucher code ke nama canvasser (dari tabel yang diberikan)
-        $voucherCanvasserMapping = [
+        // Voucher codes untuk Canvasser
+        $canvasserCodes = ['EXTRA1', 'EXTRA2', 'EXTRA3', 'EXTRA4', 'EXTRA5', 'EXTRA6', 'EXTRA7', 'EXTRA8', 'EXTRA9', 'EXTRA10', 'EXTRA11', 'EXTRA12', 'EXTRA13'];
+        
+        // Mapping voucher code ke nama canvasser
+        $canvasserMapping = [
             'EXTRA1' => 'Amanah',
             'EXTRA2' => 'Indah',
             'EXTRA3' => 'Maria',
@@ -872,21 +1084,24 @@ class BackController extends Controller
             'EXTRA13' => 'Rizky',
         ];
 
-        // Ambil semua data dari data_voucher untuk bulan ini
-        $voucherData = DB::table('data_voucher')
+        // Ambil data dari JOIN report_balance_top_up + data_voucher
+        $voucherData = DB::table('report_balance_top_up as rb')
+            ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
             ->select(
-                'voucher_code',
+                'dv.voucher_code',
                 DB::raw('COUNT(*) as jumlah_new_akun'),
-                DB::raw('SUM(CAST(top_up_amount AS DECIMAL(15,2))) as total_topup')
+                DB::raw('SUM(CAST(rb.amount AS DECIMAL(15,2))) as total_topup'),
+                DB::raw('MAX(rb.tgl_transaksi) as tgl_transaksi_terakhir')
             )
-            ->whereRaw('DATE_FORMAT(created_at, "%Y-%m") = ?', [$currentMonth])
-            ->groupBy('voucher_code')
+            ->whereIn('dv.voucher_code', $canvasserCodes)
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->groupBy('dv.voucher_code')
             ->get()
             ->keyBy('voucher_code');
 
         // Build result dari mapping
         $result = [];
-        foreach ($voucherCanvasserMapping as $voucherCode => $canvasserName) {
+        foreach ($canvasserMapping as $voucherCode => $canvasserName) {
             $voucherInfo = $voucherData->get($voucherCode);
             
             if ($voucherInfo) {
@@ -896,12 +1111,16 @@ class BackController extends Controller
                     $insentif = 100000;
                 }
 
+                $tglFormatted = $voucherInfo->tgl_transaksi_terakhir ? 
+                    Carbon::parse($voucherInfo->tgl_transaksi_terakhir)->format('d M Y') : '-';
+                    
                 $result[] = [
                     'referral_code' => $voucherCode,
                     'canvasser' => $canvasserName,
                     'jumlah_new_akun' => (int)($voucherInfo->jumlah_new_akun ?? 0),
                     'total_topup' => $totalTopup,
                     'insentif' => $insentif,
+                    'tgl_transaksi_terakhir' => $tglFormatted,
                 ];
             } else {
                 // Voucher tanpa data
@@ -911,6 +1130,7 @@ class BackController extends Controller
                     'jumlah_new_akun' => 0,
                     'total_topup' => 0,
                     'insentif' => 0,
+                    'tgl_transaksi_terakhir' => '-',
                 ];
             }
         }

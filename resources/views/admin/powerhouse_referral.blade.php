@@ -413,6 +413,65 @@
             font-size: 11px;
         }
     }
+
+    /* Header dengan flexbox untuk download button */
+    .card-header.d-flex {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .card-header .btn-light {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .card-header .btn-light:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .card-header .btn-light i {
+        margin-right: 5px;
+    }
+
+    /* Button Actions Styling */
+    .card-header .btn-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .card-header .btn-success-custom {
+        background-color: #28a745;
+        color: white;
+        border: 1px solid #28a745;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+    }
+
+    .card-header .btn-success-custom:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .card-header .btn-success-custom i {
+        margin-right: 6px;
+    }
+
 </style>
 @endsection
 
@@ -434,13 +493,24 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card" id="powerHouseTableCard">
-            <div class="card-header bg-gradient-danger text-white">
+            <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0"><i class="fas fa-table"></i> Report PowerHouse Referral</h4>
+                <div class="btn-actions" style="margin-right: -600px;">
+                    <button type="button" id="btnSavePowerHouseImage" class="btn btn-success-custom btn-sm" title="Save as Image">
+                        <i class="fas fa-image"></i> Save Image
+                    </button>
+                    <a href="{{ route('export.powerhouse_voucher') }}" class="btn btn-success-custom btn-sm" title="Download Excel">
+                        <i class="fas fa-file-excel"></i> Download Excel
+                    </a>
+                </div>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                <div id="capturePowerHouseTable" class="table-responsive">
             <table class="table table-sm w-100 table-bordered table-hover" id="powerHouseTable" style="font-size: 13px;">
                         <thead class="table-light">
+                            <tr style="background-color: #e8eaf6; font-weight: bold;">
+                                <th colspan="7" style="text-align: center; padding: 10px; border-bottom: 2px solid #667eea;">Report PowerHouse Referral</th>
+                            </tr>
                             <tr>
                                 <th style="text-align: center; width: 5%;">No</th>
                                 <th style="text-align: center;">Referral Code</th>
@@ -448,6 +518,7 @@
                                 <th style="text-align: center;">Jumlah Akun</th>
                                 <th style="text-align: center;">Top Up</th>
                                 <th style="text-align: center;">Poin</th>
+                                <th style="text-align: center;">Tgl Transaksi Terakhir</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -478,12 +549,16 @@
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
     $(document).ready(function() {
         // Initialize DataTables
         var table = $('#powerHouseTable').DataTable({
             processing: true,
             serverSide: true,
+            paging: false,
+            searching: false,
+            info: false,
             ajax: {
                 url: "{{ route('powerhouse_voucher_data') }}",
                 type: 'GET'
@@ -494,24 +569,10 @@
                 { data: 'team_powerhouse', name: 'team_powerhouse', className: 'text-center' },
                 { data: 'jumlah_akun', name: 'jumlah_akun', className: 'text-center' },
                 { data: 'total_topup', name: 'total_topup', className: 'text-center' },
-                { data: 'poin', name: 'poin', className: 'text-center' }
+                { data: 'poin', name: 'poin', className: 'text-center' },
+                { data: 'tgl_transaksi_terakhir', name: 'tgl_transaksi_terakhir', className: 'text-center' }
             ],
             order: [[1, 'asc']],
-            pageLength: 25,
-            language: {
-                processing: 'Loading...',
-                search: 'Cari:',
-                lengthMenu: 'Tampilkan _MENU_ data',
-                info: 'Menampilkan _START_ hingga _END_ dari _TOTAL_ data',
-                infoEmpty: 'Tidak ada data',
-                infoFiltered: '(difilter dari _MAX_ total data)',
-                paginate: {
-                    first: 'Pertama',
-                    last: 'Terakhir',
-                    next: 'Selanjutnya',
-                    previous: 'Sebelumnya'
-                }
-            },
             rowCallback: function(row, data, index) {
                 // Highlight poin cells dengan warna biru gradient untuk nilai > 0
                 var poinCell = $('td', row).eq(5);
@@ -531,6 +592,25 @@
                     });
                 }
             }
+        });
+
+        // Handle Save Image Button
+        document.getElementById('btnSavePowerHouseImage').addEventListener('click', function () {
+            html2canvas(document.getElementById('capturePowerHouseTable'), { 
+                scale: 2,
+                allowTaint: true,
+                useCORS: true
+            })
+                .then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'powerhouse-report-' + new Date().getTime() + '.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                })
+                .catch(err => {
+                    console.error('Error capturing image:', err);
+                    alert('Gagal menyimpan gambar. Silakan coba lagi.');
+                });
         });
     });
 </script>
