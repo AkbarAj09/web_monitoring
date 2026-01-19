@@ -41,7 +41,7 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
                 {{-- ===== ADMIN: bisa akses semua menu (ALL + TREG) ===== --}}
-                @if($isAdmin || $isTsel || $isCanv)
+                @if($isAdmin || $isTsel || $isCanv || $isPH)
                 <li class="nav-header">ALL DASHBOARD</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.home') }}"
@@ -144,7 +144,7 @@
                     </a>
                 </li>
                 @endif --}}
-                @if($isAdmin || $isTreg || $isTsel || $isCanv)
+                @if($isAdmin || $isTreg || $isTsel || $isCanv || $isPH)
                 <li class="nav-item {{ request()->routeIs('panenpoin.*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link waves-effect {{ request()->routeIs('panenpoin.*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-layer-group"></i>
@@ -212,7 +212,7 @@
                     </a>
                 </li>
                 @endif                
-                @if($isAdmin || $isTreg || $isTsel || $isCanv)
+                @if($isAdmin || $isTreg || $isTsel || $isCanv || $isPH)
                 <li class="nav-item">
                     <a href="{{ url('change-password') }}"
                         class="nav-link waves-effect {{ request()->routeIs('change-password') ? 'active' : '' }}">
@@ -225,7 +225,7 @@
 
 
                 {{-- ===== Logout untuk semua role yang ditangani di atas ===== --}}
-                @if($isAdmin || $isTreg || $isTsel || $isCanv)
+                @if($isAdmin || $isTreg || $isTsel || $isCanv || $isPH)
                 <li class="nav-header">LOGOUT</li>
                 <li class="nav-item">
                     <a href="{{ url('logout') }}"
