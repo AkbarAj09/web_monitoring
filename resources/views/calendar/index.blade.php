@@ -98,10 +98,10 @@
                         <select name="nama" class="form-control" id="namaSelect" required>
                             <option value="">-- Pilih Nama --</option>
 
-                            <option value="Robert" data-color="#e74c3c">Robert</option>
-                            <option value="Luky" data-color="#3498db">Luky</option>
-                            <option value="Cici" data-color="#9b59b6">Cici</option>
-                            <option value="Novrand" data-color="#1abc9c">Novrand</option>
+                            <option value="Robert J. Nandjong" data-color="#e74c3c">Robert J. Nandjong</option>
+                            <option value="Luky Ghazali" data-color="#3498db">Luky Ghazali</option>
+                            <option value="Fauzia Noviyanti" data-color="#9b59b6">Fauzia Noviyanti</option>
+                            <option value="Nopranda Dirzan" data-color="#1abc9c">Nopranda Dirzan</option>
                             <option value="Angga Satria Gusti" data-color="#f39c12">Angga Satria Gusti</option>
                             <option value="Abdul Halim" data-color="#2ecc71">Abdul Halim</option>
                             <option value="Raden Agie Satria Akbar" data-color="#e84393">Raden Agie Satria Akbar</option>

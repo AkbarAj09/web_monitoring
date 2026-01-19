@@ -59,6 +59,7 @@ class LogbookController extends Controller
                 'leads_master.created_at',
                 'logbook.komitmen',
                 'logbook.plan_min_topup',
+                'logbook.status',
                 DB::raw('SUM(report_balance_top_up.total_settlement_klien) as total_settlement_klien'),
             ])
             ->groupBy(
@@ -71,7 +72,8 @@ class LogbookController extends Controller
                 'leads_master.data_type',
                 'leads_master.created_at',
                 'logbook.komitmen',
-                'logbook.plan_min_topup'
+                'logbook.plan_min_topup',
+                'logbook.status'
             )
         ->orderBy('leads_master.created_at', 'desc');
 
@@ -163,6 +165,37 @@ class LogbookController extends Controller
                     ? number_format($row->total_settlement_klien, 0, ',', '.')
                     : '-';
             })
+             ->addColumn('status', function ($row) {
+                return $row->status ?? '-';
+            })
+             ->addColumn('action', function ($row) {
+                return '
+                <button 
+                    class="btn btn-sm btn-primary btn-edit"
+                    data-id="'.$row->id.'"
+                    data-komitmen="'.$row->komitmen.'"
+                    data-plan="'.$row->plan_min_topup.'"
+                    data-status="'.$row->status.'"
+                >
+                    Edit
+                </button>';
+            })
+            ->rawColumns(['action'])
             ->make(true);
         }
+        public function update(Request $request)
+        {
+            
+            $tes = DB::table('logbook')
+                ->where('leads_master_id', $request->id)
+                ->update([
+                    'komitmen' => $request->komitmen,
+                    'plan_min_topup' => $request->plan_min_topup,
+                    'status' => $request->status,
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json(['success' => true]);
+        }
+
 }

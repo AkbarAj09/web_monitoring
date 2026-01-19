@@ -49,7 +49,7 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
     ->name('download.format.voucher.treg');
 });
 
-Route::middleware(['auth', 'checkrole:Admin,Tsel,csvr,PH'])->group(function () {
+Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH'])->group(function () {
     Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
     Route::get('/daily-topup-channel', [FrontController::class, 'dailyTopupChannel'])->name('daily.topup.channel');
     Route::get('/get-daily-topup-data', [\App\Http\Controllers\LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
@@ -170,6 +170,8 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
 
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
     Route::get('logbook/data', [LogbookController::class, 'data'])->name('logbook.data');
+    Route::post('/logbook/update', [LogbookController::class, 'update'])
+    ->name('logbook.update');
 
     // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
     Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');

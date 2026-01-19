@@ -66,12 +66,72 @@
                     <th>Tanggal</th>
                     <th>Komitmen</th>
                     <th>Plan Min Topup</th>
+                    <th>Status</th>
                     <th>Realisasi Topup</th>
+                    <th>Action</th>
+
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
+</div>
+<div class="modal fade" id="modalEdit" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Logbook</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <form id="formEdit" action="{{ route('logbook.update') }}" method="POST">
+        @csrf
+        <input type="hidden" name="id" id="edit_id">
+
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label>Komitmen</label>
+            <select id="edit_komitmen" class="form-control" name="komitmen">
+              <option value="New Leads">New Leads</option>
+              <option value="100%">100%</option>
+              <option value="50%">50%</option>
+              <option value="<50%">&lt;50%</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Plan Min Topup</label>
+            <input type="number" id="edit_plan" class="form-control" name="plan_min_topup">
+          </div>
+
+          <div class="form-group">
+            <label>Status</label>
+            <select id="edit_status" class="form-control" name="status">
+              <option value="Initial">Initial</option>
+              <option value="Prospect">Prospect</option>
+              <option value="Register">Register</option>
+              <option value="Topup">Topup</option>
+              <option value="Repeat">Repeat</option>
+              <option value="No Response">No Response</option>
+              <option value="Reject">Reject</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Save</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
 </div>
 
 @endsection
@@ -81,6 +141,33 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
 <script>
+$(document).on('click', '.btn-edit', function () {
+    $('#edit_id').val($(this).data('id'));
+    $('#edit_komitmen').val($(this).data('komitmen'));
+    $('#edit_plan').val($(this).data('plan'));
+    $('#edit_status').val($(this).data('status'));
+
+    $('#modalEdit').modal('show');
+});
+$('#formEdit').on('submit', function (e) {
+    e.preventDefault();
+
+    $.ajax({
+        url: $(this).attr('action'),   // <-- ambil dari form
+        type: 'POST',
+        data: $(this).serialize(),     // <-- otomatis ambil name=""
+        success: function () {
+            $('#modalEdit').modal('hide');
+            $('#leadsMasterTable').DataTable().ajax.reload(null, false);
+        },
+        error: function (xhr) {
+            alert('Update gagal');
+            console.log(xhr.responseText);
+        }
+    });
+});
+
+
 $(function () {
 
     let table = $('#leadsMasterTable').DataTable({
@@ -104,7 +191,9 @@ $(function () {
             { data: 'created_at' },
             { data: 'komitmen' },
             { data: 'plan_min_topup' },
+            { data: 'status' },
             { data: 'total_settlement_klien' },
+            { data: 'action', orderable: false, searchable: false },
         ]
     });
 

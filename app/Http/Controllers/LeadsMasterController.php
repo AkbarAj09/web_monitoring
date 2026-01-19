@@ -251,7 +251,7 @@ class LeadsMasterController extends Controller
 
         // $statusValue = $validated['status'] === 'Ok' ? 1 : 0;
         $statusValue = 1; // Default ke 1 (Yes) karena field status di form disembunyikan
-        LeadsMaster::create([
+        $leads = LeadsMaster::create([
             'user_id' => $validated['user_id'],
             'source_id' => $validated['source_id'],
             'sector_id' => $validated['sector_id'] ?? null,
@@ -266,7 +266,16 @@ class LeadsMasterController extends Controller
             'myads_account' => $validated['myads_account'] ?? null,
             'data_type' => 'Leads',
         ]);
-
+        DB::table('logbook')->insert([
+            'leads_master_id' => $leads->id,
+            'komitmen'        => 'New Leads',
+            'plan_min_topup'  => 100000,
+            'status'          => 'Prospect',
+            'bulan'           => now()->month,
+            'tahun'           => now()->year,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
 
         return redirect()->route('leads-master.index')->with('success', 'Leads baru berhasil disimpan.');
     }
