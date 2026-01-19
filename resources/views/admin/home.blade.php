@@ -526,7 +526,7 @@
                     <table class="table table-sm w-100 table-bordered table-hover" id="regionalTable" style="font-size: 11px;">
                         <thead class="thead-light">
                             <tr>
-                                <th colspan="16" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }}</th>
+                                <th colspan="17" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }}</th>
                             </tr>
                             <tr>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">No</th>
@@ -537,6 +537,7 @@
                                 <th colspan="2" class="text-center" style="background-color: #d1e7dd;">Deal Top Up (New Akun & Eksisting Akun)</th>
                                 <th colspan="3" style="vertical-align: middle; text-align: center; background-color: #f8d7da;">Top Up (Rp.)</th>
                                 <th colspan="4" style="vertical-align: middle; text-align: center; background-color: #fff3cd;">Target & Achievement</th>
+                                <th colspan="4" style="vertical-align: middle; text-align: center; background-color: #d3ffcd;">MOM</th>
                             </tr>
                             <tr>
                                 <th class="text-center" style="background-color: #cfe2ff;">Leads</th>
@@ -550,6 +551,20 @@
                                 <th class="text-center" style="background-color: #fff3cd;">Achievement (%)</th>
                                 <th class="text-center" style="background-color: #fff3cd;">Gap (Rp)</th>
                                 <th class="text-center" style="background-color: #fff3cd;">Gap Daily (Rp)</th>
+                                @php
+                                    $date = request('month')
+                                        ? \Carbon\Carbon::createFromFormat('Y-m', request('month'))
+                                        : now();
+                                    $currentDate = $date->day;
+
+                                    // Bulan sebelumnya
+                                    $prevMonth = $date->copy()->subMonthNoOverflow();
+                                    $lastDay = $prevMonth->endOfMonth()->day;
+                                @endphp
+                                <th class="text-center" style="background-color: #d3ffcd;">1 – {{ $currentDate }} {{ $prevMonth->translatedFormat('M') }}</th>
+                                <th class="text-center" style="background-color: #d3ffcd;">1 – {{ $currentDate }} {{ $date->translatedFormat('M') }}</th>
+                                <th class="text-center" style="background-color: #d3ffcd;">{{ $currentDate + 1 }} – {{$lastDay}} {{ $prevMonth->translatedFormat('M') }}</th>
+                                <th class="text-center" style="background-color: #d3ffcd;">Gap (Rp)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -744,6 +759,54 @@
                     className: 'text-center',
                     render: function(data) {
                         return `<div style="text-align: center; color: #fd7e14; font-weight: bold;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'mom_prev_partial',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'mom_current_partial',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'mom_prev_remaining',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${data}</div>`;
+                    }
+                },
+                {
+                    data: 'mom_gap',
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        // hilangkan pemisah ribuan & convert ke number
+                        let value = parseFloat(
+                            String(data)
+                                .replace(/\./g, '')
+                                .replace(',', '.')
+                        ) || 0;
+
+                        let color = 'black';
+                        let fontWeight = 'normal';
+
+                        if (value < 0) {
+                            color = 'red';
+                            fontWeight = 'bold';
+                        } else if (value > 0) {
+                            color = 'green';
+                            fontWeight = 'bold';
+                        }
+
+                        return `<div style="text-align:center; color:${color}; font-weight:${fontWeight};">
+                                    ${data}
+                                </div>`;
                     }
                 }
             ],

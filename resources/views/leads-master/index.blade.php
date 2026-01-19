@@ -34,13 +34,15 @@
     <!-- Filter Tanggal + Buttons -->
     <div class="col-md-10">
         <div class="d-flex flex-column flex-md-row justify-content-md-end gap-2">
+
+            @if($user->role != 'cvsr')
             <select id="filter_canvasser" class="form-control select2">
                 <option value="">Semua Canvasser</option>
                 @foreach($canvassers as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
                 @endforeach
             </select>
-
+            @endif
             <select id="filter_regional"
                 class="form-select form-control w-100 w-md-auto">
                 <option value="">All Regional</option>
