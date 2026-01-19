@@ -56,6 +56,7 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH'])->group(function () {
     Route::get('/get-leads-data-api', [\App\Http\Controllers\LeadProgramController::class, 'getLeadsDataApi'])->name('leads_data_api');
     Route::get('/get-regional-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalDataTable'])->name('regional_data');
     Route::get('/get-regional-chart-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalChartData'])->name('regional_chart_data');
+    Route::get('/get-regional-chart-data-for-ph', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalChartDataForPH'])->name('regional_chart_data_for_ph');
 
     Route::get('/upload-file-myads', [FrontController::class, 'uploadMyAds'])->name('admin.upload');
     Route::post('/store-csv-myads', [BackController::class, 'storeUploadMyAds'])->name('upload.myads.store');
@@ -176,6 +177,8 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
 
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
     Route::get('logbook/data', [LogbookController::class, 'data'])->name('logbook.data');
+    Route::post('/logbook/update', [LogbookController::class, 'update'])
+    ->name('logbook.update');
 
     // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
     Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');

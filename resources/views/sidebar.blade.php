@@ -57,6 +57,8 @@
                         <p>Report Canvasser</p>
                     </a>
                 </li>
+                @endif
+                @if($isAdmin || $isTsel || $isPH)
                 <li class="nav-item">
                     <a href="{{ route('region-target') }}"
                         class="nav-link waves-effect {{ request()->routeIs('region-target') ? 'active' : '' }}">
@@ -65,6 +67,7 @@
                     </a>
                 </li>   
 
+                @endif
                 {{--<li class="nav-item {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link waves-effect {{ (request()->routeIs('admin.voucher') || request()->routeIs('admin.claim.voucher')) ? 'active' : '' }}">
                         <i class="nav-icon fas fa-ticket-alt" style="color:#17a2b8;"></i>
@@ -87,7 +90,6 @@
                         </li>
                     </ul>
                 </li> --}}
-                @endif
 
 
                 {{-- <li class="nav-header">Report</li> --}}
@@ -218,7 +220,7 @@
                 </li>
 
                 @endif
-                @if($isAdmin || $isTreg || $isTsel )
+                @if($isAdmin || $isTreg || $isTsel ||$isCanv || $isPH)
                 <li class="nav-header">System Management</li>
                 @endif
                 @if($isAdmin)
