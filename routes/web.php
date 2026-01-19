@@ -14,7 +14,7 @@ use App\Http\Controllers\PanenPoinController;
 use App\Http\Controllers\CalendarController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
-Route::get('/login', [FrontController::class, 'index'])->name('login');
+Route::get('/login', [FrontController::class, 'index']);
 Route::post('/login', [BackController::class, 'login'])->name('login');
 Route::get('/register', [FrontController::class, 'register'])->name('register');
 Route::post('/register-simpan', [BackController::class, 'registerStore'])->name('register.store');
@@ -49,7 +49,7 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
     ->name('download.format.voucher.treg');
 });
 
-Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
+Route::middleware(['auth', 'checkrole:Admin,Tsel,csvr,PH'])->group(function () {
     Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
     Route::get('/daily-topup-channel', [FrontController::class, 'dailyTopupChannel'])->name('daily.topup.channel');
     Route::get('/get-daily-topup-data', [\App\Http\Controllers\LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
@@ -154,7 +154,7 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel'])->group(function () {
     Route::get('/get-loglogin-data', [BackController::class, 'getLogLogin'])->name('loglogin.data');
     
 });
-Route::middleware(['auth', 'checkrole:Admin,cvsr'])->group(function (){
+Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
     Route::get('leads-master/export', [LeadsMasterController::class, 'export'])->name('leads-master.export');
     Route::get('leads-master', [LeadsMasterController::class, 'index'])->name('leads-master.index');
     Route::get('leads-master/create', [LeadsMasterController::class, 'create'])->name('leads-master.create');

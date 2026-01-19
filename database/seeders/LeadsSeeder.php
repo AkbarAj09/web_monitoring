@@ -20,6 +20,36 @@ class LeadsSeeder extends Seeder
         // Skip header
         fgetcsv($handle);
 
+        /**
+         * ===============================
+         * RULE CONFIGURATION
+         * ===============================
+         */
+
+        $canvasserMap = [
+            'special2'  => null,             // BUANG
+            'rani'      => 'riva',
+            'rino'      => 'akbar',
+            'christian' => 'hika',
+            '#n/a'      => 'self service',
+        ];
+
+        $allowedSources = [
+            'Leads OBC',
+            'Leads Enterprise',
+            'Leads PADI UMKM',
+            'Leads B2B',
+            'Leads Mandiri',
+            'Leads Other',
+        ];
+
+        $processedEmails = [];
+
+        /**
+         * ===============================
+         * CSV LOOP
+         * ===============================
+         */
         while (($row = fgetcsv($handle)) !== false) {
 
             [
@@ -36,25 +66,93 @@ class LeadsSeeder extends Seeder
                 $remarks
             ] = array_pad($row, 11, null);
 
-            // -----------------------------
-            // Normalize & fallback values
-            // -----------------------------
-            // $normalizedPhone = $this->normalizePhone($phone);
-            $normalizedPhone = $phone;
-            if ($normalizedPhone === '' || $normalizedPhone === null) {
-                $normalizedPhone = '-';
+            /**
+             * ===============================
+             * BASIC VALIDATION
+             * ===============================
+             */
+
+            // BUANG jika canvasser kosong / null
+            if (empty($handledBy)) {
+                continue;
             }
 
+            // BUANG jika email kosong
             if (empty($email)) {
                 continue;
             }
 
-            $userId   = $this->getUserIdByName($handledBy);
+            $email = strtolower(trim($email));
+
+            // Skip duplicate CSV
+            if (in_array($email, $processedEmails)) {
+                continue;
+            }
+
+            $processedEmails[] = $email;
+
+            // Skip jika email sudah ada di mitra_sbp
+            $existsInMitra = DB::table('mitra_sbp')
+                ->whereRaw('LOWER(email_myads) = ?', [$email])
+                ->exists();
+
+            if ($existsInMitra) {
+                continue;
+            }
+
+            $normalizedPhone = $phone ?: '-';
+
+            /**
+             * ===============================
+             * CANVASSER RULE
+             * ===============================
+             */
+
+            $handledByLower = strtolower(trim($handledBy));
+
+            // Buang special2
+            if ($handledByLower === 'special2') {
+                continue;
+            }
+
+            if (array_key_exists($handledByLower, $canvasserMap)) {
+                $targetUserName = $canvasserMap[$handledByLower];
+
+                // Kalau mapping = null → BUANG
+                if ($targetUserName === null) {
+                    continue;
+                }
+
+                $userId = $this->getUserIdByName($targetUserName);
+            } else {
+                $userId = $this->getUserIdByName($handledBy);
+            }
+
+            // Jika userId tidak ditemukan → BUANG (safety)
+            if (empty($userId)) {
+                continue;
+            }
+
+            /**
+             * ===============================
+             * SOURCE RULE
+             * ===============================
+             */
+
+            $source = trim($source);
+
+            if (!in_array($source, $allowedSources)) {
+                $source = 'Daftar Sendiri';
+            }
+
             $sourceId = $this->getSourceIdByName($source);
 
-            // -----------------------------
-            // INSERT (NO SKIP)
-            // -----------------------------
+            /**
+             * ===============================
+             * INSERT DATA
+             * ===============================
+             */
+
             LeadsMaster::create([
                 'user_id'      => $userId,
                 'source_id'    => $sourceId,
@@ -73,6 +171,7 @@ class LeadsSeeder extends Seeder
 
         fclose($handle);
     }
+
 
     // ----------------------------------
     // USER (always returns valid ID)
