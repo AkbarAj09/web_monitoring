@@ -175,6 +175,16 @@ class FrontController extends Controller
         logUserLogin();
         return view('admin.sultam_racing');
     }
+    public function monitoringCanvasserVoucher()
+    {
+        logUserLogin();
+        return view('admin.canvaser_voucher');
+    }
+    public function monitoringPowerHouseReferral()
+    {
+        logUserLogin();
+        return view('admin.powerhouse_referral');
+    }
     public function refreshSummarySimpatiTiktok()
     {
         $data = DB::table('simpati_tiktok as st')

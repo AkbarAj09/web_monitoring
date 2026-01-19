@@ -152,8 +152,8 @@
                 </li>
                 @endif --}}
                 @if($isAdmin || $isTreg || $isTsel || $isCanv || $isPH)
-                <li class="nav-item {{ request()->routeIs('panenpoin.*') ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link waves-effect {{ request()->routeIs('panenpoin.*') ? 'active' : '' }}">
+                <li class="nav-item {{ (request()->routeIs('panenpoin.*') || request()->routeIs('admin.monitoring.canvasser_voucher') || request()->routeIs('admin.monitoring.powerhouse_referral')) ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link waves-effect {{ (request()->routeIs('panenpoin.*') || request()->routeIs('admin.monitoring.canvasser_voucher') || request()->routeIs('admin.monitoring.powerhouse_referral')) ? 'active' : '' }}">
                         <i class="nav-icon fas fa-layer-group"></i>
                         <p>
                             Program Campaign
@@ -192,6 +192,26 @@
                                     </a>
                                 </li>
                             </ul>
+                        </li>
+
+                        <!-- Program Canvasser Voucher -->
+                        <li class="nav-item {{ request()->routeIs('admin.monitoring.canvasser_voucher') ? 'menu-open' : '' }} ml-2">
+                            <a href="{{ route('admin.monitoring.canvasser_voucher') }}"
+                            class="nav-link {{ request()->routeIs('admin.monitoring.canvasser_voucher') ? 'active' : '' }}"
+                            style="padding-left: 20px;">
+                                <i class="fas fa-ticket-alt nav-icon" style="color:#ffc107;"></i>
+                                <p>Program Referral Champion</p>
+                            </a>
+                        </li>
+
+                        <!-- PowerHouse Referral -->
+                        <li class="nav-item {{ request()->routeIs('admin.monitoring.powerhouse_referral') ? 'menu-open' : '' }} ml-2">
+                            <a href="{{ route('admin.monitoring.powerhouse_referral') }}"
+                            class="nav-link {{ request()->routeIs('admin.monitoring.powerhouse_referral') ? 'active' : '' }}"
+                            style="padding-left: 20px;">
+                                <i class="fas fa-star nav-icon" style="color:#ffc107;"></i>
+                                <p>PowerHouse Referral</p>
+                            </a>
                         </li>
 
                     </ul>

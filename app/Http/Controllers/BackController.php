@@ -773,4 +773,156 @@ class BackController extends Controller
             ->rawColumns(['action'])
             ->make(true);
     }
+
+    /**
+     * Get PowerHouse Referral Report
+     * Data dari tabel data_voucher, mapping ke PowerHouse dengan sistem POIN
+     * 1 Poin = 1 juta rupiah
+     */
+    public function getPowerHouseVoucher(Request $request)
+    {
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Mapping voucher code ke nama PowerHouse
+        $voucherPowerHouseMapping = [
+            'SUPER1' => 'Angga Satria Gusti',
+            'SUPER2' => 'Abdul Halim',
+            'SUPER3' => 'Raden Agie S. Akbar',
+            'SUPER4' => 'Sony Widjaya',
+            'SUPER5' => 'Deni Setiawan',
+            'SUPER6' => 'Muhammad Arief Syahbana',
+            'SUPER7' => 'Naqsyabandi',
+            'SUPER8' => 'Ikrar Dharmawan',
+        ];
+
+        // Ambil semua data dari data_voucher untuk bulan ini
+        $voucherData = DB::table('data_voucher')
+            ->select(
+                'voucher_code',
+                DB::raw('COUNT(*) as jumlah_akun'),
+                DB::raw('SUM(CAST(top_up_amount AS DECIMAL(15,2))) as total_topup')
+            )
+            ->whereRaw('DATE_FORMAT(created_at, "%Y-%m") = ?', [$currentMonth])
+            ->groupBy('voucher_code')
+            ->get()
+            ->keyBy('voucher_code');
+
+        // Build result dari mapping
+        $result = [];
+        foreach ($voucherPowerHouseMapping as $voucherCode => $powerHouseName) {
+            $voucherInfo = $voucherData->get($voucherCode);
+            
+            if ($voucherInfo) {
+                $totalTopup = (float)($voucherInfo->total_topup ?? 0);
+                // Hitung POIN: 1 Poin = 1 juta rupiah
+                $poin = floor($totalTopup / 1000000);
+
+                $result[] = [
+                    'referral_code' => $voucherCode,
+                    'team_powerhouse' => $powerHouseName,
+                    'jumlah_akun' => (int)($voucherInfo->jumlah_akun ?? 0),
+                    'total_topup' => $totalTopup,
+                    'poin' => $poin,
+                ];
+            } else {
+                // Voucher tanpa data
+                $result[] = [
+                    'referral_code' => $voucherCode,
+                    'team_powerhouse' => $powerHouseName,
+                    'jumlah_akun' => 0,
+                    'total_topup' => 0,
+                    'poin' => 0,
+                ];
+            }
+        }
+
+        return DataTables::of($result)
+            ->addIndexColumn()
+            ->editColumn('total_topup', function ($row) {
+                return 'Rp ' . number_format($row['total_topup'], 0, ',', '.');
+            })
+            ->editColumn('poin', function ($row) {
+                return (int)$row['poin'];
+            })
+            ->make(true);
+    }
+
+    /**
+     * Get Canvasser Voucher Report
+     * Data dari tabel data_voucher, mapping ke user dengan role cvsr yang status Aktif
+     */
+    public function getCanvasserVoucher(Request $request)
+    {
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Mapping voucher code ke nama canvasser (dari tabel yang diberikan)
+        $voucherCanvasserMapping = [
+            'EXTRA1' => 'Amanah',
+            'EXTRA2' => 'Indah',
+            'EXTRA3' => 'Maria',
+            'EXTRA4' => 'Meisya',
+            'EXTRA5' => 'Hardi',
+            'EXTRA6' => 'Bustomi',
+            'EXTRA7' => 'Intan',
+            'EXTRA8' => 'Hika Rochmah',
+            'EXTRA9' => 'Akbar Zikron',
+            'EXTRA10' => 'Riva',
+            'EXTRA11' => 'Fanni',
+            'EXTRA12' => 'Majph',
+            'EXTRA13' => 'Rizky',
+        ];
+
+        // Ambil semua data dari data_voucher untuk bulan ini
+        $voucherData = DB::table('data_voucher')
+            ->select(
+                'voucher_code',
+                DB::raw('COUNT(*) as jumlah_new_akun'),
+                DB::raw('SUM(CAST(top_up_amount AS DECIMAL(15,2))) as total_topup')
+            )
+            ->whereRaw('DATE_FORMAT(created_at, "%Y-%m") = ?', [$currentMonth])
+            ->groupBy('voucher_code')
+            ->get()
+            ->keyBy('voucher_code');
+
+        // Build result dari mapping
+        $result = [];
+        foreach ($voucherCanvasserMapping as $voucherCode => $canvasserName) {
+            $voucherInfo = $voucherData->get($voucherCode);
+            
+            if ($voucherInfo) {
+                $totalTopup = (float)($voucherInfo->total_topup ?? 0);
+                $insentif = 0;
+                if ($totalTopup > 500000) {
+                    $insentif = 100000;
+                }
+
+                $result[] = [
+                    'referral_code' => $voucherCode,
+                    'canvasser' => $canvasserName,
+                    'jumlah_new_akun' => (int)($voucherInfo->jumlah_new_akun ?? 0),
+                    'total_topup' => $totalTopup,
+                    'insentif' => $insentif,
+                ];
+            } else {
+                // Voucher tanpa data
+                $result[] = [
+                    'referral_code' => $voucherCode,
+                    'canvasser' => $canvasserName,
+                    'jumlah_new_akun' => 0,
+                    'total_topup' => 0,
+                    'insentif' => 0,
+                ];
+            }
+        }
+
+        return DataTables::of($result)
+            ->addIndexColumn()
+            ->editColumn('total_topup', function ($row) {
+                return 'Rp ' . number_format($row['total_topup'], 0, ',', '.');
+            })
+            ->editColumn('insentif', function ($row) {
+                return $row['insentif'] > 0 ? 'Rp ' . number_format($row['insentif'], 0, ',', '.') : '-';
+            })
+            ->make(true);
+    }
 }
