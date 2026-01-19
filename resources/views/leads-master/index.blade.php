@@ -35,7 +35,7 @@
     <div class="col-md-10">
         <div class="d-flex flex-column flex-md-row justify-content-md-end gap-2">
 
-            @if($user->role != 'cvsr')
+            @if(Auth::user()->role != 'cvsr')
             <select id="filter_canvasser" class="form-control select2">
                 <option value="">Semua Canvasser</option>
                 @foreach($canvassers as $c)
