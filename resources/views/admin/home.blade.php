@@ -12,9 +12,9 @@
         left: 1000px;
     }
 
-    #regionalChart {
-        min-height: 280px;
-        max-height: 330px;
+    #chart1, #chart2, #chart3 {
+        min-height: 400px;
+        max-height: 500px;
     }
 
     #loading-overlay {
@@ -385,15 +385,15 @@
                                 </small>
                             </div>
                             <div class="col-md-4 col-4">
-                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('regionalChartCard')">
+                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('chart1Card')">
                                     <i class="fas fa-chart-bar d-block mb-1"></i>
-                                    <small>Bar Chart</small>
+                                    <small>Charts</small>
                                 </button>
                             </div>
                             <div class="col-md-4 col-4">
                                 <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('canvaserTableCard')">
                                     <i class="fas fa-table d-block mb-1"></i>
-                                    <small>Regional</small>
+                                    <small>Canvasser</small>
                                 </button>
                             </div>
                             <div class="col-md-4 col-4">
@@ -412,14 +412,38 @@
 
 <!-- Bar Chart Section -->
 <div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card" id="regionalChartCard">
+    <!-- Card 1: Prospect Leads vs Deal New Akun -->
+    <div class="col-md-4">
+        <div class="card" id="chart1Card">
             <div class="card-header bg-gradient-info text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Data Prospect & Deal - Regional Canvasser</h5>
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Prospect Leads vs Deal New Akun</h6>
             </div>
             <div class="card-body">
-                <h6 class="text-center mb-3">Agregasi Data Seluruh Regional</h6>
-                <canvas id="regionalChart" style="height: 140px; width: 100%;"></canvas>
+                <canvas id="chart1" style="height: 400px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Prospect Existing Akun vs Deal Top Up -->
+    <div class="col-md-4">
+        <div class="card" id="chart2Card">
+            <div class="card-header bg-gradient-success text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Prospect Existing Akun vs Deal Top Up</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chart2" style="height: 400px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Target vs ACV -->
+    <div class="col-md-4">
+        <div class="card" id="chart3Card">
+            <div class="card-header bg-gradient-danger text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Target vs ACV (Juta Rp)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chart3" style="height: 400px; width: 100%;"></canvas>
             </div>
         </div>
     </div>
@@ -502,76 +526,36 @@
                     <table class="table table-sm w-100 table-bordered table-hover" id="regionalTable" style="font-size: 11px;">
                         <thead class="thead-light">
                             <tr>
-                                <th colspan="11" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }} | AREA: AREA 3</th>
+                                <th colspan="16" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }}</th>
                             </tr>
                             <tr>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">No</th>
-                                <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Regional</th>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Canvaser Name</th>
                             </tr>
                             <tr>
                                 <th colspan="2" class="text-center" style="background-color: #cfe2ff;">Data Prospect (Leads & Eksisting Akun)</th>
-                                <th colspan="2" class="text-center" style="background-color: #d1e7dd;">Deal (New Akun & Top UP)</th>
-                                <th colspan="2" style="vertical-align: middle; text-align: center; background-color: #f8d7da;">Top Up (Rp.)</th>
+                                <th colspan="2" class="text-center" style="background-color: #d1e7dd;">Deal Top Up (New Akun & Eksisting Akun)</th>
+                                <th colspan="3" style="vertical-align: middle; text-align: center; background-color: #f8d7da;">Top Up (Rp.)</th>
+                                <th colspan="4" style="vertical-align: middle; text-align: center; background-color: #fff3cd;">Target & Achievement</th>
                             </tr>
                             <tr>
                                 <th class="text-center" style="background-color: #cfe2ff;">Leads</th>
                                 <th class="text-center" style="background-color: #cfe2ff;">Eksisting Akun</th>
                                 <th class="text-center" style="background-color: #d1e7dd;">New Akun</th>
-                                <th class="text-center" style="background-color: #d1e7dd;">Eksisting Akun Top UP</th>
+                                <th class="text-center" style="background-color: #d1e7dd;">Eksisting Akun</th>
                                 <th class="text-center" style="background-color: #f8d7da;">New Akun(Rp.)</th>
                                 <th class="text-center" style="background-color: #f8d7da;">Eksisting Akun(Rp.)</th>
+                                <th class="text-center" style="background-color: #f8d7da;">Total (Rp.)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Target (Rp)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Achievement (%)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Gap (Rp)</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Gap Daily (Rp)</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="10" class="text-center">Loading data...</td>
+                                <td colspan="15" class="text-center">Loading data...</td>
                             </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Daily Topup Table -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card" id="dailyTopupTableCard">
-            <div class="card-header bg-gradient-danger text-white">
-                <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Daily Topup / Channel</h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm w-100 table-bordered table-hover" id="dailyTopupTable" style="font-size: 12px;">
-                        <thead class="thead-light">
-                            <tr>
-                                <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Tanggal</th>
-                                <th colspan="10" class="text-center" style="background-color: #f8d7da;">Source_combined / total_settlement_klien / user_id</th>
-                            </tr>
-                            <tr>
-                                <th colspan="2" class="text-center" style="background-color: #fff3cd;">Mitra SBP</th>
-                                <th colspan="2" class="text-center" style="background-color: #d1ecf1;">Canvasser</th>
-                                <th colspan="2" class="text-center" style="background-color: #d4edda;">Self Service</th>
-                                <th colspan="2" class="text-center" style="background-color: #e2e3e5;">Agency</th>
-                                <th class="text-center" style="background-color: #f8d7da;">Total keseluruhan</th>
-                                <th class="text-center" style="background-color: #f8d7da;">user_id</th>
-                            </tr>
-                            <tr>
-                                <th class="text-center" style="background-color: #fff3cd;">Total Settlement</th>
-                                <th class="text-center" style="background-color: #fff3cd;">user_id</th>
-                                <th class="text-center" style="background-color: #d1ecf1;">Total Settlement</th>
-                                <th class="text-center" style="background-color: #d1ecf1;">user_id</th>
-                                <th class="text-center" style="background-color: #d4edda;">Total Settlement</th>
-                                <th class="text-center" style="background-color: #d4edda;">user_id</th>
-                                <th class="text-center" style="background-color: #e2e3e5;">user_id</th>
-                                <th class="text-center" style="background-color: #e2e3e5;">Total Settlement</th>
-                                <th class="text-center" style="background-color: #f8d7da;">Total</th>
-                                <th class="text-center" style="background-color: #f8d7da;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
                         </tbody>
                     </table>
                 </div>
@@ -668,21 +652,18 @@
             columns: [{
                     data: 'no',
                     className: 'text-center',
-                    render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
-                    }
-                },
-                {
-                    data: 'regional',
-                    className: 'text-center',
-                    render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                    render: function(data, type, row, meta) {
+                        return `<div style="text-align: center;">${meta.row + 1}</div>`;
                     }
                 },
                 {
                     data: 'canvaser_name',
                     className: 'text-center',
-                    render: function(data) {
+                    render: function(data, type, row) {
+                        // Jika baris total, tampilkan HTML
+                        if (row.is_total) {
+                            return `<div style="text-align: center; font-weight: bold; font-size: 14px;">${data}</div>`;
+                        }
                         return `<div style="text-align: center;">${data}</div>`;
                     }
                 },
@@ -690,150 +671,93 @@
                     data: 'leads',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
                     data: 'existing_akun',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
                     data: 'new_akun',
                     className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: center;">${data}</div>`;
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
                     }
                 },
                 {
-                    data: 'top_up',
+                    data: 'top_up_existing_akun_count',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;">${parseInt(data).toLocaleString('id-ID')}</div>`;
+                    }
+                },
+                {
+                    data: 'top_up_new_akun_rp',
                     className: 'text-center',
                     render: function(data) {
                         return `<div style="text-align: center;">${data}</div>`;
                     }
                 },
                 {
-                    data: 'top_up_new_akun_rp',
-                    className: 'text-right',
-                    render: function(data) {
-                        return `<div style="text-align: right;">${data}</div>`;
-                    }
-                },
-                {
                     data: 'top_up_existing_akun_rp',
-                    className: 'text-right',
+                    className: 'text-center',
                     render: function(data) {
-                        return `<div style="text-align: right;">${data}</div>`;
-                    }
-                }
-            ]
-        });
-
-        // DataTable untuk Daily Topup
-        var table = $('#dailyTopupTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ordering: false,
-            paging: false,
-            ajax: {
-                url: "{{ route('daily_topup_data') }}",
-                type: "GET",
-                dataSrc: function(json) {
-                    console.log("Response dari server:", json);
-                    return json.data || [];
-                }
-            },
-            columns: [{
-                    data: 'date',
-                    render: function(data, type, row) {
-                        if (data === 'Total Keseluruhan') {
-                            return `<div style="text-align: center; font-weight: bold;">${data}</div>`;
-                        }
                         return `<div style="text-align: center;">${data}</div>`;
                     }
                 },
                 {
-                    data: 'mitra_sbp_settle',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
+                    data: 'total_top_up_rp',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center;"><strong>${data}</strong></div>`;
                     }
                 },
                 {
-                    data: 'mitra_sbp_user',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
+                    data: 'target',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center; font-weight: bold; color: #0d6efd;">${data}</div>`;
                     }
                 },
                 {
-                    data: 'canvasser_settle',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
+                    data: 'achievement_percent',
+                    className: 'text-center',
+                    render: function(data) {
+                        let percent = parseFloat(data.replace(',', '.').replace('%', ''));
+                        let color = percent >= 100 ? '#28a745' : (percent >= 75 ? '#ffc107' : '#dc3545');
+                        return `<div style="text-align: center; font-weight: bold; color: ${color};">${data}</div>`;
                     }
                 },
                 {
-                    data: 'canvasser_user',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
+                    data: 'gap',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center; color: #dc3545;">${data}</div>`;
                     }
                 },
                 {
-                    data: 'self_service_settle',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
-                    }
-                },
-                {
-                    data: 'self_service_user',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
-                    }
-                },
-                {
-                    data: 'agency_user',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
-                    }
-                },
-                {
-                    data: 'agency_settle',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
-                    }
-                },
-                {
-                    data: 'total',
-                    render: function(data, type, row) {
-                        return `<div style="text-align: right; font-weight: bold;">${data || '-'}</div>`;
-                    }
-                },
-                {
-                    data: 'total_user',
-                    render: function(data, type, row) {
-                        return `<div style="text-align: center; font-weight: bold;">${data || '-'}</div>`;
+                    data: 'gap_daily',
+                    className: 'text-center',
+                    render: function(data) {
+                        return `<div style="text-align: center; color: #fd7e14; font-weight: bold;">${data}</div>`;
                     }
                 }
             ],
             rowCallback: function(row, data) {
-                if (data.date === 'Total Keseluruhan') {
-                    $(row).addClass('table-info');
+                // Styling untuk baris total
+                if (data.is_total) {
+                    $(row).css({
+                        'background-color': '#fff3cd',
+                        'font-weight': 'bold',
+                        'border-top': '2px solid #ffc107'
+                    });
                 }
             }
         });
-
-        $('#dailyTopupTable').on('error.dt', function(e, settings, techNote, message) {
-            console.log("DataTables Error:", message);
-        });
-
         // Function untuk load Regional Chart
         function loadRegionalChart() {
             $.ajax({
@@ -851,82 +775,143 @@
 
         // Function untuk render Chart
         function renderRegionalChart(data) {
-            var ctx = document.getElementById('regionalChart').getContext('2d');
+            const canvassers = data.canvassers || [];
+            const labels = canvassers.map(c => c.name);
 
-            new Chart(ctx, {
+            // Chart 1: Prospect New Leads vs Deal New Akun
+            const ctx1 = document.getElementById('chart1').getContext('2d');
+            new Chart(ctx1, {
                 type: 'bar',
                 data: {
-                    labels: ['Leads vs New Akun', 'New Akun vs Top Up New Akun', 'Existing Akun vs Top Up Existing Akun'],
+                    labels: labels,
                     datasets: [{
-                        label: 'Data Prospect',
-                        data: [data.total_leads, data.total_new_akun, data.total_existing_akun],
-                        backgroundColor: '#156082',
-                        barThickness: 35,
-                        categoryPercentage: 1.0,
-                        barPercentage: 1.0
+                        label: 'Prospect: New Leads',
+                        data: canvassers.map(c => c.new_leads),
+                        backgroundColor: '#ff3324', // Merah Telkomsel
                     }, {
-                        label: 'Data Deal',
-                        data: [data.total_new_akun, data.total_top_up_new_akun, data.total_top_up_existing_akun],
-                        backgroundColor: '#FFC000',
-                        barThickness: 35,
-                        categoryPercentage: 1.0,
-                        barPercentage: 1.0
+                        label: 'Deal: New Akun',
+                        data: canvassers.map(c => c.new_akun),
+                        backgroundColor: '#0048a0', // Orange
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            display: true,
-                            grid: {
-                                display: false
-                            },
+                options: getChartOptions('count')
+            });
+
+            // Chart 2: Prospect Existing Akun vs Deal Top Up Existing Akun
+            const ctx2 = document.getElementById('chart2').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Prospect: Existing Akun',
+                        data: canvassers.map(c => c.existing_akun_count),
+                        backgroundColor: '#C8102E', // Merah Tua
+                    }, {
+                        label: 'Deal: Top Up Count',
+                        data: canvassers.map(c => c.top_up_existing_akun_count),
+                        backgroundColor: '#121ded', // Orange Terang
+                    }]
+                },
+                options: getChartOptions('count')
+            });
+
+            // Chart 3: Target vs ACV (dalam jutaan)
+            const ctx3 = document.getElementById('chart3').getContext('2d');
+            new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Target (Juta Rp)',
+                        data: canvassers.map(c => c.target / 1000000),
+                        backgroundColor: '#fe2718', // Merah Telkomsel
+                    }, {
+                        label: 'ACV (Juta Rp)',
+                        data: canvassers.map(c => c.acv / 1000000),
+                        backgroundColor: '#1f54d9', // Orange Gelap
+                    }]
+                },
+                options: getChartOptions('currency')
+            });
+        }
+
+        // Helper function untuk chart options
+        function getChartOptions(type) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true
                         },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    weight: 'bold'
-                                }
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('id-ID');
                             }
-                        },
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    label += context.parsed.y.toLocaleString('id-ID');
-                                    return label;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'top',
-                            offset: -5,
-                            font: {
-                                weight: 'bold',
-                                size: 14
-                            },
-                            color: '#000'
                         }
                     },
-                    barPercentage: 0.5,
-                    categoryPercentage: 0.5
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                weight: 'bold',
+                                size: 9
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (type === 'currency') {
+                                    label += context.parsed.x.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Jt';
+                                } else {
+                                    label += context.parsed.x.toLocaleString('id-ID');
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        offset: 2,
+                        font: {
+                            weight: 'bold',
+                            size: 8
+                        },
+                        color: '#000',
+                        formatter: function(value) {
+                            if (value === 0) return '';
+                            if (type === 'currency') {
+                                return value.toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                            }
+                            return value.toLocaleString('id-ID');
+                        }
+                    }
                 }
-            });
+            };
         }
     });
 
