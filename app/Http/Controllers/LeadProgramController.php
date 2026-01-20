@@ -831,15 +831,16 @@ class LeadProgramController extends Controller
                         ->where('lm.data_type', 'leads')
                         ->distinct()
                         ->count('lb.leads_master_id');
+                        
+                    // 2. New Akun
+                    $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
+                        ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                        ->where('lm.user_id', $userId)
+                        ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                        ->distinct()
+                        ->count('dt.email');
                 }
 
-                // 2. New Akun
-                $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
-                    ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
-                    ->where('lm.regional', $region)
-                    ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
-                    ->distinct()
-                    ->count('dt.email');
 
                 // 3. Existing Akun
                 $existingAkunCount = DB::table('logbook as lb')
