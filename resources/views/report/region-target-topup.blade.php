@@ -583,7 +583,7 @@
             const labels = items.map(c => {
                 return (c.pic && c.pic !== '-')
                     ? c.pic
-                    : (c.regional ?? 'Unknown Regional');
+                    : (c.region ?? 'Unknown Regional');
             });
 
             /* ===============================
