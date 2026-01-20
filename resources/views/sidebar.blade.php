@@ -25,6 +25,8 @@
                 <span class="badge badge-warning">ADMIN</span>
                 @elseif($isTsel)
                 <span class="badge badge-success">TSEL</span>
+                @elseif($isPH)
+                <span class="badge badge-dark">POWERHOUSE</span>
                 @elseif($isCanv)
                 <span class="badge badge-primary">CANVASSER</span>
                 @elseif($isTreg)
@@ -124,7 +126,7 @@
                 <li class="nav-item">
                     <a href="{{ route('logbook-daily.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('logbook-daily.index') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
+                        <i class="nav-icon fa-solid fa-book" style="color:rgb(250, 125, 90);"></i>
                         <p>Logbook Daily</p>
                     </a>
                 </li>         
