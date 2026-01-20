@@ -135,24 +135,32 @@ class PanenPoinController extends Controller
             
             $query = DB::table('summary_panen_poin')
                 ->select(
-                    'nama_canvasser',
-                    'email_client',
-                    'nomor_hp_client',
-                    'source',
-                    DB::raw('CAST(total_settlement AS DECIMAL(15,2)) as total_settlement_raw'),
-                    DB::raw('FORMAT(total_settlement, 0, "id_ID") as total_settlement'),
-                    'poin_bulan_ini',
-                    'poin_akumulasi',
-                    'poin',
-                    DB::raw('COALESCE(poin_redeem, 0) as poin_redeem'),
-                    DB::raw('(poin - COALESCE(poin_redeem, 0)) as poin_sisa'),
-                    'remark',
-                    'bulan'
-                );
+                    'summary_panen_poin.nama_canvasser',
+                    'summary_panen_poin.email_client',
+                    'summary_panen_poin.nomor_hp_client',
+                    'summary_panen_poin.source',
+                    DB::raw('CAST(summary_panen_poin.total_settlement AS DECIMAL(15,2)) as total_settlement_raw'),
+                    DB::raw('FORMAT(summary_panen_poin.total_settlement, 0, "id_ID") as total_settlement'),
+                    'summary_panen_poin.poin_bulan_ini',
+                    'summary_panen_poin.poin_akumulasi',
+                    'summary_panen_poin.poin',
+                    DB::raw('COALESCE(summary_panen_poin.poin_redeem, 0) as poin_redeem'),
+                    DB::raw('(summary_panen_poin.poin - COALESCE(summary_panen_poin.poin_redeem, 0)) as poin_sisa'),
+                    'summary_panen_poin.remark',
+                    'summary_panen_poin.bulan'
+                )
+                // JOIN dengan akun_panen_poin - hanya hitung jika email ada di akun_panen_poin
+                ->join('akun_panen_poin', 'summary_panen_poin.email_client', '=', 'akun_panen_poin.email_client')
+                // LEFT JOIN dengan mitra_sbp untuk exclude email yang ada di mitra_sbp
+                ->leftJoin('mitra_sbp', 'summary_panen_poin.email_client', '=', 'mitra_sbp.email_myads')
+                // Exclude email yang ada di mitra_sbp
+                ->whereNull('mitra_sbp.id');
+            
+            \Log::info("Filtering: Email must exist in akun_panen_poin AND not exist in mitra_sbp");
             
             // Filter berdasarkan role: kalau cvsr, hanya tampilkan data dia sendiri
             if (Auth::user()->role === 'cvsr') {
-                $query->where('user_id', Auth::id());
+                $query->where('summary_panen_poin.user_id', Auth::id());
                 \Log::info("Filtering by User ID: " . Auth::id() . " (Canvasser)");
             }
             
@@ -161,24 +169,24 @@ class PanenPoinController extends Controller
                 $date = Carbon::parse($tanggal);
                 $month = $date->month;
                 $year = $date->year;
-                $query->whereMonth('created_at', $month)
-                      ->whereYear('created_at', $year);
+                $query->whereMonth('summary_panen_poin.created_at', $month)
+                      ->whereYear('summary_panen_poin.created_at', $year);
                 \Log::info("Filtering by Month: {$month}, Year: {$year}");
             }
             
             // Filter berdasarkan source
             if (request()->has('source') && request()->source != '') {
-                $query->where('source', request()->source);
+                $query->where('summary_panen_poin.source', request()->source);
                 \Log::info("Filtering by Source: " . request()->source);
             }
             
             // Filter berdasarkan remark
             if (request()->has('remark') && request()->remark != '') {
-                $query->where('remark', request()->remark);
+                $query->where('summary_panen_poin.remark', request()->remark);
                 \Log::info("Filtering by Remark: " . request()->remark);
             }
             
-            $result = $query->orderBy('poin_sisa', 'desc')
+            $result = $query->orderBy('summary_panen_poin.poin_sisa', 'desc')
                 ->get()
                 ->map(function($item) {
                     return [
