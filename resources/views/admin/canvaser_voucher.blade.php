@@ -494,7 +494,7 @@
                                 <th style="text-align: center; width: 5%;">No</th>
                                 <th style="text-align: center;">Referral Code</th>
                                 <th style="text-align: center;">Canvasser</th>
-                                <th style="text-align: center;">Jumlah New Akun</th>
+                                <th style="text-align: center;">Email Client</th>
                                 <th style="text-align: center;">Top Up</th>
                                 <th style="text-align: center;">Insentif</th>
                                 <th style="text-align: center;">Tgl Transaksi Terakhir</th>
@@ -536,9 +536,6 @@
         var table = $('#regionalTable').DataTable({
             processing: true,
             serverSide: true,
-            paging: false,
-            searching: false,
-            info: false,
             ajax: {
                 url: "{{ route('canvasser_voucher_data') }}",
                 type: 'GET'
@@ -547,7 +544,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'referral_code', name: 'referral_code', className: 'text-center' },
                 { data: 'canvasser', name: 'canvasser', className: 'text-center' },
-                { data: 'jumlah_new_akun', name: 'jumlah_new_akun', className: 'text-center' },
+                { data: 'email_client', name: 'email_client', className: 'text-center' },
                 { data: 'total_topup', name: 'total_topup', className: 'text-center' },
                 { data: 'insentif', name: 'insentif', className: 'text-center' },
                 { data: 'tgl_transaksi_terakhir', name: 'tgl_transaksi_terakhir', className: 'text-center' }

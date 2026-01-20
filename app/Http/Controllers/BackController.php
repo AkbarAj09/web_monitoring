@@ -880,7 +880,7 @@ class BackController extends Controller
         // Voucher codes untuk Canvasser
         $canvasserCodes = ['EXTRA1', 'EXTRA2', 'EXTRA3', 'EXTRA4', 'EXTRA5', 'EXTRA6', 'EXTRA7', 'EXTRA8', 'EXTRA9', 'EXTRA10', 'EXTRA11', 'EXTRA12', 'EXTRA13'];
         
-        // Query dengan JOIN
+        // Query dengan JOIN (per akun, bukan aggregate)
         $data = DB::table('report_balance_top_up as rb')
             ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
             ->select(
@@ -888,14 +888,13 @@ class BackController extends Controller
                 'rb.company_name',
                 'dv.voucher_code',
                 DB::raw('CAST(rb.amount AS DECIMAL(15,2)) as amount'),
-                DB::raw('CAST(rb.discount_voucer AS DECIMAL(15,2)) as discount'),
-                DB::raw('CAST(rb.total_settlement_klien AS DECIMAL(15,2)) as total'),
                 'rb.payment_method_name',
                 'rb.paid_date'
             )
             ->whereIn('dv.voucher_code', $canvasserCodes)
             ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
             ->orderBy('dv.voucher_code')
+            ->orderBy('rb.email_client')
             ->get();
         
         // Mapping untuk Canvasser names
@@ -915,16 +914,19 @@ class BackController extends Controller
             'EXTRA13' => 'Rizky'
         ];
         
-        // Transform data untuk Excel
+        // Transform data untuk Excel (per akun dengan insentif per akun)
         $exportData = $data->map(function ($item) use ($canvasserMapping) {
+            $totalAmount = (float)$item->amount;
+            // Insentif per akun: jika total > 500K, dapat 100K
+            $insentif = $totalAmount > 500000 ? 100000 : 0;
+            
             return [
                 'Email' => $item->email_client,
                 'Perusahaan' => $item->company_name,
                 'Voucher Code' => $item->voucher_code,
                 'Canvasser' => $canvasserMapping[$item->voucher_code] ?? '-',
-                'Amount' => $item->amount,
-                'Discount' => $item->discount,
-                'Total Settlement' => $item->total,
+                'Total Top Up' => $totalAmount,
+                'Insentif' => $insentif,
                 'Payment Method' => $item->payment_method_name,
                 'Tanggal Pembayaran' => Carbon::parse($item->paid_date)->format('d-m-Y H:i:s')
             ];
@@ -938,7 +940,7 @@ class BackController extends Controller
             $sheet = $spreadsheet->getActiveSheet();
             
             // Set header
-            $headers = ['Email', 'Perusahaan', 'Voucher Code', 'Canvasser', 'Amount', 'Discount', 'Total Settlement', 'Payment Method', 'Tanggal Pembayaran'];
+            $headers = ['Email', 'Perusahaan', 'Voucher Code', 'Canvasser', 'Total Top Up', 'Insentif', 'Payment Method', 'Tanggal Pembayaran'];
             $sheet->fromArray($headers, null, 'A1');
             
             // Style header
@@ -947,7 +949,7 @@ class BackController extends Controller
                 'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '667EEA']],
                 'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
             ];
-            $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
             
             // Add data
             $row = 2;
@@ -961,11 +963,10 @@ class BackController extends Controller
             $sheet->getColumnDimension('B')->setWidth(25);
             $sheet->getColumnDimension('C')->setWidth(15);
             $sheet->getColumnDimension('D')->setWidth(15);
-            $sheet->getColumnDimension('E')->setWidth(15);
+            $sheet->getColumnDimension('E')->setWidth(18);
             $sheet->getColumnDimension('F')->setWidth(15);
-            $sheet->getColumnDimension('G')->setWidth(18);
+            $sheet->getColumnDimension('G')->setWidth(20);
             $sheet->getColumnDimension('H')->setWidth(20);
-            $sheet->getColumnDimension('I')->setWidth(20);
             
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $writer->save('php://output');
@@ -1084,55 +1085,42 @@ class BackController extends Controller
             'EXTRA13' => 'Rizky',
         ];
 
-        // Ambil data dari JOIN report_balance_top_up + data_voucher
+        // Ambil data dari JOIN report_balance_top_up + data_voucher (PER AKUN, bukan di-aggregate)
         $voucherData = DB::table('report_balance_top_up as rb')
             ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
             ->select(
+                'rb.email_client',
+                'rb.company_name',
                 'dv.voucher_code',
-                DB::raw('COUNT(*) as jumlah_new_akun'),
-                DB::raw('SUM(CAST(rb.amount AS DECIMAL(15,2))) as total_topup'),
-                DB::raw('MAX(rb.tgl_transaksi) as tgl_transaksi_terakhir')
+                DB::raw('CAST(rb.amount AS DECIMAL(15,2)) as total_topup'),
+                'rb.tgl_transaksi',
+                'rb.paid_date'
             )
             ->whereIn('dv.voucher_code', $canvasserCodes)
             ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
-            ->groupBy('dv.voucher_code')
-            ->get()
-            ->keyBy('voucher_code');
+            ->orderBy('dv.voucher_code')
+            ->orderBy('rb.email_client')
+            ->get();
 
-        // Build result dari mapping
+        // Build result per akun (per email_client)
         $result = [];
-        foreach ($canvasserMapping as $voucherCode => $canvasserName) {
-            $voucherInfo = $voucherData->get($voucherCode);
-            
-            if ($voucherInfo) {
-                $totalTopup = (float)($voucherInfo->total_topup ?? 0);
-                $insentif = 0;
-                if ($totalTopup > 500000) {
-                    $insentif = 100000;
-                }
+        foreach ($voucherData as $data) {
+            $totalTopup = (float)$data->total_topup;
+            // Insentif per akun: jika total top-up > 500K, dapat 100K
+            $insentif = $totalTopup > 500000 ? 100000 : 0;
 
-                $tglFormatted = $voucherInfo->tgl_transaksi_terakhir ? 
-                    Carbon::parse($voucherInfo->tgl_transaksi_terakhir)->format('d M Y') : '-';
-                    
-                $result[] = [
-                    'referral_code' => $voucherCode,
-                    'canvasser' => $canvasserName,
-                    'jumlah_new_akun' => (int)($voucherInfo->jumlah_new_akun ?? 0),
-                    'total_topup' => $totalTopup,
-                    'insentif' => $insentif,
-                    'tgl_transaksi_terakhir' => $tglFormatted,
-                ];
-            } else {
-                // Voucher tanpa data
-                $result[] = [
-                    'referral_code' => $voucherCode,
-                    'canvasser' => $canvasserName,
-                    'jumlah_new_akun' => 0,
-                    'total_topup' => 0,
-                    'insentif' => 0,
-                    'tgl_transaksi_terakhir' => '-',
-                ];
-            }
+            $tglFormatted = $data->paid_date ? 
+                Carbon::parse($data->paid_date)->format('d M Y') : '-';
+                
+            $result[] = [
+                'referral_code' => $data->voucher_code,
+                'canvasser' => $canvasserMapping[$data->voucher_code] ?? $data->voucher_code,
+                'email_client' => $data->email_client,
+                'company_name' => $data->company_name,
+                'total_topup' => $totalTopup,
+                'insentif' => $insentif,
+                'tgl_transaksi_terakhir' => $tglFormatted,
+            ];
         }
 
         return DataTables::of($result)
