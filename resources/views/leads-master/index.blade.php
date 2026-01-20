@@ -150,6 +150,7 @@ $(function () {
     let table = $('#leadsMasterTable').DataTable({
         processing: true,
         serverSide: true,
+    searching: true,
         ajax: {
             url: "{{ route('leads-master.data') }}",
             data: function (d) {
@@ -163,15 +164,15 @@ $(function () {
             }
         },
         columns: [
-            { data: 'status', orderable:false, searchable:false },
-            { data: 'user_name' },
-            { data: 'regional' },
-            { data: 'company_name' },
-            { data: 'email' },
-            { data: 'mobile_phone' },
-            { data: 'data_type' },
-            { data: 'created_at' },
-            { data: 'aksi', orderable:false, searchable:false }
+            { data: 'status', orderable: false, searchable: false },
+            { data: 'user_name', searchable: true },
+            { data: 'regional', searchable: true },
+            { data: 'company_name', searchable: true },
+            { data: 'email', searchable: true },
+            { data: 'mobile_phone', searchable: true },
+            { data: 'data_type', searchable: false },
+            { data: 'created_at', searchable: false },
+            { data: 'aksi', orderable: false, searchable: false }
         ]
     });
 
