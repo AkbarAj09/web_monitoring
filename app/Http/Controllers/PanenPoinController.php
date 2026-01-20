@@ -690,17 +690,17 @@ class PanenPoinController extends Controller
         try {
             \Log::info("Attempting to send email to: {$data['email']}");
             
-            // Gunakan queue async untuk lebih reliable
-            \Mail::queue('emails.akun_panen_poin', $data, function($message) use ($data) {
+            // Gunakan send() untuk mengirim langsung (synchronous)
+            \Mail::send('emails.akun_panen_poin', $data, function($message) use ($data) {
                 $message->to($data['email'], $data['nama_akun'])
                     ->subject('Akun Panen Poin Anda Telah Dibuat')
                     ->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
             });
             
-            \Log::info("Email queued successfully for: {$data['email']}");
+            \Log::info("Email sent successfully for: {$data['email']}");
             
         } catch (\Exception $e) {
-            \Log::error("Error queuing email to {$data['email']}: " . $e->getMessage());
+            \Log::error("Error sending email to {$data['email']}: " . $e->getMessage());
             \Log::error("Email config - MAIL_MAILER: " . env('MAIL_MAILER'));
             \Log::error("Email config - MAIL_HOST: " . env('MAIL_HOST'));
             \Log::error("Email config - MAIL_PORT: " . env('MAIL_PORT'));
