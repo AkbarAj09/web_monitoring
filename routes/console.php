@@ -22,9 +22,6 @@ Schedule::call(function () {
     app(PanenPoinController::class)->refreshSummaryPanenPoin();
 })->everyMinute()->name('refreshSummaryPanenPoin');
 
-Schedule::call(function () {
-    app(PanenPoinController::class)->syncAkunPanenPoin();
-})->everyMinute()->name('syncAkunPanenPoin');
 
 Schedule::call(function () {
     app(GetDataController::class)->getDataCreatorPartner();

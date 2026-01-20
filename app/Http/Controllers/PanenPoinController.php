@@ -33,14 +33,6 @@ class PanenPoinController extends Controller
         try {
             DB::beginTransaction();
             
-            // Simpan ke user_panen_poin
-            $panenPoin = UserPanenPoin::create([
-                'user_id' => Auth::id(),
-                'nama_pelanggan' => $request->nama_pelanggan,
-                'akun_myads_pelanggan' => strtolower($request->akun_myads_pelanggan),
-                'nomor_hp_pelanggan' => $request->nomor_hp_pelanggan,
-            ]);
-            
             // Auto-create akun di akun_panen_poin
             $emailClient = strtolower(trim($request->akun_myads_pelanggan));
             
@@ -48,6 +40,8 @@ class PanenPoinController extends Controller
             $existingAkun = AkunPanenPoin::where('user_id', Auth::id())
                 ->where('email_client', $emailClient)
                 ->first();
+            
+            $isNewAccount = false;
             
             if (!$existingAkun) {
                 // Create akun baru
@@ -60,21 +54,45 @@ class PanenPoinController extends Controller
                 ]);
                 
                 \Log::info("Akun created for: {$emailClient}");
+                $isNewAccount = true;
                 
-                // Kirim notifikasi email & WhatsApp
+                // Simpan ke user_panen_poin hanya jika akun baru
+                $panenPoin = UserPanenPoin::create([
+                    'user_id' => Auth::id(),
+                    'nama_pelanggan' => $request->nama_pelanggan,
+                    'akun_myads_pelanggan' => strtolower($request->akun_myads_pelanggan),
+                    'nomor_hp_pelanggan' => $request->nomor_hp_pelanggan,
+                ]);
+            } else {
+                $akun = $existingAkun;
+                \Log::info("Akun already exists for: {$emailClient}");
+                $isNewAccount = false;
+            }
+            
+            // Kirim notifikasi email & WhatsApp (untuk akun baru atau existing)
+            try {
                 $this->sendAccountNotification(
                     $akun,
                     $request->nomor_hp_pelanggan,
                     '123456' // Plain password untuk notifikasi
                 );
-            } else {
-                \Log::info("Akun already exists for: {$emailClient}");
+            } catch (\Exception $e) {
+                \Log::warning("Notification failed (not blocking transaction): " . $e->getMessage());
+                // Jangan block transaksi - akun sudah dibuat, notifikasi bisa dicoba ulang
             }
             
             DB::commit();
             
+            // Tentukan pesan berdasarkan apakah akun baru atau existing
+            if ($isNewAccount) {
+                $successMessage = 'Data pelanggan berhasil disimpan dan akun telah dibuat!';
+            } else {
+                $successMessage = 'Akun sudah pernah dibuat, notifikasi telah dikirimkan ulang!';
+            }
+            
             return redirect()->route('panenpoin.index')
-                ->with('success', 'Data pelanggan berhasil disimpan dan akun telah dibuat!');
+                ->with('success', $successMessage)
+                ->with('is_existing_account', !$isNewAccount);
                 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -131,7 +149,6 @@ class PanenPoinController extends Controller
     private function calculatePanenPoinData($tanggal = null)
     {
         try {
-            \Log::info("=== READING FROM SUMMARY TABLE ===");
             
             $query = DB::table('summary_panen_poin')
                 ->select(
@@ -140,7 +157,6 @@ class PanenPoinController extends Controller
                     'summary_panen_poin.nomor_hp_client',
                     'summary_panen_poin.source',
                     DB::raw('CAST(summary_panen_poin.total_settlement AS DECIMAL(15,2)) as total_settlement_raw'),
-                    DB::raw('FORMAT(summary_panen_poin.total_settlement, 0, "id_ID") as total_settlement'),
                     'summary_panen_poin.poin_bulan_ini',
                     'summary_panen_poin.poin_akumulasi',
                     'summary_panen_poin.poin',
@@ -186,7 +202,7 @@ class PanenPoinController extends Controller
                 \Log::info("Filtering by Remark: " . request()->remark);
             }
             
-            $result = $query->orderBy('summary_panen_poin.poin_sisa', 'desc')
+            $result = $query->orderByRaw('(summary_panen_poin.poin - COALESCE(summary_panen_poin.poin_redeem, 0)) DESC')
                 ->get()
                 ->map(function($item) {
                     return [
@@ -672,15 +688,23 @@ class PanenPoinController extends Controller
     private function sendEmailNotification($data)
     {
         try {
-            \Mail::send('emails.akun_panen_poin', $data, function($message) use ($data) {
+            \Log::info("Attempting to send email to: {$data['email']}");
+            
+            // Gunakan queue async untuk lebih reliable
+            \Mail::queue('emails.akun_panen_poin', $data, function($message) use ($data) {
                 $message->to($data['email'], $data['nama_akun'])
-                    ->subject('Akun Panen Poin Anda Telah Dibuat');
+                    ->subject('Akun Panen Poin Anda Telah Dibuat')
+                    ->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
             });
             
-            \Log::info("Email sent to: {$data['email']}");
+            \Log::info("Email queued successfully for: {$data['email']}");
             
         } catch (\Exception $e) {
-            \Log::error("Error sending email: " . $e->getMessage());
+            \Log::error("Error queuing email to {$data['email']}: " . $e->getMessage());
+            \Log::error("Email config - MAIL_MAILER: " . env('MAIL_MAILER'));
+            \Log::error("Email config - MAIL_HOST: " . env('MAIL_HOST'));
+            \Log::error("Email config - MAIL_PORT: " . env('MAIL_PORT'));
+            throw $e; // Propagate error untuk debugging
         }
     }
     
@@ -694,7 +718,12 @@ class PanenPoinController extends Controller
             // URL Bot WA API (sesuaikan dengan config)
             $botUrl = env('WA_BOT_URL') . '/api/send-wa';
             
-            \Log::info("Sending WhatsApp to: {$phone} via Bot API: {$botUrl}");
+            \Log::info("Attempting WhatsApp to: {$phone}");
+            \Log::info("Bot URL: {$botUrl}");
+            
+            if (!$botUrl || $botUrl === '/api/send-wa') {
+                throw new \Exception("WA_BOT_URL not configured in .env");
+            }
             
             // Data yang akan dikirim ke bot
             $postData = [
@@ -702,7 +731,7 @@ class PanenPoinController extends Controller
                 'nama_akun' => $data['nama_akun'],
                 'email' => $data['email'],
                 'password' => $data['password'],
-                'uuid' => $data['uuid'],
+                'uuid' => $data['uuid'] ?? null,
                 'message' => '' // Bot akan format otomatis jika ada data akun
             ];
             
@@ -729,6 +758,9 @@ class PanenPoinController extends Controller
                 throw new \Exception("cURL Error: {$error}");
             }
             
+            \Log::info("Bot API response code: {$httpCode}");
+            \Log::info("Bot API response: {$response}");
+            
             if ($httpCode !== 200) {
                 throw new \Exception("Bot API returned HTTP {$httpCode}: {$response}");
             }
@@ -744,7 +776,7 @@ class PanenPoinController extends Controller
             
         } catch (\Exception $e) {
             \Log::error("Error sending WhatsApp: " . $e->getMessage());
-            // Don't throw, just log - agar proses lain tetap jalan
+            throw $e; // Propagate untuk debugging
         }
     }
 }
