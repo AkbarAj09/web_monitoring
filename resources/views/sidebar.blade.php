@@ -195,6 +195,15 @@
                                         <p>Report Poin</p>
                                     </a>
                                 </li>
+
+                                <li class="nav-item">
+                                    <a href="{{ route('panenpoin.list-akun') }}"
+                                    class="nav-link {{ request()->routeIs('panenpoin.list-akun') ? 'active' : '' }}"
+                                    style="padding-left: 60px;">
+                                        <i class="fas fa-user-check nav-icon" style="color:#28a745;"></i>
+                                        <p>Daftar Akun</p>
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 

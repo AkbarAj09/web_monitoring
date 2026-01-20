@@ -21,6 +21,62 @@ class PanenPoinController extends Controller
         return view('panenpoin.inputdatapoin');
     }
     
+    // Tampilkan halaman list akun yang sudah terdaftar
+    public function listAkun()
+    {
+        logUserLogin();
+        return view('panenpoin.listakun');
+    }
+    
+    // Get data akun untuk DataTable
+    public function getAkunData(Request $request)
+    {
+        try {
+            $query = AkunPanenPoin::query();
+            
+            // Filter berdasarkan role: kalau cvsr, hanya tampilkan akun dia sendiri
+            if (Auth::user()->role === 'cvsr') {
+                $query->where('user_id', Auth::id());
+            }
+            
+            $query->select('id', 'nama_akun', 'email_client', 'user_id', 'created_at')
+                ->with('user:id,name') // Join dengan user untuk nama canvasser
+                ->orderBy('created_at', 'desc');
+            
+            $data = $query->get()->map(function($item) {
+                // Ambil nomor HP dari user_panen_poin atau leads_master
+                $nomorHp = DB::table('user_panen_poin')
+                    ->where('user_id', $item->user_id)
+                    ->where('akun_myads_pelanggan', $item->email_client)
+                    ->value('nomor_hp_pelanggan');
+                
+                if (!$nomorHp) {
+                    $nomorHp = DB::table('leads_master')
+                        ->where('user_id', $item->user_id)
+                        ->where('email', $item->email_client)
+                        ->value('mobile_phone');
+                }
+                
+                return [
+                    'id' => $item->id,
+                    'nama_akun' => $item->nama_akun,
+                    'email_client' => $item->email_client,
+                    'nomor_hp' => $nomorHp ?? '-',
+                    'nama_canvasser' => $item->user->name ?? '-',
+                    'created_at' => $item->created_at->format('d M Y H:i'),
+                    'created_at_raw' => $item->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+            
+            return datatables()->of(collect($data))
+                ->make(true);
+                
+        } catch (\Exception $e) {
+            \Log::error("Error in getAkunData: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    
     // Simpan data panen poin
     public function store(Request $request)
     {
@@ -82,6 +138,15 @@ class PanenPoinController extends Controller
             }
             
             DB::commit();
+            
+            // Refresh summary panen poin untuk user ini (langsung setelah input)
+            try {
+                $this->refreshSummaryForSingleUser(Auth::id(), $emailClient);
+                \Log::info("Summary refreshed immediately after input for email: {$emailClient}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to refresh summary immediately: " . $e->getMessage());
+                // Tidak masalah, akan diupdate scheduler jam 7 pagi
+            }
             
             // Tentukan pesan berdasarkan apakah akun baru atau existing
             if ($isNewAccount) {
@@ -778,5 +843,146 @@ class PanenPoinController extends Controller
             \Log::error("Error sending WhatsApp: " . $e->getMessage());
             throw $e; // Propagate untuk debugging
         }
+    }
+    
+    // Refresh summary untuk single user + email (dipanggil langsung setelah input)
+    private function refreshSummaryForSingleUser($userId, $emailClient)
+    {
+        try {
+            $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+            
+            \Log::info("=== REFRESH SUMMARY FOR SINGLE USER ===");
+            \Log::info("User ID: {$userId}, Email: {$emailClient}");
+            
+            // Ambil email dari user_panen_poin atau leads_master user ini
+            $clientData = UserPanenPoin::where('user_id', $userId)
+                ->where('akun_myads_pelanggan', $emailClient)
+                ->select('akun_myads_pelanggan', 'nomor_hp_pelanggan')
+                ->first();
+            
+            if (!$clientData) {
+                // Cek di leads_master jika tidak ada di user_panen_poin
+                $clientData = DB::table('leads_master')
+                    ->where('user_id', $userId)
+                    ->where('email', $emailClient)
+                    ->select('email as akun_myads_pelanggan', 'mobile_phone as nomor_hp_pelanggan')
+                    ->first();
+            }
+            
+            if (!$clientData) {
+                \Log::warning("No client data found for {$emailClient}");
+                return;
+            }
+            
+            $email = strtolower(trim($clientData->akun_myads_pelanggan));
+            $nomorHp = $clientData->nomor_hp_pelanggan ?? '-';
+            
+            // Query settlement bulan ini untuk email ini saja
+            $settlement = DB::table('report_balance_top_up')
+                ->select(DB::raw('SUM(CAST(total_settlement_klien AS DECIMAL(15,2))) as total'))
+                ->whereBetween('tgl_transaksi', [$startDate, $endDate])
+                ->whereNotNull('total_settlement_klien')
+                ->where(DB::raw('LOWER(TRIM(email_client))'), $email)
+                ->first();
+            
+            $totalSettlement = $settlement->total ?? 0;
+            
+            // Ambil poin sisa dari bulan sebelumnya
+            $previousMonth = Carbon::now()->month - 1;
+            $previousYear = Carbon::now()->year;
+            
+            if ($previousMonth < 1) {
+                $previousMonth = 12;
+                $previousYear = $previousYear - 1;
+            }
+            
+            $previousSummary = DB::table('summary_panen_poin')
+                ->select(DB::raw('(poin - COALESCE(poin_redeem, 0)) as poin_sisa'))
+                ->where('user_id', $userId)
+                ->where('email_client', $email)
+                ->whereMonth('created_at', $previousMonth)
+                ->whereYear('created_at', $previousYear)
+                ->first();
+            
+            $poinSisaBulanLalu = $previousSummary->poin_sisa ?? 0;
+            
+            // Hitung total poin redeem bulan ini
+            $totalPoinRedeem = DB::table('prize_redeems')
+                ->where('user_id', $userId)
+                ->whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)
+                ->sum('point_used') ?? 0;
+            
+            // Hitung poin bulan ini dan total
+            $poinBulanIni = floor($totalSettlement / 250000);
+            $poinAkumulasi = $poinSisaBulanLalu;
+            $totalPoin = $poinBulanIni + $poinAkumulasi;
+            $poinSisa = $totalPoin - $totalPoinRedeem;
+            
+            // Tentukan remark
+            $remark = $this->calculateRemark($poinSisa);
+            
+            // Cek apakah data sudah ada
+            $existing = DB::table('summary_panen_poin')
+                ->where('user_id', $userId)
+                ->where('email_client', $email)
+                ->whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)
+                ->first();
+            
+            $canvasser = User::find($userId);
+            $source = $this->getSourceFromUserData($userId, $email);
+            
+            $dataToSave = [
+                'user_id' => $userId,
+                'nama_canvasser' => $canvasser->name,
+                'email_client' => $email,
+                'nomor_hp_client' => $nomorHp,
+                'source' => $source,
+                'total_settlement' => $totalSettlement,
+                'poin_bulan_ini' => $poinBulanIni,
+                'poin_akumulasi' => $poinAkumulasi,
+                'poin' => $totalPoin,
+                'poin_redeem' => $totalPoinRedeem,
+                'remark' => $remark,
+                'bulan' => Carbon::now()->locale('id')->translatedFormat('F Y'),
+                'updated_at' => now()
+            ];
+            
+            if ($existing) {
+                DB::table('summary_panen_poin')
+                    ->where('id', $existing->id)
+                    ->update($dataToSave);
+                \Log::info("Summary updated for email: {$email}");
+            } else {
+                $dataToSave['created_at'] = now();
+                DB::table('summary_panen_poin')->insert($dataToSave);
+                \Log::info("Summary inserted for email: {$email}");
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error("Error in refreshSummaryForSingleUser: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            throw $e;
+        }
+    }
+    
+    // Helper: Determine source dari user data
+    private function getSourceFromUserData($userId, $email)
+    {
+        $source = DB::table('user_panen_poin')
+            ->where('user_id', $userId)
+            ->where('akun_myads_pelanggan', $email)
+            ->value('source');
+        
+        if (!$source) {
+            $source = DB::table('leads_master')
+                ->where('user_id', $userId)
+                ->where('email', $email)
+                ->value('source');
+        }
+        
+        return $source ?? 'user_panen_poin';
     }
 }
