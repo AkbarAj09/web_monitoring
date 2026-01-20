@@ -128,6 +128,7 @@
                         <p>Topup & Client Canvasser</p>
                     </a>
                 </li>           --}}
+                @if(!$isCanv)
                 <li class="nav-item">
                     <a href="{{ route('calendar') }}"
                         class="nav-link waves-effect {{ request()->routeIs('calendar') ? 'active' : '' }}">
@@ -135,6 +136,7 @@
                         <p>Jadwal</p>
                     </a>
                 </li>  
+                @endif
                 {{-- <li class="nav-item">
                     <a href="{{ route('logbook.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">
