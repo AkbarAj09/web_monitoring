@@ -36,6 +36,7 @@ class LeadsMasterController extends Controller
      */
     public function data(Request $request)
     {
+        $search = $request->input('search.value');
         // Base query + eager loading
         $query = LeadsMaster::with(['user', 'source', 'sector'])
             ->orderBy('created_at', 'asc');
@@ -52,9 +53,9 @@ class LeadsMasterController extends Controller
             $query->where('regional', $request->regional);
         }
         // Filter Canvasser
-        if ($request->canvasser) {
-            $query->where('user_id', $request->canvasser);
-        }
+        // if ($request->canvasser) {
+        //     $query->where('user_id', $request->canvasser);
+        // }
 
         // Filter Nama Perusahaan
         if ($request->company) {
@@ -81,7 +82,21 @@ class LeadsMasterController extends Controller
                 $q->where('id', $request->source);
             });
         }
+        if ($search) {
+            $query->where(function ($q) use ($search) {
 
+                // 🔎 search dari relasi user
+                $q->whereHas('user', function ($u) use ($search) {
+                    $u->where('name', 'like', "%$search%");
+                })
+
+                // 🔎 search kolom di tabel leads_master
+                ->orWhere('regional', 'like', "%$search%")
+                ->orWhere('company_name', 'like', "%$search%")
+                ->orWhere('email', 'like', "%$search%")
+                ->orWhere('mobile_phone', 'like', "%$search%");
+            });
+        }
         return datatables()->of($query)
             ->addColumn('user_name', function ($row) {
                 return $row->user->name ?? '-';
@@ -131,9 +146,9 @@ class LeadsMasterController extends Controller
         }
 
         /* ===== FILTER (SAMA DENGAN DATATABLE) ===== */
-        if ($request->canvasser) {
-            $query->where('user_id', $request->canvasser);
-        }
+        // if ($request->canvasser) {
+        //     $query->where('user_id', $request->canvasser);
+        // }
 
         if ($request->company) {
             $query->where('company_name', 'like', '%' . $request->company . '%');
