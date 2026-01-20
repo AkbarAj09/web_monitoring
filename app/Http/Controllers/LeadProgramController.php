@@ -798,16 +798,40 @@ class LeadProgramController extends Controller
                         'SULAWESI'       => 'Ikrar Dharmawan',
                     ];
             $result = [];
+            $picAliasMap = [
+                'Angga Satria Gusti'        => 'angga_s_gusti@telkomsel.co.id',
+                'Abdul Halim'               => 'abdul_halim@telkomsel.co.id',
+                'Raden Agie Satria Akbar'   => 'raden_as_akbar@telkomsel.co.id',
+                'Sony Widjaya'              => 'sony_widjaya@telkomsel.co.id',
+                'Deni Setiawan'             => 'deni_setiawan@telkomsel.co.id',
+                'Muhammad Arief Syahbana'   => 'muhammad_a_syahbana@telkomsel.co.id',
+                'Naqsaybandi'               => 'naqsyabandi@telkomsel.co.id',
+                'Ikrar Dharmawan'           => 'ikrar_dharmawan@telkomsel.co.id',
+            ];
 
             foreach ($regionalMap as $region => $picName) {
 
-                // 1. New Leads
-                $newLeads = DB::table('logbook as lb')
-                    ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
-                    ->where('lm.regional', $region)
-                    ->where('lm.data_type', 'leads')
-                    ->distinct()
-                    ->count('lb.leads_master_id');
+                // Ambil user_id dari PIC name
+                $userId = null;
+
+                if ($picName) {
+                    $userIdByEmail = DB::table('users')
+                        ->pluck('id', 'email'); // [email => id]
+                    $picEmail = $picAliasMap[$picName] ?? null;
+                    $userId   = $picEmail ? ($userIdByEmail[$picEmail] ?? null) : null;
+                }
+
+                // 1. New Leads (BERDASARKAN USER_ID)
+                $newLeads = 0;
+
+                if ($userId) {
+                    $newLeads = DB::table('logbook as lb')
+                        ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                        ->where('lm.user_id', $userId)
+                        ->where('lm.data_type', 'leads')
+                        ->distinct()
+                        ->count('lb.leads_master_id');
+                }
 
                 // 2. New Akun
                 $newAkun = DB::table('data_registarsi_status_approveorreject as dt')

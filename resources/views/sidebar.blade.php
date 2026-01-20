@@ -120,7 +120,14 @@
                         <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
                         <p>Logbook</p>
                     </a>
-                </li>           
+                </li>                    
+                <li class="nav-item">
+                    <a href="{{ route('logbook-daily.index') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('logbook-daily.index') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
+                        <p>Logbook Daily</p>
+                    </a>
+                </li>         
                 {{-- <li class="nav-item">
                     <a href="{{ route('topup-canvasser') }}"
                         class="nav-link waves-effect {{ request()->routeIs('topup-canvasser') ? 'active' : '' }}">
