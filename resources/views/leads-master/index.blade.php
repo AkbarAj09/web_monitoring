@@ -4,6 +4,7 @@
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet"/>
+
 <style>
     .card-title { font-weight: bold; }
     .form-group label { font-weight: 600; }
@@ -26,6 +27,22 @@
 @endsection
 
 @section('content')
+
+@if (session('success'))
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ session('success') }}
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+</div>
+@endif
+
+@if (session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ session('error') }}
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+</div>
+@endif
+
+
 <div class="row align-items-end mb-3">
 
     <!-- Spacer -->
@@ -36,36 +53,37 @@
         <div class="d-flex flex-column flex-md-row justify-content-md-end gap-2">
 
             @if(Auth::user()->role != 'cvsr')
-            <select id="filter_canvasser" class="form-control select2">
+            <select id="filter_canvasser" class="form-control select2 mb-1">
                 <option value="">Semua Canvasser</option>
                 @foreach($canvassers as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
                 @endforeach
             </select>
             @endif
+             @if(Auth::user()->role != 'PH')
             <select id="filter_regional"
-                class="form-select form-control w-100 w-md-auto">
+                class="form-select form-control w-100 w-md-auto ml-2 mb-1">
                 <option value="">All Regional</option>
                 @foreach($regionals as $regional)
                     <option value="{{ $regional }}">{{ $regional }}</option>
                 @endforeach
             </select>
-
+            @endif
             <input type="date"
                 id="start_date"
-                class="form-control w-100 w-md-auto mx-2">
+                class="form-control w-100 w-md-auto ml-2 mb-1">
 
             <input type="date"
                 id="end_date"
-                class="form-control w-100 w-md-auto">
+                class="form-control w-100 w-md-auto ml-2 mb-1">
 
             <button id="btnRefresh"
-                class="btn btn-secondary w-100 w-md-auto mx-2">
+                class="btn btn-secondary w-100 w-md-auto ml-2 mb-1">
                 Refresh
             </button>
 
             <button id="btnExport"
-                class="btn btn-success w-100 w-md-auto">
+                class="btn btn-success w-100 w-md-auto ml-2 mb-1">
                 <i class="fa fa-file-excel"></i> XLS
             </button>
 
@@ -119,7 +137,7 @@
             <table class="table table-bordered table-sm" id="leadsMasterTable">
                 <thead class="bg-dark text-white">
                     <tr>
-                        <th>Status</th>
+                        {{-- <th>Status</th> --}}
                         <th>Canvasser</th>
                         <th>Regional</th>
                         <th>Nama Perusahaan</th>
@@ -136,13 +154,86 @@
 
     </div>
 </div>
+
+
 @endsection
 
+@if(auth()->check() && in_array(auth()->user()->role, ['Admin', 'cvsr']))
+<div class="modal fade" id="modalEdit" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Insert Logbook</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <form id="formEdit" action="{{ route('logbook.insert') }}" method="POST">
+        @csrf
+        <input type="hidden" name="id" id="insert_id">
+
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label>Komitmen</label>
+            <select id="edit_komitmen" class="form-control" name="komitmen">
+              <option value="New Leads">New Leads</option>
+              <option value="100%">100%</option>
+              <option value="50%">50%</option>
+              <option value="<50%">&lt;50%</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Plan Min Topup</label>
+            <input type="number" id="edit_plan" class="form-control" name="plan_min_topup">
+          </div>
+
+          <div class="form-group">
+            <label>Status</label>
+            <select id="edit_status" class="form-control" name="status">
+              <option value="Initial">Initial</option>
+              <option value="Prospect">Prospect</option>
+              <option value="Register">Register</option>
+              {{-- <option value="Topup">Topup</option> --}}
+              <option value="Repeat">Repeat</option>
+              <option value="No Response">No Response</option>
+              {{-- <option value="Reject">Reject</option> --}}
+            </select>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Save</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+@endif
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+$(document).on('click', '.btn-add-logbook', function() {
+    // alert($(this).data('id'));
+    let id = $(this).data('id');
+
+    // set id ke form modal
+    $('#insert_id').val(id);
+
+    // buka modal
+    $('#modalEdit').modal('show');
+});
+
 $(function () {
 
     $('.select2').select2({ width: '100%' });
@@ -164,7 +255,7 @@ $(function () {
             }
         },
         columns: [
-            { data: 'status', orderable: false, searchable: false },
+            // { data: 'status', orderable: false, searchable: false },
             { data: 'user_name', searchable: true },
             { data: 'regional', searchable: true },
             { data: 'company_name', searchable: true },

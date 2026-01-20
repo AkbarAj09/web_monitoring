@@ -113,23 +113,36 @@ class LeadsMasterController extends Controller
             ->addColumn('mobile_phone', function ($row) {
                 return $row->mobile_phone ?? '-';
             })
-            ->addColumn('status', function ($row) {
-                return $row->status == 1 ? '<span class="badge badge-success">Deal</span>' : '<span class="badge badge-danger">Prospect</span>';
-            })
+            // ->addColumn('status', function ($row) {
+            //     return $row->status == 1 ? '<span class="badge badge-success">Deal</span>' : '<span class="badge badge-danger">Prospect</span>';
+            // })
             ->addColumn('data_type', function ($row) {
                 return $row->data_type ?? '-';
             })->editColumn('created_at', function ($row) {
                 return $row->created_at->format('Y-m-d');
             })
             ->addColumn('aksi', function ($row) {
-                return '
-                    <a href="' . route('leads-master.show', $row->id) . '" class="btn btn-sm btn-warning">
+                $btn = '
+                    <a href="' . route('leads-master.show', $row->id) . '" class="btn btn-sm btn-warning mt-1">
                         <i class="fas fa-search"></i> Lihat
                     </a>
-                    <a href="' . route('leads-master.edit', $row->id) . '" class="btn btn-sm btn-primary">
+                    <a href="' . route('leads-master.edit', $row->id) . '" class="btn btn-sm btn-primary mt-1">
                         <i class="fas fa-pencil-alt"></i> Edit
                     </a>
                 ';
+
+                // hanya admin dan canvasser yang boleh add to logbook
+                if (auth()->check() && in_array(auth()->user()->role, ['Admin', 'cvsr'])) {
+                    $btn .= '
+                        <button type="button" 
+                                class="btn btn-sm btn-success btn-add-logbook mt-1" 
+                                data-id="' . $row->id . '">
+                            <i class="fas fa-book"></i> Add to Logbook
+                        </button>
+                    ';
+                }
+
+                return $btn;
             })
             ->rawColumns(['aksi', 'status'])
             ->make(true);
@@ -281,16 +294,16 @@ class LeadsMasterController extends Controller
             'myads_account' => $validated['myads_account'] ?? null,
             'data_type' => 'Leads',
         ]);
-        DB::table('logbook')->insert([
-            'leads_master_id' => $leads->id,
-            'komitmen'        => 'New Leads',
-            'plan_min_topup'  => 100000,
-            'status'          => 'Prospect',
-            'bulan'           => now()->month,
-            'tahun'           => now()->year,
-            'created_at'      => now(),
-            'updated_at'      => now(),
-        ]);
+        // DB::table('logbook')->insert([
+        //     'leads_master_id' => $leads->id,
+        //     'komitmen'        => 'New Leads',
+        //     'plan_min_topup'  => 100000,
+        //     'status'          => 'Prospect',
+        //     'bulan'           => now()->month,
+        //     'tahun'           => now()->year,
+        //     'created_at'      => now(),
+        //     'updated_at'      => now(),
+        // ]);
 
         return redirect()->route('leads-master.index')->with('success', 'Leads baru berhasil disimpan.');
     }
@@ -416,5 +429,6 @@ class LeadsMasterController extends Controller
 
         return redirect()->route('leads-master.index')->with('success', 'Lead berhasil diupdate');
     }
+
 
 }
