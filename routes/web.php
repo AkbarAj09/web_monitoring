@@ -9,6 +9,7 @@ use App\Http\Controllers\TregController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LeadsMasterController;
 use App\Http\Controllers\LogbookController;
+use App\Http\Controllers\LogbookDailyController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PanenPoinController;
 use App\Http\Controllers\CalendarController;
@@ -177,8 +178,11 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
 
     Route::get('logbook', [LogbookController::class, 'index'])->name('logbook.index');
     Route::get('logbook/data', [LogbookController::class, 'data'])->name('logbook.data');
-    Route::post('/logbook/update', [LogbookController::class, 'update'])
-    ->name('logbook.update');
+    Route::post('/logbook/update', [LogbookController::class, 'update'])->name('logbook.update');
+    Route::post('/logbook/insert', [LogbookController::class, 'insert'])->name('logbook.insert');
+    Route::post('/logbook/day', [LogbookController::class, 'insertDaily'])->name('logbook.day');
+    Route::get('/logbook-daily', [LogbookDailyController::class, 'index'])->name('logbook-daily.index');
+    Route::get('logbook-daily/data', [LogbookDailyController::class, 'data'])->name('logbook-daily.data');
 
     // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
     Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');

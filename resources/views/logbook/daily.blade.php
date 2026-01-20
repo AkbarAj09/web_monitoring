@@ -1,5 +1,5 @@
 @extends('master')
-@section('title') Logbook @endsection
+@section('title') Logbook Daily @endsection
 
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
@@ -23,16 +23,25 @@
         <div class="d-flex justify-content-end gap-2">
 
             {{-- Regional --}}
-            <select id="filter_regional" class="form-control" style="max-width: 200px">
+            {{-- <select id="filter_regional" class="form-control" style="max-width: 200px">
                 <option value="">All Regional</option>
                 @foreach($regionals as $regional)
                     <option value="{{ $regional }}">{{ $regional }}</option>
                 @endforeach
-            </select>
+            </select> --}}
 
             {{-- Date --}}
-            <input type="month" id="month" class="form-control" style="max-width: 160px"
-       value="{{ now()->format('Y-m') }}">
+            <input type="date"
+           id="start_date"
+           class="form-control"
+           style="max-width: 160px"
+           value="{{ now()->toDateString() }}">
+
+            <input type="date"
+                id="end_date"
+                class="form-control"
+                style="max-width: 160px"
+                value="{{ now()->toDateString() }}">
             {{-- <input type="date" id="end_date" class="form-control" style="max-width: 160px"> --}}
 
             <button id="btnRefresh" class="btn btn-secondary">
@@ -50,7 +59,7 @@
 {{-- TABLE --}}
 <div class="card">
     <div class="card-header">
-        <h4 class="font-weight-bold">Logbook</h4>
+        <h4 class="font-weight-bold">Logbook Daily</h4>
     </div>
 
     <div class="card-body table-responsive">
@@ -68,7 +77,7 @@
                     <th>Plan Min Topup</th>
                     <th>Status</th>
                     <th>Realisasi Topup</th>
-                    <th>Action</th>
+                    {{-- <th>Action</th> --}}
 
                 </tr>
             </thead>
@@ -76,7 +85,7 @@
         </table>
     </div>
 </div>
-<div class="modal fade" id="modalEdit" tabindex="-1" role="dialog">
+{{-- <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
 
@@ -87,7 +96,7 @@
         </button>
       </div>
 
-      <form id="formEdit" action="{{ route('logbook.update') }}" method="POST">
+      <form id="formEdit" action="{{ route('logbook.updateDaily') }}" method="POST">
         @csrf
         <input type="hidden" name="id" id="edit_id">
 
@@ -132,7 +141,7 @@
 
     </div>
   </div>
-</div>
+</div> --}}
 
 @endsection
 
@@ -142,68 +151,32 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-$(document).on('click', '.btn-day', function () {
-    let id = $(this).data('id');
 
-    Swal.fire({
-        title: 'Yakin?',
-        text: 'Logbook daily akan dibuat untuk hari ini',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, lanjutkan',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: "{{ route('logbook.day') }}",
-                type: "POST",
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    id: id
-                },
-                success: function (res) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: res.message
-                    });
-                },
-                error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal',
-                        text: 'Terjadi kesalahan'
-                    });
-                }
-            });
-        }
-    });
-});
-$(document).on('click', '.btn-edit', function () {
-    $('#edit_id').val($(this).data('id'));
-    $('#edit_komitmen').val($(this).data('komitmen'));
-    $('#edit_plan').val($(this).data('plan'));
-    $('#edit_status').val($(this).data('status'));
+// $(document).on('click', '.btn-edit', function () {
+//     $('#edit_id').val($(this).data('id'));
+//     $('#edit_komitmen').val($(this).data('komitmen'));
+//     $('#edit_plan').val($(this).data('plan'));
+//     $('#edit_status').val($(this).data('status'));
 
-    $('#modalEdit').modal('show');
-});
-$('#formEdit').on('submit', function (e) {
-    e.preventDefault();
+//     $('#modalEdit').modal('show');
+// });
+// $('#formEdit').on('submit', function (e) {
+//     e.preventDefault();
 
-    $.ajax({
-        url: $(this).attr('action'),   // <-- ambil dari form
-        type: 'POST',
-        data: $(this).serialize(),     // <-- otomatis ambil name=""
-        success: function () {
-            $('#modalEdit').modal('hide');
-            $('#leadsMasterTable').DataTable().ajax.reload(null, false);
-        },
-        error: function (xhr) {
-            alert('Update gagal');
-            console.log(xhr.responseText);
-        }
-    });
-});
+//     $.ajax({
+//         url: $(this).attr('action'),   // <-- ambil dari form
+//         type: 'POST',
+//         data: $(this).serialize(),     // <-- otomatis ambil name=""
+//         success: function () {
+//             $('#modalEdit').modal('hide');
+//             $('#leadsMasterTable').DataTable().ajax.reload(null, false);
+//         },
+//         error: function (xhr) {
+//             alert('Update gagal');
+//             console.log(xhr.responseText);
+//         }
+//     });
+// });
 
 
 $(function () {
@@ -212,7 +185,7 @@ $(function () {
         processing: true,
         serverSide: true,
         ajax: {
-            url: "{{ route('logbook.data') }}",
+            url: "{{ route('logbook-daily.data') }}",
             data: function (d) {
                 d.regional   = $('#filter_regional').val();
                 d.start_date = $('#start_date').val();
@@ -231,7 +204,7 @@ $(function () {
             { data: 'plan_min_topup' },
             { data: 'status' },
             { data: 'total_settlement_klien' },
-            { data: 'action', orderable: false, searchable: false },
+            // { data: 'action', orderable: false, searchable: false },
         ]
     });
 

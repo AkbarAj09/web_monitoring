@@ -13,15 +13,12 @@ use DataTables;
 use Validator;
 use Illuminate\Support\Facades\DB;
 
-class LogbookController extends Controller
+class LogbookDailyController extends Controller
 {
-    /**
-     * Show the leads master view
-     */
     public function index()
     {
         logUserLogin();
-        return view('logbook.index', [
+        return view('logbook.daily', [
             'canvassers' => User::orderBy('name')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),
             'regionals'  => DB::table('regional_provinces')
@@ -42,7 +39,7 @@ class LogbookController extends Controller
         // =======================
         $query = LeadsMaster::query()
             ->leftJoin('users', 'users.id', '=', 'leads_master.user_id')
-            ->join('logbook', 'logbook.leads_master_id', '=', 'leads_master.id')
+            ->join('logbook_daily', 'logbook_daily.leads_master_id', '=', 'leads_master.id')
             ->leftJoin('report_balance_top_up', function ($join) {
                     $join->whereRaw(
                         'LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)'
@@ -57,9 +54,9 @@ class LogbookController extends Controller
                 'leads_master.mobile_phone',
                 'leads_master.data_type',
                 'leads_master.created_at',
-                'logbook.komitmen',
-                'logbook.plan_min_topup',
-                'logbook.status',
+                'logbook_daily.komitmen',
+                'logbook_daily.plan_min_topup',
+                'logbook_daily.status',
                 DB::raw('SUM(report_balance_top_up.total_settlement_klien) as total_settlement_klien'),
             ])
             ->groupBy(
@@ -71,9 +68,9 @@ class LogbookController extends Controller
                 'leads_master.mobile_phone',
                 'leads_master.data_type',
                 'leads_master.created_at',
-                'logbook.komitmen',
-                'logbook.plan_min_topup',
-                'logbook.status'
+                'logbook_daily.komitmen',
+                'logbook_daily.plan_min_topup',
+                'logbook_daily.status'
             )
         ->orderBy('leads_master.created_at', 'desc');
 
@@ -190,86 +187,4 @@ class LogbookController extends Controller
             ->rawColumns(['action'])
             ->make(true);
         }
-        public function update(Request $request)
-        {
-            
-            $tes = DB::table('logbook')
-                ->where('leads_master_id', $request->id)
-                ->update([
-                    'komitmen' => $request->komitmen,
-                    'plan_min_topup' => $request->plan_min_topup,
-                    'status' => $request->status,
-                    'updated_at' => now(),
-                ]);
-
-            return response()->json(['success' => true]);
-        }
-    
-    public function insert(Request $request)
-    {
-        // dd($request->all());
-        $exists = DB::table('logbook')
-            ->where('leads_master_id', $request->id)
-            ->exists();
-
-        if ($exists) {
-            return redirect()->back()->with('error', 'Logbook sudah ada!');
-        }
-   
-        DB::table('logbook')->insert([
-            'leads_master_id' => $request->id,
-            'komitmen'        => $request->komitmen,
-            'plan_min_topup'  => $request->plan_min_topup,
-            'status'          => $request->status,
-            'bulan'           => now()->month,
-            'tahun'           => now()->year,
-            'created_at'      => now(),
-            'updated_at'      => now(),
-        ]);
-    
-        return redirect()->back()->with('success', 'Data berhasil disimpan!');
-    }
-    public function insertDaily(Request $request)
-    {
-        // Ambil data logbook berdasarkan leads_master_id
-        $logbook = DB::table('logbook')
-            ->where('leads_master_id', $request->id)
-            ->first();
-
-        if (!$logbook) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data logbook tidak ditemukan'
-            ], 404);
-        }
-
-        // Cegah double input daily di hari yang sama
-        $exists = DB::table('logbook_daily')
-            ->where('leads_master_id', $request->id)
-            ->whereDate('created_at', now())
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Logbook daily hari ini sudah ada'
-            ], 422);
-        }
-
-        // Insert ke logbook_daily
-        DB::table('logbook_daily')->insert([
-            'leads_master_id' => $request->id,
-            'komitmen'        => $logbook->komitmen,
-            'plan_min_topup'  => $logbook->plan_min_topup,
-            'status'          => $logbook->status,
-            'created_at'      => now(),
-            'updated_at'      => now(),
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Logbook daily berhasil ditambahkan'
-        ]);
-    }
-
 }
