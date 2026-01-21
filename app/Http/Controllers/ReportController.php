@@ -294,6 +294,7 @@ public function topupCanvasserData(Request $request)
                 'pic'        => $pic,
                 'target'     => $target,
                 'topup'      => $topup,
+                'gap'        => $target - $topup,
                 'percentage' => $percentage,
             ];
         }

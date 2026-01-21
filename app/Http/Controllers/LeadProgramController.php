@@ -341,6 +341,7 @@ class LeadProgramController extends Controller
             // 1. Ambil semua user dengan role 'Canvasser' dari kolom role di tabel users
             $canvasers = DB::table('users')
                 ->where('role', 'cvsr')
+                ->where('name', '!=', 'self service')
                 ->select('id', 'name')
                 ->get();
 
@@ -664,6 +665,7 @@ class LeadProgramController extends Controller
             // Ambil semua canvasser
             $canvasers = DB::table('users')
                 ->where('role', 'cvsr')
+                ->where('name', '!=', 'self service')
                 ->select('id', 'name')
                 ->get();
 
