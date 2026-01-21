@@ -187,7 +187,7 @@ $(function () {
         ajax: {
             url: "{{ route('logbook-daily.data') }}",
             data: function (d) {
-                d.regional   = $('#filter_regional').val();
+                // d.regional   = $('#filter_regional').val();
                 d.start_date = $('#start_date').val();
                 d.end_date   = $('#end_date').val();
             }

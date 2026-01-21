@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 use DataTables;
 use Validator;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class LogbookDailyController extends Controller
 {
@@ -101,13 +102,12 @@ class LogbookDailyController extends Controller
         // }
 
         if ($request->start_date && $request->end_date) {
-            
-            $date = Carbon\Carbon::createFromFormat('Y-m', $request->month);
             $query->whereBetween('leads_master.created_at', [
-                $date->startOfMonth(),
-                $date->endOfMonth(),
+                $request->start_date . ' 00:00:00',
+                $request->end_date   . ' 23:59:59',
             ]);
         }
+
 
         // if ($request->source) {
         //     $query->whereHas('source', function ($q) use ($request) {
@@ -145,7 +145,7 @@ class LogbookDailyController extends Controller
             })
 
             ->editColumn('created_at', function ($row) {
-                return $row->created_at->format('Y-m-d');
+                return \Carbon\Carbon::parse($row->created_at)->format('Y-m-d');
             })
 
             ->addColumn('komitmen', function ($row) {
@@ -165,25 +165,25 @@ class LogbookDailyController extends Controller
              ->addColumn('status', function ($row) {
                 return $row->status ?? '-';
             })
-             ->addColumn('action', function ($row) {
-                return '
-                <button 
-                    class="btn btn-sm btn-primary btn-edit"
-                    data-id="'.$row->id.'"
-                    data-komitmen="'.$row->komitmen.'"
-                    data-plan="'.$row->plan_min_topup.'"
-                    data-status="'.$row->status.'"
-                >
-                    Edit
-                </button>
+            //  ->addColumn('action', function ($row) {
+            //     return '
+            //     <button 
+            //         class="btn btn-sm btn-primary btn-edit"
+            //         data-id="'.$row->id.'"
+            //         data-komitmen="'.$row->komitmen.'"
+            //         data-plan="'.$row->plan_min_topup.'"
+            //         data-status="'.$row->status.'"
+            //     >
+            //         Edit
+            //     </button>
                 
-                <button 
-                    class="btn btn-sm btn-warning btn-day"
-                    data-id="'.$row->id.'"
-                >
-                    Day
-                </button>';
-            })
+            //     <button 
+            //         class="btn btn-sm btn-warning btn-day"
+            //         data-id="'.$row->id.'"
+            //     >
+            //         Day
+            //     </button>';
+            // })
             ->rawColumns(['action'])
             ->make(true);
         }
