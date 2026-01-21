@@ -111,14 +111,25 @@
     $(document).ready(function() {
         // Show success message using SweetAlert
         @if(session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: '{{ session('success') }}',
-                confirmButtonColor: '#4e73df',
-                timer: 3000,
-                showConfirmButton: false
-            });
+            @if(session('is_existing_account'))
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Akun Sudah Ada',
+                    html: `{{ session('success') }}<br><br><small class="text-muted">Notifikasi akun telah dikirim ke email dan WhatsApp Anda.</small>`,
+                    confirmButtonColor: '#4e73df',
+                    timer: 5000,
+                    showConfirmButton: true
+                });
+            @else
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: `{{ session('success') }}`,
+                    confirmButtonColor: '#4e73df',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            @endif
         @endif
 
         // Show error message using SweetAlert
@@ -126,7 +137,7 @@
             Swal.fire({
                 icon: 'error',
                 title: 'Terjadi Kesalahan!',
-                text: '{{ session('error') }}',
+                text: `{{ session('error') }}`,
                 confirmButtonColor: '#dc3545',
                 confirmButtonText: 'Tutup'
             });
