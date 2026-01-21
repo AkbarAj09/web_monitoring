@@ -451,10 +451,11 @@
                                 <th style="color: white">No</th>
                                 <th style="color: white">Region</th>
                                 <th style="color: white">Nama PIC</th>
-                                <th style="color: white">Target</th>
                                 <th style="color: white">Topup</th>
-                                <th style="color: white">Gap</th>
+                                <th style="color: white">Target</th>
                                 <th style="color: white">Achievement (%)</th>
+                                <th style="color: white">Gap (Rp)</th>
+                                <th style="color: white">Gap Daily (Rp)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -463,15 +464,17 @@
                                     <td>{{ $i + 1 }}</td>
                                     <td>{{ $row['region'] }}</td>
                                     <td>{{ $row['pic'] }}</td>
-                                    <td class="text-end">{{ number_format($row['target'],0,',','.') }}</td>
-                                    <td class="text-end">{{ number_format($row['topup'],0,',','.') }}</td>
-                                    <td class="text-end">{{ number_format($row['gap'],0,',','.') }}</td>
+                                    <td class="text-end" style="font-weight: bold;">{{ number_format($row['topup'],0,',','.') }}</td>
+                                    <td class="text-end"  style="text-align: center; color: #0d6efd;">{{ number_format($row['target'],0,',','.') }}</td>
                                     <td class="text-center">
                                         <span class="badge
                                             {{ $row['percentage'] >= 90 ? 'bg-success' : ($row['percentage'] >= 70 ? 'bg-warning' : 'bg-danger') }}">
                                             {{ $row['percentage'] }}%
                                         </span>
                                     </td>
+                                    <td class="text-end" style="text-align: center; color: #dc3545;">{{ number_format($row['gap'],0,',','.') }}</td>
+                                    <td class="text-end" style="text-align: center; color: #fd7e14; font-weight: bold;">{{ number_format($row['gap_daily'],0,',','.') }}</td>
+                                    
                                 </tr>
                             @endforeach
                         </tbody>
@@ -479,15 +482,12 @@
                         <tfoot class="fw-bold">
                             <tr>
                                 <td colspan="3" class="text-center">TOTAL</td>
-                                <td class="text-end">
-                                    {{ number_format(collect($data)->sum('target'),0,',','.') }}
-                                </td>
-                                <td class="text-end">
+                                <td class="text-end" style="font-weight: bold;">
                                     {{ number_format(collect($data)->sum('topup'),0,',','.') }}
                                 </td>
-                                <td class="text-end">
-                                    {{ number_format(collect($data)->sum('gap'),0,',','.') }}
-                                </td>
+                                <td class="text-end" style="text-align: center; color: #0d6efd; font-weight: bold;">
+                                    {{ number_format(collect($data)->sum('target'),0,',','.') }}
+                                </td>                                
                                 <td class="text-center">
                                     <span class="badge
                                             {{ round((collect($data)->sum('topup') / collect($data)->sum('target')) * 100, 2) >= 90 ? 'bg-success' : (round((collect($data)->sum('topup') / collect($data)->sum('target')) * 100, 2) >= 70 ? 'bg-warning' : 'bg-danger') }}">
@@ -497,6 +497,12 @@
                                         : 0
                                     }}%
                                     </span>
+                                </td>
+                                <td class="text-end"  style="text-align: center; color: #dc3545; font-weight:bold">
+                                    {{ number_format(collect($data)->sum('gap'),0,',','.') }}
+                                </td>
+                                <td class="text-end"  style="text-align: center; color: #fd7e14; font-weight:bold">
+                                    {{ number_format(collect($data)->sum('gap_daily'),0,',','.') }}
                                 </td>
                             </tr>
                         </tfoot>

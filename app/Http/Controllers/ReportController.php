@@ -277,6 +277,49 @@ public function topupCanvasserData(Request $request)
             ->unique()
             ->filter(fn ($r) => $r !== 'UNKNOWN');
 
+        // Hitung sisa hari di bulan berjalan
+            $today = Carbon::now();
+            $todayDate = $today->format('Y-m-d'); // Tanggal hari ini untuk filter transaksi
+            $startOfMonth = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $endOfMonth = Carbon::now()->endOfMonth(); // Untuk hitung sisa hari kerja
+        // Daftar tanggal merah Indonesia 2026 (bisa disesuaikan atau query dari database)
+        $holidays = [
+            '2026-01-01', // Tahun Baru
+            '2026-02-17', // Isra Miraj (estimasi)
+            '2026-03-22', // Nyepi
+            '2026-03-23', // Idul Fitri (estimasi)
+            '2026-03-24', // Idul Fitri (estimasi)
+            '2026-04-10', // Wafat Yesus Kristus
+            '2026-05-01', // Hari Buruh
+            '2026-05-02', // Cuti Bersama (estimasi)
+            '2026-05-21', // Kenaikan Yesus Kristus
+            '2026-05-30', // Idul Adha (estimasi)
+            '2026-06-01', // Hari Pancasila
+            '2026-06-20', // Tahun Baru Islam (estimasi)
+            '2026-08-17', // Hari Kemerdekaan
+            '2026-08-29', // Maulid Nabi (estimasi)
+            '2026-12-25', // Hari Natal
+        ];
+
+        // Hitung hanya hari kerja (Senin-Jumat) yang tersisa, exclude weekend dan tanggal merah
+        $remainingWorkingDays = 0;
+        $currentDate = $today->copy();
+        
+        while ($currentDate->lte($endOfMonth)) {
+            // Cek apakah hari ini adalah weekday (Senin-Jumat)
+            $isWeekday = $currentDate->isWeekday(); // true jika Senin-Jumat
+            
+            // Cek apakah bukan tanggal merah
+            $isNotHoliday = !in_array($currentDate->format('Y-m-d'), $holidays);
+            
+            // Jika weekday dan bukan tanggal merah, hitung sebagai hari kerja
+            if ($isWeekday && $isNotHoliday) {
+                $remainingWorkingDays++;
+            }
+            
+            $currentDate->addDay();
+        }
+        
         foreach ($regions as $region) {
             $targetRow = $targets[$region] ?? null;
             $topupRow  = $topupPerRegion[$region] ?? null;
@@ -289,12 +332,18 @@ public function topupCanvasserData(Request $request)
                 ? round(($topup / $target) * 100, 2)
                 : 0;
 
+            $gap = $topup - $target;
+                
+            $gapDaily = $remainingWorkingDays > 0 ? $gap / $remainingWorkingDays : 0;
+            $gapDaily *= -1;
+
             $data[] = [
                 'region'     => $region,
                 'pic'        => $pic,
                 'target'     => $target,
                 'topup'      => $topup,
-                'gap'        => $target - $topup,
+                'gap'        => $gap,
+                'gap_daily'  => $gapDaily,
                 'percentage' => $percentage,
             ];
         }
@@ -310,7 +359,7 @@ public function topupCanvasserData(Request $request)
 
     public function reportMitraSBP()
     {
-        $data = DB::table('region_target as rt')
+        $data_mitra_sbp = DB::table('region_target as rt')
             ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
             ->leftJoin('report_balance_top_up as rbt', function ($join) {
                 $join->on('rbt.email_client', '=', 'ms.email_myads')
@@ -332,9 +381,57 @@ public function topupCanvasserData(Request $request)
             ->orderBy('rt.region_name')
             ->get();
 
-        $grouped = $data->groupBy('area');
+        $grouped_mitra_sbp = $data_mitra_sbp->groupBy('area');
 
-        return view('mitra-sbp.report-performance', compact('grouped', 'data'));
+        $data_agency = DB::table('region_target as rt')
+            ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
+            ->leftJoin('report_balance_top_up as rbt', function ($join) {
+                $join->on('rbt.email_client', '=', 'ms.email_myads')
+                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+            })
+            ->select(
+                'ms.area',
+                'rt.region_name',
+                'rt.target_amount',
+                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as agency')
+            )
+            ->where('rt.data_type', 'Agency')
+            ->groupBy(
+                'ms.area',
+                'rt.region_name',
+                'rt.target_amount'
+            )
+            ->orderBy('ms.area')
+            ->orderBy('rt.region_name')
+            ->get();
+
+        $grouped_agency = $data_agency->groupBy('area');
+
+
+        $data_internal = DB::table('region_target as rt')
+            ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
+            ->leftJoin('report_balance_top_up as rbt', function ($join) {
+                $join->on('rbt.email_client', '=', 'ms.email_myads')
+                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+            })
+            ->select(
+                'ms.area',
+                'rt.region_name',
+                'rt.target_amount',
+                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as internal')
+            )
+            ->where('rt.data_type', 'Internal')
+            ->groupBy(
+                'ms.area',
+                'rt.region_name',
+                'rt.target_amount'
+            )
+            ->orderBy('ms.area')
+            ->orderBy('rt.region_name')
+            ->get();
+
+        $grouped_internal = $data_internal->groupBy('area');
+        return view('mitra-sbp.report-performance', compact('grouped_mitra_sbp', 'data_mitra_sbp','grouped_agency', 'data_agency','grouped_internal', 'data_internal'));
     }
 
     

@@ -37,9 +37,23 @@ class LeadsMasterController extends Controller
     public function data(Request $request)
     {
         $search = $request->input('search.value');
+        
+        $month = now()->month;
+        $year  = now()->year;
+
         // Base query + eager loading
         $query = LeadsMaster::with(['user', 'source', 'sector'])
-            ->orderBy('created_at', 'asc');
+            ->leftJoin('report_balance_top_up as rbt', function ($join) use ($month, $year) {
+                $join->on(DB::raw('LOWER(rbt.email_client)'), '=', DB::raw('LOWER(leads_master.email)'))
+                    ->whereMonth('rbt.tgl_transaksi', $month)
+                    ->whereYear('rbt.tgl_transaksi', $year);
+            })
+            ->select(
+                'leads_master.*',
+                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as total_settlement_klien')
+            )
+            ->groupBy('leads_master.id')
+            ->orderBy('leads_master.created_at', 'asc');
 
         // 🔐 Filter berdasarkan role
         if (!auth()->user()->hasRole('Admin')) {
@@ -50,7 +64,7 @@ class LeadsMasterController extends Controller
         // 🔍 FILTER DARI DATATABLE
         // =======================
         if ($request->regional) {
-            $query->where('regional', $request->regional);
+            $query->where('leads_master.regional', $request->regional);
         }
         // Filter Canvasser
         // if ($request->canvasser) {
@@ -59,17 +73,17 @@ class LeadsMasterController extends Controller
 
         // Filter Nama Perusahaan
         if ($request->company) {
-            $query->where('company_name', 'like', '%' . $request->company . '%');
+            $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
         }
 
         // Filter Email
         if ($request->email) {
-            $query->where('email', 'like', '%' . $request->email . '%');
+            $query->where('leads_master.email', 'like', '%' . $request->email . '%');
         }
 
         // Filter Email
         if ($request->start_date && $request->end_date) {
-            $query->whereBetween('created_at', [
+            $query->whereBetween('leads_master.created_at', [
                 $request->start_date . ' 00:00:00',
                 $request->end_date . ' 23:59:59',
             ]);
@@ -91,10 +105,10 @@ class LeadsMasterController extends Controller
                 })
 
                 // 🔎 search kolom di tabel leads_master
-                ->orWhere('regional', 'like', "%$search%")
-                ->orWhere('company_name', 'like', "%$search%")
-                ->orWhere('email', 'like', "%$search%")
-                ->orWhere('mobile_phone', 'like', "%$search%");
+                ->orWhere('leads_master.regional', 'like', "%$search%")
+                ->orWhere('leads_master.company_name', 'like', "%$search%")
+                ->orWhere('leads_master.email', 'like', "%$search%")
+                ->orWhere('leads_master.mobile_phone', 'like', "%$search%");
             });
         }
         return datatables()->of($query)
@@ -118,8 +132,13 @@ class LeadsMasterController extends Controller
             // })
             ->addColumn('data_type', function ($row) {
                 return $row->data_type ?? '-';
-            })->editColumn('created_at', function ($row) {
+            })
+            ->editColumn('created_at', function ($row) {
                 return $row->created_at->format('Y-m-d');
+            })
+            
+            ->addColumn('total_settlement_klien', function ($row) {
+                return $row->total_settlement_klien ?? '-';
             })
             ->addColumn('aksi', function ($row) {
                 $btn = '

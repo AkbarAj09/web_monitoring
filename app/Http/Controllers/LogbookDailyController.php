@@ -35,6 +35,7 @@ class LogbookDailyController extends Controller
      */
     public function data(Request $request)
     {
+        $search = $request->input('search.value');
         // =======================
         // BASE QUERY + JOIN LOGBOOK
         // =======================
@@ -42,10 +43,11 @@ class LogbookDailyController extends Controller
             ->leftJoin('users', 'users.id', '=', 'leads_master.user_id')
             ->join('logbook_daily', 'logbook_daily.leads_master_id', '=', 'leads_master.id')
             ->leftJoin('report_balance_top_up', function ($join) {
-                    $join->whereRaw(
-                        'LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)'
-                    );
-                })
+                $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)');
+            })
+            ->leftJoin('manual_upload_topup', function ($join) {
+                $join->whereRaw('LOWER(manual_upload_topup.email) = LOWER(leads_master.email)');
+            })
             ->select([
                 'leads_master.id',
                 'users.name as user_name',
@@ -58,22 +60,10 @@ class LogbookDailyController extends Controller
                 'logbook_daily.komitmen',
                 'logbook_daily.plan_min_topup',
                 'logbook_daily.status',
-                DB::raw('SUM(report_balance_top_up.total_settlement_klien) as total_settlement_klien'),
+                'logbook_daily.realisasi_topup'
             ])
-            ->groupBy(
-                'leads_master.id',
-                'users.name',
-                'leads_master.regional',
-                'leads_master.company_name',
-                'leads_master.myads_account',
-                'leads_master.mobile_phone',
-                'leads_master.data_type',
-                'leads_master.created_at',
-                'logbook_daily.komitmen',
-                'logbook_daily.plan_min_topup',
-                'logbook_daily.status'
-            )
-        ->orderBy('leads_master.created_at', 'desc');
+            ->orderBy('leads_master.created_at', 'desc');
+
 
         // =======================
         // 🔐 FILTER ROLE
@@ -106,6 +96,18 @@ class LogbookDailyController extends Controller
                 $request->start_date . ' 00:00:00',
                 $request->end_date   . ' 23:59:59',
             ]);
+        }
+        
+        if (!empty($search)) {
+            $search = strtolower($search);
+
+            $query->havingRaw("
+                LOWER(users.name) LIKE ?
+                OR LOWER(leads_master.regional) LIKE ?
+                OR LOWER(leads_master.company_name) LIKE ?
+                OR LOWER(leads_master.myads_account) LIKE ?
+                OR LOWER(leads_master.mobile_phone) LIKE ?
+            ", array_fill(0, 5, "%{$search}%"));
         }
 
 
@@ -162,8 +164,14 @@ class LogbookDailyController extends Controller
                     ? number_format($row->total_settlement_klien, 0, ',', '.')
                     : '-';
             })
+            
              ->addColumn('status', function ($row) {
                 return $row->status ?? '-';
+            })
+            ->addColumn('realisasi_topup', function ($row) {
+                return $row->realisasi_topup
+                    ? number_format($row->realisasi_topup, 0, ',', '.')
+                    : '-';
             })
             //  ->addColumn('action', function ($row) {
             //     return '
@@ -187,4 +195,51 @@ class LogbookDailyController extends Controller
             ->rawColumns(['action'])
             ->make(true);
         }
+        public function refreshLogbookDaily()
+        {
+            $month = now()->month;
+            $year  = now()->year; // YYYY-MM-DD
+
+            // Hitung realisasi topup per leads (AUTO prioritas, MANUAL fallback)
+            $topups = DB::table('leads_master')
+                ->leftJoin('report_balance_top_up', function ($join) use ($month, $year) {
+                    $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)')
+                        ->whereMonth('report_balance_top_up.tgl_transaksi', $month)
+                        ->whereYear('report_balance_top_up.tgl_transaksi', $year);
+                })
+                ->leftJoin('manual_upload_topup', function ($join) use ($month, $year) {
+                    $join->whereRaw('LOWER(manual_upload_topup.email) = LOWER(leads_master.email)')
+                        ->whereMonth('manual_upload_topup.tanggal', $month)
+                        ->whereYear('manual_upload_topup.tanggal', $year);
+                })
+                ->select(
+                    'leads_master.id as leads_master_id',
+
+                    DB::raw('
+                        CASE
+                            WHEN COALESCE(SUM(report_balance_top_up.total_settlement_klien), 0) > 0
+                            THEN SUM(report_balance_top_up.total_settlement_klien)
+                            ELSE COALESCE(SUM(manual_upload_topup.total), 0)
+                        END AS realisasi_topup
+                    ')
+                )
+                ->groupBy('leads_master.id')
+                ->having('realisasi_topup', '>', 0)
+                ->get();
+
+
+            foreach ($topups as $data) {
+                DB::table('logbook_daily')
+                    ->where('leads_master_id', $data->leads_master_id)
+                    // ->whereDate('created_at', $today)
+                    ->update([
+                        'status'          => 'Topup',
+                        'realisasi_topup' => $data->realisasi_topup,
+                        'updated_at'      => now(),
+                    ]);
+                    print($data->leads_master_id. '    ');
+            }
+        }
+
+
 }
