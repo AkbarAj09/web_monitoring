@@ -453,6 +453,7 @@
                                 <th style="color: white">Nama PIC</th>
                                 <th style="color: white">Target</th>
                                 <th style="color: white">Topup</th>
+                                <th style="color: white">Gap</th>
                                 <th style="color: white">Achievement (%)</th>
                             </tr>
                         </thead>
@@ -464,6 +465,7 @@
                                     <td>{{ $row['pic'] }}</td>
                                     <td class="text-end">{{ number_format($row['target'],0,',','.') }}</td>
                                     <td class="text-end">{{ number_format($row['topup'],0,',','.') }}</td>
+                                    <td class="text-end">{{ number_format($row['gap'],0,',','.') }}</td>
                                     <td class="text-center">
                                         <span class="badge
                                             {{ $row['percentage'] >= 90 ? 'bg-success' : ($row['percentage'] >= 70 ? 'bg-warning' : 'bg-danger') }}">
@@ -482,6 +484,9 @@
                                 </td>
                                 <td class="text-end">
                                     {{ number_format(collect($data)->sum('topup'),0,',','.') }}
+                                </td>
+                                <td class="text-end">
+                                    {{ number_format(collect($data)->sum('gap'),0,',','.') }}
                                 </td>
                                 <td class="text-center">
                                     <span class="badge
