@@ -184,6 +184,7 @@ $(function () {
     let table = $('#leadsMasterTable').DataTable({
         processing: true,
         serverSide: true,
+        searching: true,
         ajax: {
             url: "{{ route('logbook-daily.data') }}",
             data: function (d) {

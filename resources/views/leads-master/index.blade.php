@@ -241,7 +241,7 @@ $(function () {
     let table = $('#leadsMasterTable').DataTable({
         processing: true,
         serverSide: true,
-    searching: true,
+        searching: true,
         ajax: {
             url: "{{ route('leads-master.data') }}",
             data: function (d) {

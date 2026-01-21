@@ -114,10 +114,10 @@
               <option value="Initial">Initial</option>
               <option value="Prospect">Prospect</option>
               <option value="Register">Register</option>
-              <option value="Topup">Topup</option>
+              {{-- <option value="Topup">Topup</option> --}}
               <option value="Repeat">Repeat</option>
               <option value="No Response">No Response</option>
-              <option value="Reject">Reject</option>
+              {{-- <option value="Reject">Reject</option> --}}
             </select>
           </div>
 
@@ -211,20 +211,22 @@ $(function () {
     let table = $('#leadsMasterTable').DataTable({
         processing: true,
         serverSide: true,
+        searching: true,
         ajax: {
             url: "{{ route('logbook.data') }}",
             data: function (d) {
                 d.regional   = $('#filter_regional').val();
-                d.start_date = $('#start_date').val();
-                d.end_date   = $('#end_date').val();
+                d.month    = $('#month').val();
+                // d.start_date = $('#start_date').val();
+                // d.end_date   = $('#end_date').val();
             }
         },
         columns: [
-            { data: 'user_name' },
-            { data: 'regional' },
-            { data: 'company_name' },
-            { data: 'myads_account' },
-            { data: 'mobile_phone' },
+            { data: 'user_name', searchable: true },
+            { data: 'regional', searchable: true },
+            { data: 'company_name', searchable: true },
+            { data: 'myads_account', searchable: true },
+            { data: 'mobile_phone', searchable: true },
             { data: 'data_type' },
             { data: 'created_at' },
             { data: 'komitmen' },

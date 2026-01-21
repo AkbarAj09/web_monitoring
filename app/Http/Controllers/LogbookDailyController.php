@@ -35,6 +35,7 @@ class LogbookDailyController extends Controller
      */
     public function data(Request $request)
     {
+        $search = $request->input('search.value');
         // =======================
         // BASE QUERY + JOIN LOGBOOK
         // =======================
@@ -42,10 +43,11 @@ class LogbookDailyController extends Controller
             ->leftJoin('users', 'users.id', '=', 'leads_master.user_id')
             ->join('logbook_daily', 'logbook_daily.leads_master_id', '=', 'leads_master.id')
             ->leftJoin('report_balance_top_up', function ($join) {
-                    $join->whereRaw(
-                        'LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)'
-                    );
-                })
+                $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)');
+            })
+            ->leftJoin('manual_upload_topup', function ($join) {
+                $join->whereRaw('LOWER(manual_upload_topup.email) = LOWER(leads_master.email)');
+            })
             ->select([
                 'leads_master.id',
                 'users.name as user_name',
@@ -58,7 +60,14 @@ class LogbookDailyController extends Controller
                 'logbook_daily.komitmen',
                 'logbook_daily.plan_min_topup',
                 'logbook_daily.status',
-                DB::raw('SUM(report_balance_top_up.total_settlement_klien) as total_settlement_klien'),
+                // sum of report_balance_top_up, fallback to manual_upload_topup if sum = 0
+                DB::raw('
+                    CASE
+                        WHEN SUM(report_balance_top_up.total_settlement_klien) = 0 OR SUM(report_balance_top_up.total_settlement_klien) IS NULL
+                        THEN SUM(manual_upload_topup.total)
+                        ELSE SUM(report_balance_top_up.total_settlement_klien)
+                    END as total_settlement_klien
+                ')
             ])
             ->groupBy(
                 'leads_master.id',
@@ -73,7 +82,8 @@ class LogbookDailyController extends Controller
                 'logbook_daily.plan_min_topup',
                 'logbook_daily.status'
             )
-        ->orderBy('leads_master.created_at', 'desc');
+            ->orderBy('leads_master.created_at', 'desc');
+
 
         // =======================
         // 🔐 FILTER ROLE
@@ -106,6 +116,18 @@ class LogbookDailyController extends Controller
                 $request->start_date . ' 00:00:00',
                 $request->end_date   . ' 23:59:59',
             ]);
+        }
+        
+        if (!empty($search)) {
+            $search = strtolower($search);
+
+            $query->havingRaw("
+                LOWER(users.name) LIKE ?
+                OR LOWER(leads_master.regional) LIKE ?
+                OR LOWER(leads_master.company_name) LIKE ?
+                OR LOWER(leads_master.myads_account) LIKE ?
+                OR LOWER(leads_master.mobile_phone) LIKE ?
+            ", array_fill(0, 5, "%{$search}%"));
         }
 
 

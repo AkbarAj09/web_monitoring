@@ -37,6 +37,8 @@ class LogbookController extends Controller
      */
     public function data(Request $request)
     {
+        
+        $search = $request->input('search.value');
         // =======================
         // BASE QUERY + JOIN LOGBOOK
         // =======================
@@ -110,6 +112,17 @@ class LogbookController extends Controller
                 $date->startOfMonth(),
                 $date->endOfMonth(),
             ]);
+        }
+        if (!empty($search)) {
+            $search = strtolower($search);
+
+            $query->havingRaw("
+                LOWER(users.name) LIKE ?
+                OR LOWER(leads_master.regional) LIKE ?
+                OR LOWER(leads_master.company_name) LIKE ?
+                OR LOWER(leads_master.myads_account) LIKE ?
+                OR LOWER(leads_master.mobile_phone) LIKE ?
+            ", array_fill(0, 5, "%{$search}%"));
         }
 
         // if ($request->source) {
@@ -272,4 +285,38 @@ class LogbookController extends Controller
         ]);
     }
 
+
+    public function refreshLogbookStatus()
+    {
+ 
+        $this->info('Starting to update leads status...');
+
+        // Get leads where sum of report_balance_top_up.total_settlement_klien > 0
+        $leads = DB::table('leads_master')
+            ->join('logbook', 'logbook.leads_master_id', '=', 'leads_master.id')
+            ->leftJoin('report_balance_top_up', function($join) {
+                $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)');
+            })
+            ->select(
+                'leads_master.id',
+                'logbook.id as logbook_id',
+                DB::raw('SUM(report_balance_top_up.total_settlement_klien) as total_settlement')
+            )
+            ->groupBy('leads_master.id', 'logbook.id')
+            ->havingRaw('total_settlement > 0')
+            ->get();
+
+        foreach ($leads as $lead) {
+            // Update the logbook status
+            DB::table('logbook')
+                ->where('leads_master_id', $lead->logbook_id)
+                ->update([
+                    'status' => 'Topup', // or any status you want
+                    'updated_at' => now(),
+                ]);
+        }
+
+        $this->info('Leads status updated successfully!');
+        
+    }
 }
