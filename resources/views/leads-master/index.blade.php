@@ -145,6 +145,7 @@
                         <th>No HP</th>
                         <th>Tipe Data</th>
                         <th>Tanggal</th>
+                        <th>Total Settlement ({{now()->translatedFormat('F Y')}})</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -263,6 +264,7 @@ $(function () {
             { data: 'mobile_phone', searchable: true },
             { data: 'data_type', searchable: false },
             { data: 'created_at', searchable: false },
+            { data: 'total_settlement_klien', searchable: false },
             { data: 'aksi', orderable: false, searchable: false }
         ]
     });

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Schedule;
 use App\Http\Controllers\FrontController;
 use App\Http\Controllers\GetDataController;
 use App\Http\Controllers\PanenPoinController;
+use App\Http\Controllers\LogbookController;
+use App\Http\Controllers\LogbookDailyController;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -25,6 +27,14 @@ Schedule::call(function () {
 Schedule::call(function () {
     app(PanenPoinController::class)->syncAkunPanenPoin();
 })->everyMinute()->name('syncAkunPanenPoin');
+
+Schedule::call(function () {
+    app(LogbookController::class)->refreshLogbookStatus();
+})->everyMinute()->name('refreshLogbookStatus');
+
+Schedule::call(function () {
+    app(LogbookDailyController::class)->refreshLogbookDaily();
+})->everyMinute()->name('refreshLogbookDaily');
 
 Schedule::call(function () {
     app(GetDataController::class)->getDataCreatorPartner();

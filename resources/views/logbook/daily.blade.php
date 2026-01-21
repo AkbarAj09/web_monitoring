@@ -204,7 +204,7 @@ $(function () {
             { data: 'komitmen' },
             { data: 'plan_min_topup' },
             { data: 'status' },
-            { data: 'total_settlement_klien' },
+            { data: 'realisasi_topup' },
             // { data: 'action', orderable: false, searchable: false },
         ]
     });

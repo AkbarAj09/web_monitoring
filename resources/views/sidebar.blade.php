@@ -146,6 +146,16 @@
                     </a>
                 </li>  
                 @endif
+
+                @if($isAdmin)
+                    <li class="nav-item">
+                        <a href="{{ route('mitra-sbp') }}"
+                            class="nav-link waves-effect {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}">
+                            <i class="nav-icon fa-solid fa-network-wired" style="color:rgb(173, 252, 157);"></i>
+                            <p>Mitra SBP Performance Report</p>
+                        </a>
+                    </li> 
+                @endif
                 {{-- <li class="nav-item">
                     <a href="{{ route('logbook.index') }}"
                         class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">

@@ -37,18 +37,21 @@ class LogbookController extends Controller
      */
     public function data(Request $request)
     {
-        
         $search = $request->input('search.value');
+        $month = now()->month;
+        $year  = now()->year;
         // =======================
         // BASE QUERY + JOIN LOGBOOK
         // =======================
         $query = LeadsMaster::query()
             ->leftJoin('users', 'users.id', '=', 'leads_master.user_id')
             ->join('logbook', 'logbook.leads_master_id', '=', 'leads_master.id')
-            ->leftJoin('report_balance_top_up', function ($join) {
+            ->leftJoin('report_balance_top_up', function ($join) use ($month, $year) {
                     $join->whereRaw(
                         'LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)'
-                    );
+                    )
+                    ->whereMonth('report_balance_top_up.tgl_transaksi', $month)
+                    ->whereYear('report_balance_top_up.tgl_transaksi', $year);
                 })
             ->select([
                 'leads_master.id',
@@ -288,14 +291,13 @@ class LogbookController extends Controller
 
     public function refreshLogbookStatus()
     {
- 
-        $this->info('Starting to update leads status...');
-
         // Get leads where sum of report_balance_top_up.total_settlement_klien > 0
         $leads = DB::table('leads_master')
             ->join('logbook', 'logbook.leads_master_id', '=', 'leads_master.id')
             ->leftJoin('report_balance_top_up', function($join) {
-                $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)');
+                $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)')
+                ->whereRaw('MONTH(report_balance_top_up.tgl_transaksi) = logbook.bulan')
+                 ->whereRaw('YEAR(report_balance_top_up.tgl_transaksi) = logbook.tahun');
             })
             ->select(
                 'leads_master.id',
@@ -308,15 +310,15 @@ class LogbookController extends Controller
 
         foreach ($leads as $lead) {
             // Update the logbook status
-            DB::table('logbook')
-                ->where('leads_master_id', $lead->logbook_id)
+            $logbook = DB::table('logbook')
+                ->where('id', $lead->logbook_id)
                 ->update([
                     'status' => 'Topup', // or any status you want
                     'updated_at' => now(),
                 ]);
+            print($logbook);
         }
-
-        $this->info('Leads status updated successfully!');
+        
         
     }
 }

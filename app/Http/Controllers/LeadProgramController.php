@@ -548,12 +548,12 @@ class LeadProgramController extends Controller
                 $achievementPercent = $target > 0 ? ($totalTopUp / $target) * 100 : 0;
 
                 // Hitung gap (berapa rupiah lagi untuk capai target)
-                $gap = $target - $totalTopUp;
-                $gap = $gap > 0 ? $gap : 0; // Jika sudah exceed target, gap = 0
+                $gap = $totalTopUp - $target;
+                // $gap = $gap > 0 ? $gap : 0; // Jika sudah exceed target, gap = 0
 
                 // Hitung gap target daily (gap dibagi sisa hari kerja)
                 $gapDaily = $remainingWorkingDays > 0 ? $gap / $remainingWorkingDays : 0;
-
+                $gapDaily *= -1;
                 //gap mom
                 $momGap = $topUpCurrentMonthPartial - $topUpPrevMonthPartial;
 
