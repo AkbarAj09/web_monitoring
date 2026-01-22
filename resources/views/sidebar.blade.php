@@ -148,13 +148,24 @@
                 @endif
 
                 @if($isAdmin)
-                    <li class="nav-item">
-                        <a href="{{ route('mitra-sbp') }}"
-                            class="nav-link waves-effect {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}">
-                            <i class="nav-icon fa-solid fa-network-wired" style="color:rgb(173, 252, 157);"></i>
-                            <p>Mitra SBP Performance Report</p>
-                        </a>
-                    </li> 
+                    <li class="nav-item {{ request()->routeIs('mitra-sbp') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-network-wired" style="color:#28a745;"></i>
+                                <p>
+                                    Mitra SBP
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('mitra-sbp') }}"
+                                    class="nav-link waves-effect {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}">
+                                    <i class="nav-icon fa-solid fa-chart-column" style="color:rgb(173, 252, 157);"></i>
+                                    <p>Performance Report</p>
+                                </a>
+                            </li> 
+                            </ul>
+                    </li>
                 @endif
                 {{-- <li class="nav-item">
                     <a href="{{ route('logbook.index') }}"
