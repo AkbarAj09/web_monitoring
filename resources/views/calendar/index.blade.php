@@ -1,42 +1,103 @@
 @extends('master')
-
+@section('title', 'Booking Calendar')
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-@endsection
+<style>
+    .fc-event {
+        border-radius: 6px !important;
+        padding: 2px 6px !important;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.4;
+        cursor: pointer;
+    }
 
-@section('content')
-<style>.fc-event {
-    border-radius: 6px !important;
-    padding: 2px 6px !important;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.4;
-}
+    .fc-daygrid-event {
+        margin-bottom: 3px;
+    }
 
-.fc-daygrid-event {
-    margin-bottom: 3px;
-}
+    .fc-event-title {
+        white-space: normal !important;
+    }
 
-.fc-event-title {
-    white-space: normal !important;
-}
+    .fc-daygrid-day-number {
+        font-weight: 600;
+        color: #6c757d;
+    }
 
-.fc-daygrid-day-number {
-    font-weight: 600;
-    color: #6c757d;
-}
+    /* Highlight today */
+    .fc-day-today {
+        background: #fff3cd !important;
+    }
 
-/* Highlight today */
-.fc-day-today {
-    background: #fff3cd !important;
-}
+    /* Header */
+    .fc-toolbar-title {
+        font-weight: 600;
+        font-size: 18px;
+    }
 
-/* Header */
-.fc-toolbar-title {
-    font-weight: 600;
-    font-size: 18px;
-}
+    /* Modal styling */
+    .modal-header {
+        border-radius: 8px 8px 0 0 !important;
+        padding: 1.5rem !important;
+    }
+
+    .modal-body {
+        padding: 2rem !important;
+    }
+
+    .modal-footer {
+        padding: 1.5rem !important;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .form-control {
+        border: 2px solid #e0e0e0 !important;
+        border-radius: 8px !important;
+        padding: 10px 12px !important;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #17a2b8 !important;
+        box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25) !important;
+        background-color: #f8ffff;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+    }
+
+    /* Button styling */
+    .btn {
+        border-radius: 6px !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-info {
+        background-color: #17a2b8 !important;
+        border-color: #17a2b8 !important;
+    }
+
+    .btn-info:hover {
+        background-color: #138496 !important;
+        border-color: #117a8b !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    }
 </style>
+@endsection
+@section('content')
 <div class="d-flex justify-content-between mb-2">
     <h5>Calendar Booking</h5>
     <div>
@@ -59,38 +120,71 @@
 <br>
 <hr>
 <br>
-<div class="row mb-5">
-    <div class="col-md-3">
-        <h5>Detail Booking</h5>
-        <div id="detail">
-            <input type="hidden" id="event-id">
-            <p><b>Nama:</b> <span id="d-nama">-</span></p>
-            <p><b>Lokasi:</b> <span id="d-lokasi">-</span></p>
-            <p><b>Tanggal:</b> <span id="d-tanggal">-</span></p>
-            <p><b>Waktu:</b> <span id="d-waktu">-</span></p>
-            <p><b>Keterangan:</b> <span id="d-keterangan">-</span></p>
 
-            <button class="btn btn-primary btn-sm mt-2" id="btnEdit">
-                <i class="fa fa-edit"></i> Edit Booking
-            </button>
-            <button class="btn btn-danger btn-sm mt-2" id="btnDelete">
-                <i class="fa fa-trash"></i> Hapus Booking
-            </button>
+
+<div class="modal fade" id="modalDetailBooking" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-check mr-2"></i>Detail Booking
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="event-id">
+                <div class="form-group">
+                    <label><b>Nama</b></label>
+                    <p id="d-nama">-</p>
+                </div>
+                <div class="form-group">
+                    <label><b>Lokasi</b></label>
+                    <p id="d-lokasi">-</p>
+                </div>
+                <div class="form-group">
+                    <label><b>Tanggal</b></label>
+                    <p id="d-tanggal">-</p>
+                </div>
+                <div class="form-group">
+                    <label><b>Waktu</b></label>
+                    <p id="d-waktu">-</p>
+                </div>
+                <div class="form-group">
+                    <label><b>Keterangan</b></label>
+                    <p id="d-keterangan">-</p>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-sm" id="btnEdit">
+                    <i class="fa fa-edit"></i> Edit Booking
+                </button>
+                <button class="btn btn-danger btn-sm" id="btnDelete">
+                    <i class="fa fa-trash"></i> Hapus Booking
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    Tutup
+                </button>
+            </div>
         </div>
     </div>
-
 </div>
 
-<div class="modal fade" id="modalBooking" tabindex="-1" role="dialog">
+<div class="modal fade" id="modalBooking" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
         <form id="formBooking">
             @csrf
             <input type="hidden" id="booking-id" name="booking_id">
             <div class="modal-content">
 
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Tambah Booking</h5>
-                    <button type="button" class="close" data-dismiss="modal">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="modalTitle">
+                        <i class="fas fa-calendar-check mr-2"></i>Tambah Booking
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -98,7 +192,7 @@
                 <div class="modal-body">
 
                     <div class="form-group">
-                        <label>Nama</label>
+                        <label for="namaSelect"><i class="fas fa-user text-info mr-2"></i>Nama</label>
                         <select name="nama" class="form-control" id="namaSelect" required>
                             <option value="">-- Pilih Nama --</option>
 
@@ -120,31 +214,34 @@
                         <input type="hidden" name="color" id="colorInput">
                     </div>
 
-
                     <div class="form-group">
-                        <label>Lokasi</label>
-                        <input type="text" name="lokasi" class="form-control" required>
+                        <label for="lokasiInput"><i class="fas fa-map-marker-alt text-info mr-2"></i>Lokasi</label>
+                        <input type="text" id="lokasiInput" name="lokasi" class="form-control" placeholder="Masukkan lokasi kunjungan" required>
                     </div>
 
                     <div class="form-group">
-                        <label>Tanggal</label>
-                        <input type="date" name="tanggal" class="form-control" required>
+                        <label for="tanggalInput"><i class="fas fa-calendar-alt text-info mr-2"></i>Tanggal</label>
+                        <input type="date" id="tanggalInput" name="tanggal" class="form-control" required>
                     </div>
 
                     <div class="row">
-                        <div class="col">
-                            <label>Mulai</label>
-                            <input type="time" name="start" class="form-control" required>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="startInput"><i class="fas fa-clock text-info mr-2"></i>Mulai</label>
+                                <input type="time" id="startInput" name="start" class="form-control" required>
+                            </div>
                         </div>
-                        <div class="col">
-                            <label>Selesai</label>
-                            <input type="time" name="end" class="form-control" required>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="endInput"><i class="fas fa-clock text-info mr-2"></i>Selesai</label>
+                                <input type="time" id="endInput" name="end" class="form-control" required>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-group mt-2">
-                        <label>Keterangan</label>
-                        <textarea name="keterangan" class="form-control"></textarea>
+                    <div class="form-group">
+                        <label for="keteranganInput"><i class="fas fa-pen-fancy text-info mr-2"></i>Keterangan</label>
+                        <textarea id="keteranganInput" name="keterangan" class="form-control" rows="3" placeholder="Tambahkan keterangan (opsional)"></textarea>
                     </div>
 
                 </div>
@@ -153,8 +250,8 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         Batal
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        Simpan
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-check mr-2"></i>Simpan
                     </button>
                 </div>
 
@@ -167,6 +264,7 @@
 
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
 
 <script>
@@ -196,6 +294,8 @@ document.addEventListener('DOMContentLoaded', function () {
             $('#d-tanggal').text(e.tanggal || '-');
             $('#d-waktu').text(e.waktu || '-');
             $('#d-keterangan').text(e.keterangan || '-');
+            
+            $('#modalDetailBooking').modal('show');
         }
     });
 
@@ -223,6 +323,46 @@ $('#formBooking').on('submit', function (e) {
             $('#formBooking')[0].reset();
             $('#booking-id').val('');
             $('#modalTitle').text('Tambah Booking');
+
+            if (isEdit) {
+                // Show success alert untuk edit
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Diubah',
+                    text: 'Jadwal booking berhasil diperbarui',
+                    confirmButtonColor: '#17a2b8',
+                    timer: 1500,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
+
+                // Reload detail modal otomatis setelah refetch selesai
+                setTimeout(function() {
+                    if (selectedEventId) {
+                        const event = calendar.getEventById(selectedEventId);
+                        if (event) {
+                            let e = event.extendedProps;
+                            $('#d-nama').text(e.nama || '-');
+                            $('#d-lokasi').text(e.lokasi || '-');
+                            $('#d-tanggal').text(e.tanggal || '-');
+                            $('#d-waktu').text(e.waktu || '-');
+                            $('#d-keterangan').text(e.keterangan || '-');
+                            $('#modalDetailBooking').modal('show');
+                        }
+                    }
+                }, 500);
+            } else {
+                // Show success alert untuk tambah baru
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Ditambahkan',
+                    text: 'Booking baru berhasil ditambahkan',
+                    confirmButtonColor: '#17a2b8',
+                    timer: 1500,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
+            }
         }
     });
 });
@@ -232,7 +372,13 @@ $('#formBooking').on('submit', function (e) {
 ====================== */
 $('#btnEdit').on('click', function () {
     if (!selectedEventId) {
-        alert('Pilih event terlebih dahulu');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Pilih Event',
+            text: 'Silakan pilih event terlebih dahulu',
+            confirmButtonColor: '#17a2b8',
+            confirmButtonText: 'Mengerti'
+        });
         return;
     }
 
@@ -259,24 +405,48 @@ $('#btnEdit').on('click', function () {
 $('#btnDelete').on('click', function () {
 
     if (!selectedEventId) {
-        alert('Pilih event terlebih dahulu');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Pilih Event',
+            text: 'Silakan pilih event terlebih dahulu',
+            confirmButtonColor: '#17a2b8',
+            confirmButtonText: 'Mengerti'
+        });
         return;
     }
 
-    if (!confirm('Yakin ingin menghapus booking ini?')) return;
+    Swal.fire({
+        icon: 'question',
+        title: 'Hapus Booking',
+        text: 'Yakin ingin menghapus booking ini?',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url('/calendar/delete') }}/" + selectedEventId,
+                method: "DELETE",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function () {
+                    calendar.refetchEvents();
+                    selectedEventId = null;
 
-    $.ajax({
-        url: "{{ url('/calendar/delete') }}/" + selectedEventId,
-        method: "DELETE",
-        data: {
-            _token: "{{ csrf_token() }}"
-        },
-        success: function () {
-            calendar.refetchEvents();
-            selectedEventId = null;
-
-            $('#detail span').text('-');
-            alert('Booking berhasil dihapus');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil Dihapus',
+                        text: 'Booking berhasil dihapus',
+                        confirmButtonColor: '#17a2b8',
+                        timer: 1500,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+                }
+            });
         }
     });
 });

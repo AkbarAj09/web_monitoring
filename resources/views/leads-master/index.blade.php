@@ -28,7 +28,20 @@
 
 @section('content')
 
-@if (session('success'))
+@if (session('success_with_schedule'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const message = `{{ session('success_with_schedule') }}`.split('\n').join('<br>');
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            html: message,
+            confirmButtonColor: '#28a745',
+            confirmButtonText: 'OK'
+        });
+    });
+</script>
+@elseif (session('success'))
 <div class="alert alert-success alert-dismissible fade show" role="alert">
     {{ session('success') }}
     <button type="button" class="close" data-dismiss="alert">&times;</button>
