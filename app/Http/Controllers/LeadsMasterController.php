@@ -57,7 +57,7 @@ class LeadsMasterController extends Controller
 
         // 🔐 Filter berdasarkan role
         if (!auth()->user()->hasRole('Admin')) {
-            $query->where('user_id', auth()->id());
+            $query->where('leads_master.user_id', auth()->id());
         }
 
         // =======================
