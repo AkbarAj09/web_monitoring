@@ -433,6 +433,9 @@ $('#btnDelete').on('click', function () {
                     _token: "{{ csrf_token() }}"
                 },
                 success: function () {
+                    // Tutup modal detail booking
+                    $('#modalDetailBooking').modal('hide');
+                    
                     calendar.refetchEvents();
                     selectedEventId = null;
 
