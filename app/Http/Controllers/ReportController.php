@@ -372,6 +372,7 @@ public function topupCanvasserData(Request $request)
                 DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as mitra_sbp')
             )
             ->where('rt.data_type', 'Mitra SBP')
+            ->where('ms.remark', 'Mitra SBP')
             ->groupBy(
                 'ms.area',
                 'rt.region_name',
@@ -396,6 +397,7 @@ public function topupCanvasserData(Request $request)
                 DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as agency')
             )
             ->where('rt.data_type', 'Agency')
+            ->where('ms.remark', 'Agency')
             ->groupBy(
                 'ms.area',
                 'rt.region_name',
@@ -421,6 +423,7 @@ public function topupCanvasserData(Request $request)
                 DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as internal')
             )
             ->where('rt.data_type', 'Internal')
+            ->where('ms.remark', 'Internal')
             ->groupBy(
                 'ms.area',
                 'rt.region_name',

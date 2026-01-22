@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use DataTables;
 use Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class LeadsMasterController extends Controller
 {
@@ -21,13 +22,15 @@ class LeadsMasterController extends Controller
     {
         logUserLogin();
         return view('leads-master.index', [
-            'canvassers' => User::orderBy('name')->get(),
-            'sources'    => LeadsSource::orderBy('name')->get(),
-            'regionals'  => DB::table('regional_provinces')
-                                ->select('regional')
-                                ->distinct()
-                                ->orderBy('regional')
-                                ->pluck('regional'),
+            'canvassers' => Cache::remember('users_list_leads', 3600, fn() => User::orderBy('name')->get()),
+            'sources'    => Cache::remember('sources_list_leads', 3600, fn() => LeadsSource::orderBy('name')->get()),
+            'regionals'  => Cache::remember('regionals_list_leads', 3600, fn() => 
+                DB::table('regional_provinces')
+                    ->select('regional')
+                    ->distinct()
+                    ->orderBy('regional')
+                    ->pluck('regional')
+            ),
         ]);
     }
 
@@ -41,23 +44,31 @@ class LeadsMasterController extends Controller
         $month = now()->month;
         $year  = now()->year;
 
-        // Base query + eager loading
+        // Gunakan subquery untuk aggregate daripada GROUP BY (lebih optimal)
+        $settlementSubquery = DB::table('report_balance_top_up as rbt')
+            ->select('email_client', DB::raw('SUM(total_settlement_klien) as total_settlement_klien'))
+            ->whereMonth('tgl_transaksi', $month)
+            ->whereYear('tgl_transaksi', $year)
+            ->groupBy('email_client');
+
+        // Base query + eager loading dengan optimized join
         $query = LeadsMaster::with(['user', 'source', 'sector'])
-            ->leftJoin('report_balance_top_up as rbt', function ($join) use ($month, $year) {
-                $join->on(DB::raw('LOWER(rbt.email_client)'), '=', DB::raw('LOWER(leads_master.email)'))
-                    ->whereMonth('rbt.tgl_transaksi', $month)
-                    ->whereYear('rbt.tgl_transaksi', $year);
-            })
+            ->leftJoinSub(
+                $settlementSubquery,
+                'rbt',
+                function ($join) {
+                    $join->on(DB::raw('LOWER(rbt.email_client)'), '=', DB::raw('LOWER(leads_master.email)'));
+                }
+            )
             ->select(
                 'leads_master.*',
-                DB::raw('COALESCE(SUM(rbt.total_settlement_klien), 0) as total_settlement_klien')
+                DB::raw('COALESCE(rbt.total_settlement_klien, 0) as total_settlement_klien')
             )
-            ->groupBy('leads_master.id')
-            ->orderBy('leads_master.created_at', 'asc');
+            ->orderBy('rbt.total_settlement_klien', 'desc');
 
         // 🔐 Filter berdasarkan role
         if (!auth()->user()->hasRole('Admin')) {
-            $query->where('user_id', auth()->id());
+            $query->where('leads_master.user_id', auth()->id());
         }
 
         // =======================
@@ -67,19 +78,19 @@ class LeadsMasterController extends Controller
             $query->where('leads_master.regional', $request->regional);
         }
         // Filter Canvasser
-        // if ($request->canvasser) {
-        //     $query->where('user_id', $request->canvasser);
-        // }
+        if ($request->canvasser) {
+            $query->where('user_id', $request->canvasser);
+        }
 
         // Filter Nama Perusahaan
-        if ($request->company) {
-            $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
-        }
+        // if ($request->company) {
+        //     $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
+        // }
 
-        // Filter Email
-        if ($request->email) {
-            $query->where('leads_master.email', 'like', '%' . $request->email . '%');
-        }
+        // // Filter Email
+        // if ($request->email) {
+        //     $query->where('leads_master.email', 'like', '%' . $request->email . '%');
+        // }
 
         // Filter Email
         if ($request->start_date && $request->end_date) {

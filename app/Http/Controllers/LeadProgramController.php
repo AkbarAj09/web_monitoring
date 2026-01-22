@@ -13,6 +13,7 @@ class LeadProgramController extends Controller
         try {
             // Ambil data bulan berjalan
             $dailyData = $this->getDailyTopupData();
+            $dailyDataClient = $this->getTopupByEmailAndRegion();
             
             return view('admin.home', compact('dailyData'));
         } catch (\Exception $e) {
@@ -243,6 +244,62 @@ class LeadProgramController extends Controller
             return [];
         }
     }
+
+    public function getTopupByEmailAndRegion()
+    {
+        $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+
+        $data = DB::table('report_balance_top_up as rp')
+            ->select(
+                'rp.data_province_name as province',
+                'rp.email_client as email',
+                'rp.user_id',
+                DB::raw('SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as total_settlement')
+            )
+            ->whereDate('rp.tgl_transaksi', '>=', $startDate)
+            ->whereNotNull('rp.email_client')
+            ->whereNotNull('rp.data_province_name')
+            ->whereNotNull('rp.total_settlement_klien')
+            ->groupBy(
+                'rp.data_province_name',
+                'rp.email_client',
+                'rp.user_id'
+            )
+            ->orderBy('rp.data_province_name')
+            ->orderByDesc('total_settlement')
+            ->get();
+
+        // Grouping agar mudah ditampilkan di view
+        $result = [];
+
+        foreach ($data as $row) {
+            $province = $row->province;
+
+            if (!isset($result[$province])) {
+                $result[$province] = [
+                    'rows' => [],
+                    'grand_total' => 0
+                ];
+            }
+
+            $result[$province]['rows'][] = [
+                'email' => $row->email,
+                'user_id' => $row->user_id,
+                'total' => number_format($row->total_settlement, 0, ',', '.')
+            ];
+
+            $result[$province]['grand_total'] += $row->total_settlement;
+        }
+
+        // format grand total
+        foreach ($result as $province => $val) {
+            $result[$province]['grand_total'] =
+                number_format($val['grand_total'], 0, ',', '.');
+        }
+
+        return $result;
+    }
+
 
     public function getDailyTopupDataTable(Request $request)
     {
@@ -608,6 +665,7 @@ class LeadProgramController extends Controller
             if (!empty($result)) {
                 $totalAchievementPercent = $totals['target'] > 0 ? ($totals['total_top_up_rp'] / $totals['target']) * 100 : 0;
                 $totalGapDaily = $remainingWorkingDays > 0 ? $totals['gap'] / $remainingWorkingDays : 0;
+                $totalGapDaily *= -1;
 
                 $result[] = [
                     'no' => '',
