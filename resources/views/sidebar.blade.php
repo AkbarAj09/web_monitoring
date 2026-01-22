@@ -1,6 +1,6 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+<aside class="main-sidebar sidebar-dark-primary elevation-4" style="position: fixed; top: 0; left: 0; width: 250px; height: 100vh; overflow-y: auto; z-index: 900;">
     <!-- Brand Logo -->
-    <a href="{{ url('/') }}" class="brand-link">
+    <a href="{{ url('/') }}" class="brand-link" style="position: sticky; top: 0; z-index: 901;">
         <img src="{{ asset('images/TRACERS_2.png') }}" alt="MyAds Logo" class="brand-image img-circle elevation-2">
         <span class="brand-text font-weight-bold">{{ Auth::user()->role }}</span>
     </a>
@@ -26,7 +26,7 @@
                 @elseif($isTsel)
                 <span class="badge badge-success">TSEL</span>
                 @elseif($isPH)
-                <span class="badge badge-dark">POWERHOUSE</span>
+                <span class="badge badge-info">POWERHOUSE</span>
                 @elseif($isCanv)
                 <span class="badge badge-primary">CANVASSER</span>
                 @elseif($isTreg)
@@ -159,7 +159,7 @@
                             <ul class="nav nav-treeview">
                             <li class="nav-item">
                                 <a href="{{ route('mitra-sbp') }}"
-                                    class="nav-link waves-effect {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}">
+                                    class="nav-link waves-effect {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}" style="padding-left: 45px;">
                                     <i class="nav-icon fa-solid fa-chart-column" style="color:rgb(173, 252, 157);"></i>
                                     <p>Performance Report</p>
                                 </a>
@@ -211,7 +211,7 @@
                                 <li class="nav-item">
                                     <a href="{{ route('panenpoin.index') }}"
                                     class="nav-link {{ request()->routeIs('panenpoin.index') ? 'active' : '' }}"
-                                    style="padding-left: 60px;">
+                                    style="padding-left: 45px;">
                                         <i class="fas fa-plus-circle nav-icon" style="color:#17a2b8;"></i>
                                         <p>Input Data</p>
                                     </a>
@@ -220,7 +220,7 @@
                                 <li class="nav-item">
                                     <a href="{{ route('panenpoin.report') }}"
                                     class="nav-link {{ request()->routeIs('panenpoin.report') ? 'active' : '' }}"
-                                    style="padding-left: 60px;">
+                                    style="padding-left: 45px;">
                                         <i class="fas fa-chart-bar nav-icon" style="color:#ffc107;"></i>
                                         <p>Report Poin</p>
                                     </a>
@@ -229,7 +229,7 @@
                                 <li class="nav-item">
                                     <a href="{{ route('panenpoin.list-akun') }}"
                                     class="nav-link {{ request()->routeIs('panenpoin.list-akun') ? 'active' : '' }}"
-                                    style="padding-left: 60px;">
+                                    style="padding-left: 45px;">
                                         <i class="fas fa-user-check nav-icon" style="color:#28a745;"></i>
                                         <p>Daftar Akun</p>
                                     </a>

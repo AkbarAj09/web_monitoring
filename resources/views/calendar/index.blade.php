@@ -66,6 +66,12 @@
         background-color: #f8ffff;
     }
 
+    /* Select styling untuk nama */
+    #namaSelect {
+        min-height: 45px !important;
+        padding: 12px 15px !important;
+    }
+
     .form-group label {
         font-weight: 600;
         font-size: 14px;
@@ -289,10 +295,31 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedEventId = info.event.id;
             $('#event-id').val(selectedEventId);
 
+            // Format tanggal ke format lokal Indonesia
+            let formattedDate = '-';
+            if (e.tanggal) {
+                const dateObj = new Date(e.tanggal);
+                formattedDate = dateObj.toLocaleDateString('id-ID', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            }
+
+            // Format waktu hanya HH:MM
+            let formattedTime = '-';
+            if (e.waktu) {
+                const times = e.waktu.split(' - ');
+                const startTime = times[0] ? times[0].substring(0, 5) : '-';
+                const endTime = times[1] ? times[1].substring(0, 5) : '-';
+                formattedTime = startTime + ' - ' + endTime;
+            }
+
             $('#d-nama').text(e.nama || '-');
             $('#d-lokasi').text(e.lokasi || '-');
-            $('#d-tanggal').text(e.tanggal || '-');
-            $('#d-waktu').text(e.waktu || '-');
+            $('#d-tanggal').text(formattedDate);
+            $('#d-waktu').text(formattedTime);
             $('#d-keterangan').text(e.keterangan || '-');
             
             $('#modalDetailBooking').modal('show');
@@ -342,10 +369,32 @@ $('#formBooking').on('submit', function (e) {
                         const event = calendar.getEventById(selectedEventId);
                         if (event) {
                             let e = event.extendedProps;
+
+                            // Format tanggal ke format lokal Indonesia
+                            let formattedDate = '-';
+                            if (e.tanggal) {
+                                const dateObj = new Date(e.tanggal);
+                                formattedDate = dateObj.toLocaleDateString('id-ID', { 
+                                    weekday: 'long', 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                });
+                            }
+
+                            // Format waktu hanya HH:MM
+                            let formattedTime = '-';
+                            if (e.waktu) {
+                                const times = e.waktu.split(' - ');
+                                const startTime = times[0] ? times[0].substring(0, 5) : '-';
+                                const endTime = times[1] ? times[1].substring(0, 5) : '-';
+                                formattedTime = startTime + ' - ' + endTime;
+                            }
+
                             $('#d-nama').text(e.nama || '-');
                             $('#d-lokasi').text(e.lokasi || '-');
-                            $('#d-tanggal').text(e.tanggal || '-');
-                            $('#d-waktu').text(e.waktu || '-');
+                            $('#d-tanggal').text(formattedDate);
+                            $('#d-waktu').text(formattedTime);
                             $('#d-keterangan').text(e.keterangan || '-');
                             $('#modalDetailBooking').modal('show');
                         }
