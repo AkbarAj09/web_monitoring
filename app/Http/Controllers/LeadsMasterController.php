@@ -64,7 +64,7 @@ class LeadsMasterController extends Controller
                 'leads_master.*',
                 DB::raw('COALESCE(rbt.total_settlement_klien, 0) as total_settlement_klien')
             )
-            ->orderBy('leads_master.created_at', 'desc');
+            ->orderBy('rbt.total_settlement_klien', 'desc');
 
         // 🔐 Filter berdasarkan role
         if (!auth()->user()->hasRole('Admin')) {
@@ -78,19 +78,19 @@ class LeadsMasterController extends Controller
             $query->where('leads_master.regional', $request->regional);
         }
         // Filter Canvasser
-        // if ($request->canvasser) {
-        //     $query->where('user_id', $request->canvasser);
-        // }
+        if ($request->canvasser) {
+            $query->where('user_id', $request->canvasser);
+        }
 
         // Filter Nama Perusahaan
-        if ($request->company) {
-            $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
-        }
+        // if ($request->company) {
+        //     $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
+        // }
 
-        // Filter Email
-        if ($request->email) {
-            $query->where('leads_master.email', 'like', '%' . $request->email . '%');
-        }
+        // // Filter Email
+        // if ($request->email) {
+        //     $query->where('leads_master.email', 'like', '%' . $request->email . '%');
+        // }
 
         // Filter Email
         if ($request->start_date && $request->end_date) {
