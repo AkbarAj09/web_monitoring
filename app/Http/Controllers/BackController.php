@@ -977,10 +977,14 @@ class BackController extends Controller
      * Get PowerHouse Referral Report
      * Data dari JOIN report_balance_top_up + data_voucher dengan sistem POIN
      * 1 Poin = 1 juta rupiah
+     * Added: Jumlah Leads dan Jumlah Visit dari LeadsMaster dan Booking
      */
     public function getPowerHouseVoucher(Request $request)
     {
-        $currentMonth = Carbon::now()->format('Y-m');
+        // Get month from request (format Y-m-d) or use current month
+        $monthParam = $request->get('month', Carbon::now()->format('Y-m-d'));
+        // Extract only Y-m from the date parameter
+        $month = Carbon::parse($monthParam)->format('Y-m');
         
         // Voucher codes untuk PowerHouse
         $powerHouseCodes = ['SUPER1', 'SUPER2', 'SUPER3', 'SUPER4', 'SUPER5', 'SUPER6', 'SUPER7', 'SUPER8'];
@@ -997,6 +1001,18 @@ class BackController extends Controller
             'SUPER8' => 'Ikrar Dharmawan',
         ];
 
+        // Get users associated with PowerHouse teams
+        $powerHouseUserMap = [
+            'Angga Satria Gusti' => ['Angga Satria Gusti'],
+            'Abdul Halim' => ['Abdul Halim'],
+            'Raden Agie S. Akbar' => ['Raden Agie Satria Akbar', 'Raden Agie S. Akbar'],
+            'Sony Widjaya' => ['Sony Widjaya'],
+            'Deni Setiawan' => ['Deni Setiawan'],
+            'Muhammad Arief Syahbana' => ['Muhammad Arief Syahbana'],
+            'Naqsyabandi' => ['Naqsyabandi'],
+            'Ikrar Dharmawan' => ['Ikrar Dharmawan'],
+        ];
+
         // Ambil data dari JOIN report_balance_top_up + data_voucher
         $voucherData = DB::table('report_balance_top_up as rb')
             ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
@@ -1007,7 +1023,7 @@ class BackController extends Controller
                 DB::raw('MAX(rb.tgl_transaksi) as tgl_transaksi_terakhir')
             )
             ->whereIn('dv.voucher_code', $powerHouseCodes)
-            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$month])
             ->groupBy('dv.voucher_code')
             ->get()
             ->keyBy('voucher_code');
@@ -1016,6 +1032,33 @@ class BackController extends Controller
         $result = [];
         foreach ($powerHouseMapping as $voucherCode => $powerHouseName) {
             $voucherInfo = $voucherData->get($voucherCode);
+            
+            // Count leads for this PowerHouse team (from leads_master table)
+            $userNames = $powerHouseUserMap[$powerHouseName] ?? [];
+            
+            // Get user IDs for this PowerHouse
+            $userIds = DB::table('users')
+                ->whereIn('name', $userNames)
+                ->pluck('id')
+                ->toArray();
+
+            // Count new leads created by this user in the selected month
+            $jumlahLeads = 0;
+            if (!empty($userIds)) {
+                $jumlahLeads = DB::table('leads_master')
+                    ->whereIn('user_id', $userIds)
+                    ->whereRaw('DATE_FORMAT(created_at, "%Y-%m") = ?', [$month])
+                    ->count();
+            }
+
+            // Count visits from bookings for this user in the selected month
+            $jumlahVisit = 0;
+            if (!empty($userNames)) {
+                $jumlahVisit = DB::table('bookings')
+                    ->whereIn('nama', $userNames)
+                    ->whereRaw('DATE_FORMAT(tanggal, "%Y-%m") = ?', [$month])
+                    ->count();
+            }
             
             if ($voucherInfo) {
                 $totalTopup = (float)($voucherInfo->total_topup ?? 0);
@@ -1029,6 +1072,8 @@ class BackController extends Controller
                     'referral_code' => $voucherCode,
                     'team_powerhouse' => $powerHouseName,
                     'jumlah_akun' => (int)($voucherInfo->jumlah_akun ?? 0),
+                    'jumlah_leads' => $jumlahLeads,
+                    'jumlah_visit' => $jumlahVisit,
                     'total_topup' => $totalTopup,
                     'poin' => $poin,
                     'tgl_transaksi_terakhir' => $tglFormatted,
@@ -1039,6 +1084,8 @@ class BackController extends Controller
                     'referral_code' => $voucherCode,
                     'team_powerhouse' => $powerHouseName,
                     'jumlah_akun' => 0,
+                    'jumlah_leads' => $jumlahLeads,
+                    'jumlah_visit' => $jumlahVisit,
                     'total_topup' => 0,
                     'poin' => 0,
                     'tgl_transaksi_terakhir' => '-',

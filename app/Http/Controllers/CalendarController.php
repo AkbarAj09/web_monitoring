@@ -118,6 +118,23 @@ class CalendarController extends Controller
 }
 
 
+    public function update(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        
+        $booking->update([
+            'nama'       => $request->nama,
+            'lokasi'     => $request->lokasi,
+            'tanggal'    => $request->tanggal,
+            'waktu_mulai'      => $request->start,
+            'waktu_selesai'        => $request->end,
+            'keterangan' => $request->keterangan,
+            'warna'      => $request->color ?? '#000000',
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function delete($id)
     {
         Booking::findOrFail($id)->delete();

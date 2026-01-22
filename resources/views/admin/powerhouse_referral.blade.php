@@ -233,8 +233,24 @@
         font-weight: 600;
     }
 
-    /* Kolom Top Up */
+    /* Kolom Jumlah Leads */
     .table tbody tr td:nth-child(5) {
+        background-color: #f3e5f5;
+        color: #6a1b9a;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    /* Kolom Jumlah Visit */
+    .table tbody tr td:nth-child(6) {
+        background-color: #e8f5e9;
+        color: #1b5e20;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    /* Kolom Top Up */
+    .table tbody tr td:nth-child(7) {
         background: linear-gradient(135deg, #fff5e1 0%, #ffe0b2 100%);
         color: #e65100;
         font-weight: 600;
@@ -242,7 +258,7 @@
     }
 
     /* Kolom Insentif */
-    .table tbody tr td:nth-child(6) {
+    .table tbody tr td:nth-child(8) {
         background: linear-gradient(135deg, #c8e6c9 0%, #81c784 100%);
         color: #2e7d32;
         font-weight: 600;
@@ -472,7 +488,20 @@
         margin-right: 6px;
     }
 
-</style>
+    /* Filter Button Styling */
+    .btn-outline-primary {
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+    }
+
+    /* Gap utility class */
+    .gap-2 {
+        gap: 8px;
+    }</style>
 @endsection
 
 @section('content')
@@ -488,34 +517,46 @@
 </div>
 @endif
 
+<!-- Filter Section -->
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-end align-items-center gap-2">
+        <select id="filterMonthPH" name="filterMonthPH" class="form-control" style="background-color: #313131; color: white; min-width: 180px; max-width: 200px;">
+            @foreach ($months as $month)
+            <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                {{ $month['label'] }}
+            </option>
+            @endforeach
+        </select>
+        <button type="button" id="btnSavePowerHouseImage" class="btn btn-success" title="Save as Image" style="padding: 6px 12px; white-space: nowrap;">
+            <i class="fas fa-image mr-2"></i> Save Image
+        </button>
+        <a href="{{ route('export.powerhouse_voucher') }}" class="btn btn-success" title="Download Excel" style="padding: 6px 12px; white-space: nowrap;">
+            <i class="fas fa-file-excel mr-2"></i> Download Excel
+        </a>
+    </div>
+</div>
 
 <!-- Report PowerHouse Referral -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card" id="powerHouseTableCard">
-            <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-gradient-danger text-white">
                 <h4 class="mb-0"><i class="fas fa-table"></i> Report PowerHouse Referral</h4>
-                <div class="btn-actions" style="margin-right: -600px;">
-                    <button type="button" id="btnSavePowerHouseImage" class="btn btn-success-custom btn-sm" title="Save as Image">
-                        <i class="fas fa-image"></i> Save Image
-                    </button>
-                    <a href="{{ route('export.powerhouse_voucher') }}" class="btn btn-success-custom btn-sm" title="Download Excel">
-                        <i class="fas fa-file-excel"></i> Download Excel
-                    </a>
-                </div>
             </div>
             <div class="card-body">
                 <div id="capturePowerHouseTable" class="table-responsive">
             <table class="table table-sm w-100 table-bordered table-hover" id="powerHouseTable" style="font-size: 13px;">
                         <thead class="table-light">
                             <tr style="background-color: #e8eaf6; font-weight: bold;">
-                                <th colspan="7" style="text-align: center; padding: 10px; border-bottom: 2px solid #667eea;">Report PowerHouse Referral</th>
+                                <th colspan="9" style="text-align: center; padding: 10px; border-bottom: 2px solid #667eea;">Report PowerHouse Referral | Bulan: <span id="displayedMonthPH">{{ $months[array_search(true, array_column($months, 'selected'))]['label'] ?? now()->format('F Y') }}</span></th>
                             </tr>
                             <tr>
                                 <th style="text-align: center; width: 5%;">No</th>
                                 <th style="text-align: center;">Referral Code</th>
                                 <th style="text-align: center;">Team PowerHouse</th>
                                 <th style="text-align: center;">Jumlah Akun</th>
+                                <th style="text-align: center;">Jumlah Leads</th>
+                                <th style="text-align: center;">Jumlah Visit</th>
                                 <th style="text-align: center;">Top Up</th>
                                 <th style="text-align: center;">Poin</th>
                                 <th style="text-align: center;">Tgl Transaksi Terakhir</th>
@@ -523,6 +564,17 @@
                         </thead>
                         <tbody>
                         </tbody>
+                        <tfoot>
+                            <tr style="background: linear-gradient(135deg, #fffb00 0%, #ffee00 100%); color: white; font-weight: 600;">
+                                <td colspan="3" style="text-align: right; padding: 12px;">TOTAL</td>
+                                <td id="totalJumlahAkun" style="text-align: center; padding: 12px;">0</td>
+                                <td id="totalJumlahLeads" style="text-align: center; padding: 12px;">0</td>
+                                <td id="totalJumlahVisit" style="text-align: center; padding: 12px;">0</td>
+                                <td id="totalTopUp" style="text-align: center; padding: 12px;">0</td>
+                                <td id="totalPoin" style="text-align: center; padding: 12px;">0</td>
+                                <td style="text-align: center; padding: 12px;">-</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -561,13 +613,18 @@
             info: false,
             ajax: {
                 url: "{{ route('powerhouse_voucher_data') }}",
-                type: 'GET'
+                type: 'GET',
+                data: function(d) {
+                    d.month = $('#filterMonthPH').val();
+                }
             },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'referral_code', name: 'referral_code', className: 'text-center' },
                 { data: 'team_powerhouse', name: 'team_powerhouse', className: 'text-center' },
                 { data: 'jumlah_akun', name: 'jumlah_akun', className: 'text-center' },
+                { data: 'jumlah_leads', name: 'jumlah_leads', className: 'text-center' },
+                { data: 'jumlah_visit', name: 'jumlah_visit', className: 'text-center' },
                 { data: 'total_topup', name: 'total_topup', className: 'text-center' },
                 { data: 'poin', name: 'poin', className: 'text-center' },
                 { data: 'tgl_transaksi_terakhir', name: 'tgl_transaksi_terakhir', className: 'text-center' }
@@ -575,7 +632,7 @@
             order: [[1, 'asc']],
             rowCallback: function(row, data, index) {
                 // Highlight poin cells dengan warna biru gradient untuk nilai > 0
-                var poinCell = $('td', row).eq(5);
+                var poinCell = $('td', row).eq(7);
                 var poinValue = parseInt(poinCell.text().trim());
                 
                 if (poinValue > 0) {
@@ -591,8 +648,73 @@
                         'font-weight': '600'
                     });
                 }
+
+                // Calculate totals after each row is rendered
+                calculateTotals();
+            },
+            drawCallback: function() {
+                // Recalculate totals when table is fully drawn
+                calculateTotals();
             }
         });
+
+        // Handle month filter change
+        $('#filterMonthPH').on('change', function() {
+            // Update label bulan yang ditampilkan dengan text dari selected option
+            var selectedText = $('#filterMonthPH option:selected').text();
+            $('#displayedMonthPH').text(selectedText);
+            // Reload data table
+            table.ajax.reload();
+        });
+
+        // Function to calculate totals
+        function calculateTotals() {
+            let totalAkun = 0;
+            let totalLeads = 0;
+            let totalVisit = 0;
+            let totalTopup = 0;
+            let totalPoin = 0;
+
+            // Iterate through all rows in tbody
+            $('#powerHouseTable tbody tr').each(function() {
+                const cells = $(this).find('td');
+                
+                // Column 4: Jumlah Akun
+                totalAkun += parseInt(cells.eq(3).text().trim()) || 0;
+                
+                // Column 5: Jumlah Leads
+                totalLeads += parseInt(cells.eq(4).text().trim()) || 0;
+                
+                // Column 6: Jumlah Visit
+                totalVisit += parseInt(cells.eq(5).text().trim()) || 0;
+                
+                // Column 7: Top Up (extract number from Rp text)
+                const topupText = cells.eq(6).text().trim();
+                const topupMatch = topupText.match(/[\d.,]+/);
+                if (topupMatch) {
+                    let topupValue = topupMatch[0].replace(/\./g, '').replace(/,/g, '.');
+                    totalTopup += parseFloat(topupValue) || 0;
+                }
+                
+                // Column 8: Poin
+                totalPoin += parseInt(cells.eq(7).text().trim()) || 0;
+            });
+
+            // Update total row
+            $('#totalJumlahAkun').text(totalAkun);
+            $('#totalJumlahLeads').text(totalLeads);
+            $('#totalJumlahVisit').text(totalVisit);
+            
+            // Format total topup as currency
+            if (totalTopup > 0) {
+                const topupFormatted = 'Rp ' + Math.floor(totalTopup).toLocaleString('id-ID');
+                $('#totalTopUp').text(topupFormatted);
+            } else {
+                $('#totalTopUp').text('Rp 0');
+            }
+            
+            $('#totalPoin').text(totalPoin);
+        }
 
         // Handle Save Image Button
         document.getElementById('btnSavePowerHouseImage').addEventListener('click', function () {

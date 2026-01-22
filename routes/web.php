@@ -207,6 +207,7 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/calendar/events', [CalendarController::class, 'events']);
     Route::post('/calendar/store', [CalendarController::class, 'store']);
+    Route::post('/calendar/update/{id}', [CalendarController::class, 'update']);
     Route::delete('/calendar/delete/{id}', [CalendarController::class, 'delete']);
     Route::get('/calendar/download', [CalendarController::class, 'download']);
 

@@ -183,7 +183,21 @@ class FrontController extends Controller
     public function monitoringPowerHouseReferral()
     {
         logUserLogin();
-        return view('admin.powerhouse_referral');
+        
+        $months = [];
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->format('Y-m-01');
+        
+        for ($i = 1; $i <= 12; ++$i) {
+            $date = Carbon::create($currentYear, $i, 1);
+            $months[] = [
+                'value' => $date->format('Y-m-d'),
+                'label' => $date->translatedFormat('F Y'),
+                'selected' => $date->format('Y-m-d') === $currentMonth,
+            ];
+        }
+        
+        return view('admin.powerhouse_referral', compact('months'));
     }
     public function refreshSummarySimpatiTiktok()
     {

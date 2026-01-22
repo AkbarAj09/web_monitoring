@@ -70,6 +70,9 @@
             <p><b>Waktu:</b> <span id="d-waktu">-</span></p>
             <p><b>Keterangan:</b> <span id="d-keterangan">-</span></p>
 
+            <button class="btn btn-primary btn-sm mt-2" id="btnEdit">
+                <i class="fa fa-edit"></i> Edit Booking
+            </button>
             <button class="btn btn-danger btn-sm mt-2" id="btnDelete">
                 <i class="fa fa-trash"></i> Hapus Booking
             </button>
@@ -82,10 +85,11 @@
     <div class="modal-dialog" role="document">
         <form id="formBooking">
             @csrf
+            <input type="hidden" id="booking-id" name="booking_id">
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Tambah Booking</h5>
+                    <h5 class="modal-title" id="modalTitle">Tambah Booking</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
@@ -203,17 +207,50 @@ document.addEventListener('DOMContentLoaded', function () {
 ====================== */
 $('#formBooking').on('submit', function (e) {
     e.preventDefault();
+    
+    const bookingId = $('#booking-id').val();
+    const isEdit = bookingId ? true : false;
+    const url = isEdit ? "{{ url('/calendar/update') }}/" + bookingId : "{{ url('/calendar/store') }}";
+    const method = isEdit ? "POST" : "POST";
 
     $.ajax({
-        url: "{{ url('/calendar/store') }}",
-        method: "POST",
+        url: url,
+        method: method,
         data: $(this).serialize(),
         success: function () {
             $('#modalBooking').modal('hide');
             calendar.refetchEvents();
             $('#formBooking')[0].reset();
+            $('#booking-id').val('');
+            $('#modalTitle').text('Tambah Booking');
         }
     });
+});
+
+/* ======================
+   EDIT BOOKING
+====================== */
+$('#btnEdit').on('click', function () {
+    if (!selectedEventId) {
+        alert('Pilih event terlebih dahulu');
+        return;
+    }
+
+    // Get event data
+    const event = calendar.getEventById(selectedEventId);
+    const extendedProps = event.extendedProps;
+
+    // Fill form with event data
+    $('#booking-id').val(selectedEventId);
+    $('#namaSelect').val(extendedProps.nama);
+    $('input[name="lokasi"]').val(extendedProps.lokasi);
+    $('input[name="tanggal"]').val(extendedProps.tanggal);
+    $('input[name="start"]').val(event.start.toLocaleTimeString('sv-SE').slice(0, 5));
+    $('input[name="end"]').val(event.end.toLocaleTimeString('sv-SE').slice(0, 5));
+    $('textarea[name="keterangan"]').val(extendedProps.keterangan);
+
+    $('#modalTitle').text('Edit Booking');
+    $('#modalBooking').modal('show');
 });
 
 /* ======================
