@@ -608,6 +608,7 @@ class LeadProgramController extends Controller
             if (!empty($result)) {
                 $totalAchievementPercent = $totals['target'] > 0 ? ($totals['total_top_up_rp'] / $totals['target']) * 100 : 0;
                 $totalGapDaily = $remainingWorkingDays > 0 ? $totals['gap'] / $remainingWorkingDays : 0;
+                $totalGapDaily *= -1;
 
                 $result[] = [
                     'no' => '',

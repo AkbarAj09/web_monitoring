@@ -86,7 +86,7 @@
                                 <td>{{ number_format($totalTarget) }}</td>
                                 <td>{{ number_format($totalMitra) }}</td>
                                 <td>
-                                    <span class="badge bg-dark">
+                                    <span class="badge bg-{{ $totalPct >= 100 ? 'success' : ($totalPct >= 75 ? 'warning' : 'danger') }}">
                                         {{ $totalPct }}%
                                     </span>
                                 </td>
@@ -183,7 +183,7 @@
                                 <td>{{ number_format($totalTarget) }}</td>
                                 <td>{{ number_format($totalMitra) }}</td>
                                 <td>
-                                    <span class="badge bg-dark">
+                                    <span class="badge bg-{{ $totalPct >= 100 ? 'success' : ($totalPct >= 75 ? 'warning' : 'danger') }}">
                                         {{ $totalPct }}%
                                     </span>
                                 </td>
@@ -281,7 +281,7 @@
                                 <td>{{ number_format($totalTarget) }}</td>
                                 <td>{{ number_format($totalMitra) }}</td>
                                 <td>
-                                    <span class="badge bg-dark">
+                                    <span class="badge bg-{{ $totalPct >= 100 ? 'success' : ($totalPct >= 75 ? 'warning' : 'danger') }}">
                                         {{ $totalPct }}%
                                     </span>
                                 </td>
