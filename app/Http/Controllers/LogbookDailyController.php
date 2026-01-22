@@ -56,7 +56,7 @@ class LogbookDailyController extends Controller
                 'leads_master.myads_account',
                 'leads_master.mobile_phone',
                 'leads_master.data_type',
-                'leads_master.created_at',
+                'logbook_daily.created_at',
                 'logbook_daily.komitmen',
                 'logbook_daily.plan_min_topup',
                 'logbook_daily.status',
@@ -75,9 +75,9 @@ class LogbookDailyController extends Controller
         // =======================
         // 🔍 FILTER DATATABLE
         // =======================
-        if ($request->regional) {
-            $query->where('leads_master.regional', $request->regional);
-        }
+        // if ($request->regional) {
+        //     $query->where('leads_master.regional', $request->regional);
+        // }
 
         if ($request->canvasser) {
             $query->where('leads_master.user_id', $request->canvasser);
@@ -92,7 +92,7 @@ class LogbookDailyController extends Controller
         // }
 
         if ($request->start_date && $request->end_date) {
-            $query->whereBetween('leads_master.created_at', [
+            $query->whereBetween('logbook_daily.created_at', [
                 $request->start_date . ' 00:00:00',
                 $request->end_date   . ' 23:59:59',
             ]);
