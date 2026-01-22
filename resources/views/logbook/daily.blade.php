@@ -19,7 +19,7 @@
 <div class="row mb-3 align-items-end">
     <div class="col-md-6"></div>
 
-    <div class="col-md-6 text-end">
+    <div class="col-md-6">
         <div class="d-flex justify-content-end gap-2">
 
             {{-- Regional --}}
@@ -29,11 +29,19 @@
                     <option value="{{ $regional }}">{{ $regional }}</option>
                 @endforeach
             </select> --}}
+            @if(Auth::user()->role === 'Admin')
+            <select id="filter_canvasser" class="form-control select2 mb-1">
+                <option value="">Semua Canvasser</option>
+                @foreach($canvassers as $c)
+                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
+            @endif
 
             {{-- Date --}}
             <input type="date"
            id="start_date"
-           class="form-control"
+           class="form-control w-100"
            style="max-width: 160px"
            value="{{ now()->toDateString() }}">
 
