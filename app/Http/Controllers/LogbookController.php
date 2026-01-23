@@ -22,7 +22,7 @@ class LogbookController extends Controller
     {
         logUserLogin();
         return view('logbook.index', [
-            'canvassers' => User::orderBy('name')->get(),
+            'canvassers' => User::orderBy('name')->where('role', 'cvsr')->orWhere('role', 'PH')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),
             'regionals'  => DB::table('regional_provinces')
                                 ->select('regional')
@@ -61,7 +61,7 @@ class LogbookController extends Controller
                 'leads_master.myads_account',
                 'leads_master.mobile_phone',
                 'leads_master.data_type',
-                'leads_master.created_at',
+                'logbook.created_at',
                 'logbook.komitmen',
                 'logbook.plan_min_topup',
                 'logbook.status',
@@ -75,7 +75,7 @@ class LogbookController extends Controller
                 'leads_master.myads_account',
                 'leads_master.mobile_phone',
                 'leads_master.data_type',
-                'leads_master.created_at',
+                'logbook.created_at',
                 'logbook.komitmen',
                 'logbook.plan_min_topup',
                 'logbook.status'
@@ -111,7 +111,7 @@ class LogbookController extends Controller
         if ($request->start_date && $request->end_date) {
             
             $date = Carbon\Carbon::createFromFormat('Y-m', $request->month);
-            $query->whereBetween('leads_master.created_at', [
+            $query->whereBetween('logbook.created_at', [
                 $date->startOfMonth(),
                 $date->endOfMonth(),
             ]);

@@ -20,7 +20,7 @@ class LogbookDailyController extends Controller
     {
         logUserLogin();
         return view('logbook.daily', [
-            'canvassers' => User::orderBy('name')->get(),
+            'canvassers' => User::orderBy('name')->where('role', 'cvsr')->orWhere('role', 'PH')->get(),
             'sources'    => LeadsSource::orderBy('name')->get(),
             'regionals'  => DB::table('regional_provinces')
                                 ->select('regional')
