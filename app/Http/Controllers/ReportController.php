@@ -274,8 +274,8 @@ public function topupCanvasserData(Request $request)
 
         $regions = $targets->keys()
             ->merge($topupPerRegion->keys())
-            ->unique()
-            ->filter(fn ($r) => $r !== 'UNKNOWN');
+            ->unique();
+            // ->filter(fn ($r) => $r !== 'UNKNOWN');
 
         // Hitung sisa hari di bulan berjalan
             $today = Carbon::now();

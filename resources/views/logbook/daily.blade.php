@@ -64,6 +64,94 @@
     </div>
 </div>
 
+
+<div class="row mb-3" id="summaryCards">
+
+    <div class="col-md-2">
+        <div class="card text-white bg-primary">
+            <div class="card-body p-2">
+                <small>New Leads</small>
+                <div class="d-flex justify-content-between">
+                    <span>Plan</span>
+                    <strong id="sum_new_leads">0</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Realisasi</span>
+                    <strong id="real_new_leads">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-white bg-success">
+            <div class="card-body p-2">
+                <small>Komitmen 100%</small>
+                <div class="d-flex justify-content-between">
+                    <span>Plan</span>
+                    <strong id="sum_100">0</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Realisasi</span>
+                    <strong id="real_100">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-white bg-info">
+            <div class="card-body p-2">
+                <small>Komitmen 50%</small>
+                <div class="d-flex justify-content-between">
+                    <span>Plan</span>
+                    <strong id="sum_50">0</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Realisasi</span>
+                    <strong id="real_50">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-white bg-warning">
+            <div class="card-body p-2">
+                <small>Komitmen &lt;50%</small>
+                <div class="d-flex justify-content-between">
+                    <span>Plan</span>
+                    <strong id="sum_less_50">0</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Realisasi</span>
+                    <strong id="real_less_50">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-dark text-white">
+            <div class="card-body p-2">
+                <small>Total</small>
+                <div class="d-flex justify-content-between">
+                    <span>Plan</span>
+                    <strong id="sum_total">0</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Realisasi</span>
+                    <strong id="real_total">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+
 {{-- TABLE --}}
 <div class="card">
     <div class="card-header">
@@ -159,6 +247,47 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+function rupiah(angka) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(angka ?? 0);
+}
+function loadSummary() {
+    $.ajax({
+        url: "{{ route('logbook-daily.summary') }}",
+        data: {
+            start_date: $('#start_date').val(),
+            end_date: $('#end_date').val(),
+            regional: $('#filter_regional').val(),
+            canvasser: $('#filter_canvasser').val()
+        },
+        success: function (res) {
+            $('#sum_new_leads').text(rupiah(res.new_leads));
+            $('#real_new_leads').text(rupiah(res.real_new_leads));
+
+            $('#sum_100').text(rupiah(res.full));
+            $('#real_100').text(rupiah(res.real_full));
+
+            $('#sum_50').text(rupiah(res.half));
+            $('#real_50').text(rupiah(res.real_half));
+
+            $('#sum_less_50').text(rupiah(res.less_half));
+            $('#real_less_50').text(rupiah(res.real_less_half));
+
+            $('#sum_total').text(rupiah(res.total));
+            $('#real_total').text(rupiah(res.real_total));
+        }
+    });
+}
+loadSummary();
+
+$('#btnRefresh')
+    .on('change click', function () {
+        loadSummary();
+    });
+
 
 // $(document).on('click', '.btn-edit', function () {
 //     $('#edit_id').val($(this).data('id'));

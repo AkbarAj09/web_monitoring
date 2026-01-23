@@ -237,6 +237,16 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+$(document).ready(function () {
+    $('#formEdit').on('submit', function () {
+        let btn = $('#btnSave');
+
+        btn.prop('disabled', true);
+        btn.html(
+            '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>Saving...'
+        );
+    });
+});
 $(document).on('click', '.btn-add-logbook', function() {
     // alert($(this).data('id'));
     let id = $(this).data('id');

@@ -183,6 +183,7 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
     Route::post('/logbook/day', [LogbookController::class, 'insertDaily'])->name('logbook.day');
     Route::get('/logbook-daily', [LogbookDailyController::class, 'index'])->name('logbook-daily.index');
     Route::get('logbook-daily/data', [LogbookDailyController::class, 'data'])->name('logbook-daily.data');
+    Route::get('/logbook-daily/summary', [LogbookDailyController::class, 'summary'])->name('logbook-daily.summary');
 
     // Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
     Route::get('topup-canvasser', [ReportController::class, 'topupCanvasser'])->name('topup-canvasser');
@@ -211,4 +212,5 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
     Route::delete('/calendar/delete/{id}', [CalendarController::class, 'delete']);
     Route::get('/calendar/download', [CalendarController::class, 'download']);
 
+// Route::get('/send-manual-notif', [PanenPoinController::class, 'manualNotifyAll']);
 });
