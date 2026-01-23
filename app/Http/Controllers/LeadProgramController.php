@@ -879,19 +879,19 @@ class LeadProgramController extends Controller
                         ->pluck('id', 'email'); // [email => id]
                     $picEmail = $picAliasMap[$picName] ?? null;
                     $userId   = $picEmail ? ($userIdByEmail[$picEmail] ?? null) : null;
+                    
                 }
 
                 // 1. New Leads (BERDASARKAN USER_ID)
                 $newLeads = 0;
 
                 if ($userId) {
-                    $newLeads = DB::table('logbook as lb')
-                        ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                    
+                    $newLeads = DB::table('leads_master as lm')
                         ->where('lm.user_id', $userId)
-                        ->where('lm.data_type', 'leads')
+                        ->where('lm.data_type', 'Leads')
                         ->distinct()
-                        ->count('lb.leads_master_id');
-                        
+                        ->count('lm.id');
                     // 2. New Akun
                     $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
                         ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
