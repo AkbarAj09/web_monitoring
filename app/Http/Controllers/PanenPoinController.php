@@ -718,6 +718,40 @@ class PanenPoinController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function manualNotifyAll(Request $request)
+    {
+        // 1. Validasi Input
+        $request->validate([
+            'nama' => 'required',
+            'email' => 'required|email',
+            'pass' => 'required',
+            'uuid' => 'required',
+            'hp' => 'nullable'
+        ]);
+
+        // 2. Bungkus dalam objek agar kompatibel dengan fungsi private Anda
+        $akun = (object) [
+            'nama_akun' => $request->nama,
+            'email_client' => $request->email,
+            'uuid' => $request->uuid
+        ];
+
+        $nomorHp = $request->hp;
+        $plainPassword = $request->pass;
+
+        // 3. Panggil fungsi private Anda
+        try {
+            $this->sendAccountNotification($akun, $nomorHp, $plainPassword);
+            
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'Notifikasi manual berhasil dipicu untuk ' . $request->email
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
     
     // Kirim notifikasi akun via Email & WhatsApp
     private function sendAccountNotification($akun, $nomorHp, $plainPassword)

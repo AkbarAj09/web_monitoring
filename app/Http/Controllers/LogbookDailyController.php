@@ -62,7 +62,9 @@ class LogbookDailyController extends Controller
                 'logbook_daily.status',
                 'logbook_daily.realisasi_topup'
             ])
-            ->orderBy('leads_master.created_at', 'desc');
+            ->distinct()
+            ->orderBy('leads_master.created_at', 'desc')
+            ->orderBy('logbook_daily.realisasi_topup', 'desc');
 
 
         // =======================
@@ -230,10 +232,11 @@ class LogbookDailyController extends Controller
                 ->get();
 
 
+            $today = Carbon::today();
             foreach ($topups as $data) {
                 DB::table('logbook_daily')
                     ->where('leads_master_id', $data->leads_master_id)
-                    // ->whereDate('created_at', $today)
+                    ->whereDate('created_at', $today)
                     ->update([
                         'status'          => 'Topup',
                         'realisasi_topup' => $data->realisasi_topup,
@@ -243,5 +246,47 @@ class LogbookDailyController extends Controller
             }
         }
 
+        public function summary(Request $request)
+        {
+            $query = DB::table('logbook_daily')
+                ->join('leads_master', 'leads_master.id', '=', 'logbook_daily.leads_master_id')
+                ->join('users', 'users.id', '=', 'leads_master.user_id');
+
+            // 🔐 Role filter
+            if (auth()->user()->role === 'cvsr') {
+                $query->where('users.id', auth()->id());
+            } elseif ($request->canvasser && auth()->user()->role == 'Admin') {
+                $query->where('users.id', $request->canvasser);
+            }
+
+            // 📅 Month filter
+            if ($request->start_date && $request->end_date) {
+                $query->whereBetween('logbook_daily.created_at', [
+                    $request->start_date . ' 00:00:00',
+                    $request->end_date . ' 23:59:59'
+                ]);
+            }
+
+            // 🌍 Regional
+            if ($request->regional) {
+                $query->where('leads_master.regional', $request->regional);
+            }
+
+            $data = $query->selectRaw("
+                SUM(CASE WHEN logbook_daily.komitmen = 'New Leads' THEN logbook_daily.plan_min_topup ELSE 0 END) AS new_leads,
+                SUM(CASE WHEN logbook_daily.komitmen = '100%' THEN logbook_daily.plan_min_topup ELSE 0 END) AS full,
+                SUM(CASE WHEN logbook_daily.komitmen = '50%' THEN logbook_daily.plan_min_topup ELSE 0 END) AS half,
+                SUM(CASE WHEN logbook_daily.komitmen = '<50%' THEN logbook_daily.plan_min_topup ELSE 0 END) AS less_half,
+                SUM(logbook_daily.plan_min_topup) AS total,
+
+                SUM(CASE WHEN logbook_daily.komitmen = 'New Leads' THEN coalesce(logbook_daily.realisasi_topup, 0) ELSE 0 END) AS real_new_leads,
+                SUM(CASE WHEN logbook_daily.komitmen = '100%' THEN coalesce(logbook_daily.realisasi_topup, 0) ELSE 0 END) AS real_full,
+                SUM(CASE WHEN logbook_daily.komitmen = '50%' THEN coalesce(logbook_daily.realisasi_topup, 0) ELSE 0 END) AS real_half,
+                SUM(CASE WHEN logbook_daily.komitmen = '<50%' THEN coalesce(logbook_daily.realisasi_topup, 0) ELSE 0 END) AS real_less_half,
+                SUM(coalesce(logbook_daily.realisasi_topup, 0)) AS real_total
+            ")->first();
+
+            return response()->json($data);
+        }
 
 }
