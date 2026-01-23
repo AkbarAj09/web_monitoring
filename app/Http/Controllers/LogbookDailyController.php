@@ -97,18 +97,6 @@ class LogbookDailyController extends Controller
                 $request->end_date   . ' 23:59:59',
             ]);
         }
-        
-        if (!empty($search)) {
-            $search = strtolower($search);
-
-            $query->havingRaw("
-                LOWER(users.name) LIKE ?
-                OR LOWER(leads_master.regional) LIKE ?
-                OR LOWER(leads_master.company_name) LIKE ?
-                OR LOWER(leads_master.myads_account) LIKE ?
-                OR LOWER(leads_master.mobile_phone) LIKE ?
-            ", array_fill(0, 5, "%{$search}%"));
-        }
 
 
         // if ($request->source) {
@@ -121,7 +109,21 @@ class LogbookDailyController extends Controller
         // DATATABLE RESPONSE
         // =======================
         return datatables()->of($query)
-
+                ->filter(function ($query) use ($request) {
+                    // Ambil value search dari input bawaan datatables
+                    $search = $request->input('search.value');
+                    
+                    if (!empty($search)) {
+                        $query->where(function($q) use ($search) {
+                            $searchTerm = "%" . strtolower($search) . "%";
+                            $q->whereRaw("LOWER(users.name) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.regional) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.company_name) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.myads_account) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.mobile_phone) LIKE ?", [$searchTerm]);
+                        });
+                    }
+                })
             ->addColumn('user_name', function ($row) {
                 return $row->user_name ?? '-';
             })
