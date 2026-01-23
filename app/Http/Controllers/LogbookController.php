@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 use DataTables;
 use Validator;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class LogbookController extends Controller
 {
@@ -98,47 +99,38 @@ class LogbookController extends Controller
 
         if ($request->canvasser) {
             $query->where('leads_master.user_id', $request->canvasser);
-        }
+        }        
 
-        // if ($request->company) {
-        //     $query->where('leads_master.company_name', 'like', '%' . $request->company . '%');
-        // }
-
-        // if ($request->email) {
-        //     $query->where('leads_master.email', 'like', '%' . $request->email . '%');
-        // }
-
-        if ($request->start_date && $request->end_date) {
+        if ($request->month) {
             
-            $date = Carbon\Carbon::createFromFormat('Y-m', $request->month);
-            $query->whereBetween('logbook.created_at', [
-                $date->startOfMonth(),
-                $date->endOfMonth(),
-            ]);
-        }
-        if (!empty($search)) {
-            $search = strtolower($search);
+            $date = Carbon::createFromFormat('Y-m', $request->month);
+            
+            $start = $date->copy()->startOfMonth()->toDateTimeString(); // Contoh: 2023-10-01 00:00:00
+            $end = $date->copy()->endOfMonth()->toDateTimeString();     // Contoh: 2023-10-31 23:59:59
 
-            $query->havingRaw("
-                LOWER(users.name) LIKE ?
-                OR LOWER(leads_master.regional) LIKE ?
-                OR LOWER(leads_master.company_name) LIKE ?
-                OR LOWER(leads_master.myads_account) LIKE ?
-                OR LOWER(leads_master.mobile_phone) LIKE ?
-            ", array_fill(0, 5, "%{$search}%"));
+            $query->whereBetween('logbook.created_at', [$start, $end]);
         }
-
-        // if ($request->source) {
-        //     $query->whereHas('source', function ($q) use ($request) {
-        //         $q->where('id', $request->source);
-        //     });
-        // }
+        
 
         // =======================
         // DATATABLE RESPONSE
         // =======================
         return datatables()->of($query)
-
+            ->filter(function ($query) use ($request) {
+                    // Ambil value search dari input bawaan datatables
+                    $search = $request->input('search.value');
+                    
+                    if (!empty($search)) {
+                        $query->where(function($q) use ($search) {
+                            $searchTerm = "%" . strtolower($search) . "%";
+                            $q->whereRaw("LOWER(users.name) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.regional) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.company_name) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.myads_account) LIKE ?", [$searchTerm])
+                            ->orWhereRaw("LOWER(leads_master.mobile_phone) LIKE ?", [$searchTerm]);
+                        });
+                    }
+                })
             ->addColumn('user_name', function ($row) {
                 return $row->user_name ?? '-';
             })
