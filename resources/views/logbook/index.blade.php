@@ -21,7 +21,14 @@
 
     <div class="col-md-6 text-end">
         <div class="d-flex justify-content-end gap-2">
-
+            @if(Auth::user()->role === 'Admin')
+            <select id="filter_canvasser" class="form-control select2 mb-1">
+                <option value="">Semua Canvasser</option>
+                @foreach($canvassers as $c)
+                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
+            @endif
             {{-- Regional --}}
             <select id="filter_regional" class="form-control" style="max-width: 200px">
                 <option value="">All Regional</option>
@@ -215,6 +222,8 @@ $(function () {
         ajax: {
             url: "{{ route('logbook.data') }}",
             data: function (d) {
+                d.canvasser   = $('#filter_canvasser').val();
+                d.regional   = $('#filter_regional').val();
                 d.regional   = $('#filter_regional').val();
                 d.month    = $('#month').val();
                 // d.start_date = $('#start_date').val();
