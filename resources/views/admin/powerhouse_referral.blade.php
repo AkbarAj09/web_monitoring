@@ -554,9 +554,9 @@
                                 <th style="text-align: center; width: 5%;">No</th>
                                 <th style="text-align: center;">Referral Code</th>
                                 <th style="text-align: center;">Team PowerHouse</th>
-                                <th style="text-align: center;">Jumlah Akun</th>
-                                <th style="text-align: center;">Jumlah Leads</th>
                                 <th style="text-align: center;">Jumlah Visit</th>
+                                <th style="text-align: center;">Jumlah Leads</th>
+                                <th style="text-align: center;">Jumlah Akun</th>
                                 <th style="text-align: center;">Top Up</th>
                                 <th style="text-align: center;">Poin</th>
                                 <th style="text-align: center;">Tgl Transaksi Terakhir</th>
@@ -567,9 +567,9 @@
                         <tfoot>
                             <tr style="background: linear-gradient(135deg, #fffb00 0%, #ffee00 100%); color: white; font-weight: 600;">
                                 <td colspan="3" style="text-align: right; padding: 12px;">TOTAL</td>
-                                <td id="totalJumlahAkun" style="text-align: center; padding: 12px;">0</td>
-                                <td id="totalJumlahLeads" style="text-align: center; padding: 12px;">0</td>
                                 <td id="totalJumlahVisit" style="text-align: center; padding: 12px;">0</td>
+                                <td id="totalJumlahLeads" style="text-align: center; padding: 12px;">0</td>
+                                <td id="totalJumlahAkun" style="text-align: center; padding: 12px;">0</td>
                                 <td id="totalTopUp" style="text-align: center; padding: 12px;">0</td>
                                 <td id="totalPoin" style="text-align: center; padding: 12px;">0</td>
                                 <td style="text-align: center; padding: 12px;">-</td>
@@ -622,9 +622,9 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'referral_code', name: 'referral_code', className: 'text-center' },
                 { data: 'team_powerhouse', name: 'team_powerhouse', className: 'text-center' },
-                { data: 'jumlah_akun', name: 'jumlah_akun', className: 'text-center' },
-                { data: 'jumlah_leads', name: 'jumlah_leads', className: 'text-center' },
                 { data: 'jumlah_visit', name: 'jumlah_visit', className: 'text-center' },
+                { data: 'jumlah_leads', name: 'jumlah_leads', className: 'text-center' },
+                { data: 'jumlah_akun', name: 'jumlah_akun', className: 'text-center' },
                 { data: 'total_topup', name: 'total_topup', className: 'text-center' },
                 { data: 'poin', name: 'poin', className: 'text-center' },
                 { data: 'tgl_transaksi_terakhir', name: 'tgl_transaksi_terakhir', className: 'text-center' }
@@ -680,13 +680,13 @@
                 const cells = $(this).find('td');
                 
                 // Column 4: Jumlah Akun
-                totalAkun += parseInt(cells.eq(3).text().trim()) || 0;
+                totalAkun += parseInt(cells.eq(5).text().trim()) || 0;
                 
                 // Column 5: Jumlah Leads
                 totalLeads += parseInt(cells.eq(4).text().trim()) || 0;
                 
                 // Column 6: Jumlah Visit
-                totalVisit += parseInt(cells.eq(5).text().trim()) || 0;
+                totalVisit += parseInt(cells.eq(3).text().trim()) || 0;
                 
                 // Column 7: Top Up (extract number from Rp text)
                 const topupText = cells.eq(6).text().trim();
