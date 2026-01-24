@@ -1,4 +1,4 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4" style="position: fixed; top: 0; left: 0; width: 250px; height: 100vh; overflow-y: auto; z-index: 900;">
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="{{ url('/') }}" class="brand-link">
         <img src="{{ asset('images/TRACERS_2.png') }}" alt="MyAds Logo" class="brand-image img-circle elevation-2">
@@ -309,34 +309,3 @@
         </nav>
     </div>
 </aside>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Close sidebar on mobile when a nav link is clicked
-    if (window.innerWidth < 768) {
-        const navLinks = document.querySelectorAll('.nav-link[href]');
-        navLinks.forEach(link => {
-            link.addEventListener('click', function() {
-                // Close the sidebar
-                const sidebarToggle = document.querySelector('[data-widget="treeview"]');
-                const htmlElement = document.documentElement;
-                
-                // Remove sidebar-open class if it exists
-                htmlElement.classList.remove('sidebar-open');
-                
-                // Alternative: Close using AdminLTE method if available
-                if (jQuery && jQuery.AdminLTE) {
-                    jQuery.AdminLTE.layout.fixSidebar();
-                }
-            });
-        });
-    }
-    
-    // Also handle window resize to reapply on responsive changes
-    window.addEventListener('resize', function() {
-        if (window.innerWidth >= 768) {
-            document.documentElement.classList.remove('sidebar-open');
-        }
-    });
-});
-</script>
