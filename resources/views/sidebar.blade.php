@@ -1,3 +1,33 @@
+<style>
+    @media (max-width: 767px) {
+        .main-sidebar {
+            position: fixed !important;
+            left: -250px !important;
+            transition: left 0.3s ease !important;
+            width: 250px !important;
+        }
+        .main-sidebar.show {
+            left: 0 !important;
+        }
+        body.sidebar-open {
+            overflow: hidden;
+        }
+        .sidebar-toggle-mobile {
+            display: block !important;
+        }
+    }
+    @media (min-width: 768px) {
+        .main-sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            width: 250px !important;
+        }
+        .sidebar-toggle-mobile {
+            display: none !important;
+        }
+    }
+</style>
+
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="position: fixed; top: 0; left: 0; width: 250px; height: 100vh; overflow-y: auto; z-index: 900;">
     <!-- Brand Logo -->
     <a href="{{ url('/') }}" class="brand-link" style="position: sticky; top: 0; z-index: 901;">
@@ -309,3 +339,42 @@
         </nav>
     </div>
 </aside>
+
+<!-- Hamburger Menu Button untuk Mobile -->
+<button class="sidebar-toggle-mobile" id="sidebarToggle" style="display: none; position: fixed; top: 15px; left: 15px; z-index: 950; background: #1f2937; border: none; color: white; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 18px;">
+    <i class="fas fa-bars"></i>
+</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.querySelector('.main-sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    
+    // Toggle sidebar di mobile
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+            document.body.classList.toggle('sidebar-open');
+        });
+    }
+    
+    // Tutup sidebar ketika klik link
+    const navLinks = sidebar.querySelectorAll('a.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth < 768) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+    });
+    
+    // Tutup sidebar ketika window di-resize ke desktop
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 768) {
+            sidebar.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+    });
+});
+</script>
