@@ -5,26 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\RegionalSummary;
 
 class LeadProgramController extends Controller
 {
-    public function dashboard()
-    {
-        try {
-            // Ambil data bulan berjalan
-            $dailyData = $this->getDailyTopupData();
-            $dailyDataClient = $this->getTopupByEmailAndRegion();
-            
-            return view('admin.home', compact('dailyData'));
-        } catch (\Exception $e) {
-            return view('admin.home', [
-                'dailyData' => [],
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
 
-    public function getDailyTopupData()
+    public function getDailyTopupData($monthFilter = null)
     {
         try {
             // Ambil email dari masing-masing kategori
@@ -43,27 +29,29 @@ class LeadProgramController extends Controller
                 ->pluck('email_myads')
                 ->toArray();
 
-            $canvasserEmails = DB::table('leads_master')
-                ->pluck('email')
+            $internalEmails = DB::table('mitra_sbp')
+                ->where('remark', 'Internal')
+                ->pluck('email_myads')
                 ->toArray();
 
-            // Query data topup dari MySQL untuk bulan berjalan
-            $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
-            
-            // Buat query dengan raw SQL untuk debugging
-            $query = "SELECT 
-                DATE(tgl_transaksi) as tanggal,
-                email_client AS email,
-                user_id AS id_user,
-                CAST(total_settlement_klien AS DECIMAL(15,2)) as total_settlement
-                FROM report_balance_top_up
-                WHERE tgl_transaksi >= '{$startDate}'
-                AND email_client IS NOT NULL
-                AND user_id IS NOT NULL
-                AND total_settlement_klien IS NOT NULL
-                ORDER BY tgl_transaksi DESC";
-                
-            
+            // Ambil list cvsr user IDs (untuk check canvasser dengan per-user join logic)
+            $canvasserUserIds = DB::table('users')
+                ->where('role', 'cvsr')
+                ->where('name', '!=', 'self service')
+                ->pluck('id')
+                ->toArray();
+
+            // Query data topup dari MySQL untuk bulan berjalan atau bulan yang difilter
+            if ($monthFilter) {
+                $startDate = Carbon::createFromFormat('Y-m-d', $monthFilter)->startOfMonth()->format('Y-m-d');
+                $endDate = Carbon::createFromFormat('Y-m-d', $monthFilter)->endOfMonth()->format('Y-m-d');
+            } else {
+                $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+                $endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+            }
+
+            // Query dengan LEFT JOIN ke leads_master dan mitra_sbp 
+            // untuk capture SEMUA transaksi, termasuk yang tidak ada di leads_master
             $topupData = DB::table('report_balance_top_up as rp')
                 ->leftJoin('mitra_sbp as m', 'm.email_myads', '=', 'rp.email_client')
                 ->leftJoin('leads_master as lm', 'lm.email', '=', 'rp.email_client')
@@ -73,171 +61,175 @@ class LeadProgramController extends Controller
                     'rp.user_id as id_user',
                     DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2)) as total_settlement"),
                     'm.remark',
-                    'lm.source_id',
-                    'rp.payment_method_name',
-                    'rp.company_name'
+                    'lm.user_id as leads_user_id'
                 )
                 ->whereRaw("rp.tgl_transaksi >= ?", [$startDate])
+                ->whereRaw("rp.tgl_transaksi <= ?", [$endDate . ' 23:59:59'])
                 ->whereNotNull('rp.email_client')
-                ->whereNotNull('rp.user_id')
                 ->whereNotNull('rp.total_settlement_klien')
                 ->orderBy('rp.tgl_transaksi', 'desc')
                 ->get();
-            
+
             if ($topupData->count() === 0) {
                 return [];
             }
 
-        // Group by tanggal dan kategorikan
-        $groupedData = [];
-        
-        foreach ($topupData as $row) {
-            $date = $row->tanggal;
-            
-            if (!isset($groupedData[$date])) {
-                $groupedData[$date] = [
-                    'mitra_sbp' => ['settlement' => 0, 'users' => []],
-                    'agency' => ['settlement' => 0, 'users' => []],
-                    'outlet' => ['settlement' => 0, 'users' => []],
-                    'canvasser' => ['settlement' => 0, 'users' => []],
-                ];
-            }
+            // Group by tanggal dan kategorikan
+            $groupedData = [];
 
-            $email = strtolower(trim($row->email));
-            $settlement = floatval($row->total_settlement);
-            $userId = $row->id_user;
+            foreach ($topupData as $row) {
+                $date = $row->tanggal;
 
-            // Kategorikan berdasarkan email terlebih dahulu (logic lama)
-            if (in_array($email, array_map('strtolower', $mitraSbpEmails))) {
-                $groupedData[$date]['mitra_sbp']['settlement'] += $settlement;
-                if (!in_array($userId, $groupedData[$date]['mitra_sbp']['users'])) {
-                    $groupedData[$date]['mitra_sbp']['users'][] = $userId;
+                if (!isset($groupedData[$date])) {
+                    $groupedData[$date] = [
+                        'mitra_sbp' => ['settlement' => 0, 'users' => []],
+                        'agency' => ['settlement' => 0, 'users' => []],
+                        'internal' => ['settlement' => 0, 'users' => []],
+                        'outlet' => ['settlement' => 0, 'users' => []],
+                        'canvasser' => ['settlement' => 0, 'users' => []],
+                    ];
                 }
-            } elseif (in_array($email, array_map('strtolower', $agencyEmails))) {
-                $groupedData[$date]['agency']['settlement'] += $settlement;
-                if (!in_array($userId, $groupedData[$date]['agency']['users'])) {
-                    $groupedData[$date]['agency']['users'][] = $userId;
-                }
-            } elseif (in_array($email, array_map('strtolower', $canvasserEmails))) {
-                $groupedData[$date]['canvasser']['settlement'] += $settlement;
-                if (!in_array($userId, $groupedData[$date]['canvasser']['users'])) {
+
+                $email = strtolower(trim($row->email));
+                $settlement = floatval($row->total_settlement);
+                $userId = $row->id_user;
+                $leadsUserId = $row->leads_user_id;
+
+                // PRIORITY 1: Jika email ada di leads_master AND user belongs to cvsr
+                // CHECK CVSR FIRST karena ini adalah source of truth paling specific
+                // Ini align dengan Home Regional logic (getRegionalData)
+                if (!empty($leadsUserId) && in_array($leadsUserId, $canvasserUserIds)) {
+                    $groupedData[$date]['canvasser']['settlement'] += $settlement;
                     $groupedData[$date]['canvasser']['users'][] = $userId;
                 }
-            } else {
-                // Untuk yang tidak termasuk 3 kategori di atas, gunakan logic baru untuk Self Service/Outlet
-                $category = 'Self Service';
-                
-                // 1. Cek remark dari mitra_sbp
-                if (!empty($row->remark) && $row->remark == 'Outlet') {
-                    $category = 'Outlet';
-                }
-                // 2. Jika remark null, cek source_id dari leads_master
-                elseif (isset($row->source_id) && $row->source_id == 0) {
-                    // 3. Cek payment_method_name
-                    if (!in_array($row->payment_method_name, ['MyTelkomsel', 'DigiPOS'])) {
-                        $category = 'Self Service';
+                // PRIORITY 2: Cek mitra_sbp remark (Internal, Mitra SBP, Agency)
+                // HANYA jika tidak ada di leads_master sebagai cvsr
+                elseif (!empty($row->remark)) {
+                    if ($row->remark === 'Internal') {
+                        $groupedData[$date]['internal']['settlement'] += $settlement;
+                        $groupedData[$date]['internal']['users'][] = $userId;
+                    } elseif ($row->remark === 'Mitra SBP') {
+                        $groupedData[$date]['mitra_sbp']['settlement'] += $settlement;
+                        $groupedData[$date]['mitra_sbp']['users'][] = $userId;
+                    } elseif ($row->remark === 'Agency') {
+                        $groupedData[$date]['agency']['settlement'] += $settlement;
+                        $groupedData[$date]['agency']['users'][] = $userId;
+                    } elseif ($row->remark === 'Outlet') {
+                        $groupedData[$date]['outlet']['settlement'] += $settlement;
+                        $groupedData[$date]['outlet']['users'][] = $userId;
+                    } else {
+                        // Remark lainnya ke outlet
+                        $groupedData[$date]['outlet']['settlement'] += $settlement;
+                        $groupedData[$date]['outlet']['users'][] = $userId;
                     }
                 }
-                
-                // 4. Cek company_name untuk Outlet
-                if ($category == 'Self Service' && !empty($row->company_name)) {
-                    if (preg_match('/cell/i', $row->company_name)) {
-                        $category = 'Outlet';
-                    }
-                }
-                
-                // Masukkan ke outlet (Self Service/Outlet digabung)
-                $groupedData[$date]['outlet']['settlement'] += $settlement;
-                if (!in_array($userId, $groupedData[$date]['outlet']['users'])) {
+                // PRIORITY 3: Fallback ke outlet untuk transaksi yang tidak match di atas
+                else {
+                    $groupedData[$date]['outlet']['settlement'] += $settlement;
                     $groupedData[$date]['outlet']['users'][] = $userId;
                 }
             }
-        }
 
-        // Format hasil untuk view
-        $result = [];
-        $totals = [
-            'mitra_sbp_settle' => 0,
-            'mitra_sbp_user' => [],
-            'agency_settle' => 0,
-            'agency_user' => [],
-            'outlet_settle' => 0,
-            'outlet_user' => [],
-            'canvasser_settle' => 0,
-            'canvasser_user' => [],
-        ];
-
-        // Sort by date descending
-        krsort($groupedData);
-
-        foreach ($groupedData as $date => $data) {
-            $row = [
-                'date' => Carbon::parse($date)->locale('id')->translatedFormat('d F Y'),
-                'mitra_sbp_settle' => number_format($data['mitra_sbp']['settlement'], 0, ',', '.'),
-                'mitra_sbp_user' => count($data['mitra_sbp']['users']),
-                'agency_settle' => number_format($data['agency']['settlement'], 0, ',', '.'),
-                'agency_user' => count($data['agency']['users']),
-                'self_service_settle' => number_format($data['outlet']['settlement'], 0, ',', '.'),
-                'self_service_user' => count($data['outlet']['users']),
-                'canvasser_settle' => number_format($data['canvasser']['settlement'], 0, ',', '.'),
-                'canvasser_user' => count($data['canvasser']['users']),
-                'total' => number_format(
-                    $data['mitra_sbp']['settlement'] + 
-                    $data['agency']['settlement'] + 
-                    $data['outlet']['settlement'] + 
-                    $data['canvasser']['settlement'], 
-                    0, ',', '.'
-                ),
-                'total_user' => count(array_unique(array_merge(
-                    $data['mitra_sbp']['users'],
-                    $data['agency']['users'],
-                    $data['outlet']['users'],
-                    $data['canvasser']['users']
-                ))),
+            // Format hasil untuk view
+            $result = [];
+            $totals = [
+                'mitra_sbp_settle' => 0,
+                'mitra_sbp_user' => [],
+                'agency_settle' => 0,
+                'agency_user' => [],
+                'internal_settle' => 0,
+                'internal_user' => [],
+                'outlet_settle' => 0,
+                'outlet_user' => [],
+                'canvasser_settle' => 0,
+                'canvasser_user' => [],
             ];
 
-            $result[] = $row;
+            // Sort by date descending
+            krsort($groupedData);
 
-            // Tambahkan ke total keseluruhan
-            $totals['mitra_sbp_settle'] += $data['mitra_sbp']['settlement'];
-            $totals['mitra_sbp_user'] = array_unique(array_merge($totals['mitra_sbp_user'], $data['mitra_sbp']['users']));
-            $totals['agency_settle'] += $data['agency']['settlement'];
-            $totals['agency_user'] = array_unique(array_merge($totals['agency_user'], $data['agency']['users']));
-            $totals['outlet_settle'] += $data['outlet']['settlement'];
-            $totals['outlet_user'] = array_unique(array_merge($totals['outlet_user'], $data['outlet']['users']));
-            $totals['canvasser_settle'] += $data['canvasser']['settlement'];
-            $totals['canvasser_user'] = array_unique(array_merge($totals['canvasser_user'], $data['canvasser']['users']));
-        }
+            foreach ($groupedData as $date => $data) {
+                $row = [
+                    'date' => Carbon::parse($date)->locale('id')->translatedFormat('d F Y'),
+                    'mitra_sbp_settle' => number_format($data['mitra_sbp']['settlement'], 0, ',', '.'),
+                    'mitra_sbp_user' => count(array_unique($data['mitra_sbp']['users'])),
+                    'internal_settle' => number_format($data['internal']['settlement'], 0, ',', '.'),
+                    'internal_user' => count(array_unique($data['internal']['users'])),
+                    'agency_settle' => number_format($data['agency']['settlement'], 0, ',', '.'),
+                    'agency_user' => count(array_unique($data['agency']['users'])),
+                    'self_service_settle' => number_format($data['outlet']['settlement'], 0, ',', '.'),
+                    'self_service_user' => count(array_unique($data['outlet']['users'])),
+                    'canvasser_settle' => number_format($data['canvasser']['settlement'], 0, ',', '.'),
+                    'canvasser_user' => count(array_unique($data['canvasser']['users'])),
+                    'total' => number_format(
+                        $data['mitra_sbp']['settlement'] +
+                            $data['internal']['settlement'] +
+                            $data['agency']['settlement'] +
+                            $data['outlet']['settlement'] +
+                            $data['canvasser']['settlement'],
+                        0,
+                        ',',
+                        '.'
+                    ),
+                    'total_user' => count(array_unique(array_merge(
+                        $data['mitra_sbp']['users'],
+                        $data['internal']['users'],
+                        $data['agency']['users'],
+                        $data['outlet']['users'],
+                        $data['canvasser']['users']
+                    ))),
+                ];
 
-        // Tambahkan row total
-        if (!empty($result)) {
-            $result[] = [
-                'date' => 'Total Keseluruhan',
-                'mitra_sbp_settle' => number_format($totals['mitra_sbp_settle'], 0, ',', '.'),
-                'mitra_sbp_user' => count($totals['mitra_sbp_user']),
-                'agency_settle' => number_format($totals['agency_settle'], 0, ',', '.'),
-                'agency_user' => count($totals['agency_user']),
-                'self_service_settle' => number_format($totals['outlet_settle'], 0, ',', '.'),
-                'self_service_user' => count($totals['outlet_user']),
-                'canvasser_settle' => number_format($totals['canvasser_settle'], 0, ',', '.'),
-                'canvasser_user' => count($totals['canvasser_user']),
-                'total' => number_format(
-                    $totals['mitra_sbp_settle'] + 
-                    $totals['agency_settle'] + 
-                    $totals['outlet_settle'] + 
-                    $totals['canvasser_settle'], 
-                    0, ',', '.'
-                ),
-                'total_user' => count(array_unique(array_merge(
-                    $totals['mitra_sbp_user'],
-                    $totals['agency_user'],
-                    $totals['outlet_user'],
-                    $totals['canvasser_user']
-                ))),
-            ];
-        }
+                $result[] = $row;
 
-        return $result;
+                // Tambahkan ke total keseluruhan
+                $totals['mitra_sbp_settle'] += $data['mitra_sbp']['settlement'];
+                $totals['mitra_sbp_user'] = array_merge($totals['mitra_sbp_user'], $data['mitra_sbp']['users']);
+                $totals['internal_settle'] += $data['internal']['settlement'];
+                $totals['internal_user'] = array_merge($totals['internal_user'], $data['internal']['users']);
+                $totals['agency_settle'] += $data['agency']['settlement'];
+                $totals['agency_user'] = array_merge($totals['agency_user'], $data['agency']['users']);
+                $totals['outlet_settle'] += $data['outlet']['settlement'];
+                $totals['outlet_user'] = array_merge($totals['outlet_user'], $data['outlet']['users']);
+                $totals['canvasser_settle'] += $data['canvasser']['settlement'];
+                $totals['canvasser_user'] = array_merge($totals['canvasser_user'], $data['canvasser']['users']);
+            }
+
+            // Tambahkan row total
+            if (!empty($result)) {
+                $result[] = [
+                    'date' => 'Total Keseluruhan',
+                    'mitra_sbp_settle' => number_format($totals['mitra_sbp_settle'], 0, ',', '.'),
+                    'mitra_sbp_user' => count(array_unique($totals['mitra_sbp_user'])),
+                    'internal_settle' => number_format($totals['internal_settle'], 0, ',', '.'),
+                    'internal_user' => count(array_unique($totals['internal_user'])),
+                    'agency_settle' => number_format($totals['agency_settle'], 0, ',', '.'),
+                    'agency_user' => count(array_unique($totals['agency_user'])),
+                    'self_service_settle' => number_format($totals['outlet_settle'], 0, ',', '.'),
+                    'self_service_user' => count(array_unique($totals['outlet_user'])),
+                    'canvasser_settle' => number_format($totals['canvasser_settle'], 0, ',', '.'),
+                    'canvasser_user' => count(array_unique($totals['canvasser_user'])),
+                    'total' => number_format(
+                        $totals['mitra_sbp_settle'] +
+                            $totals['internal_settle'] +
+                            $totals['agency_settle'] +
+                            $totals['outlet_settle'] +
+                            $totals['canvasser_settle'],
+                        0,
+                        ',',
+                        '.'
+                    ),
+                    'total_user' => count(array_unique(array_merge(
+                        $totals['mitra_sbp_user'],
+                        $totals['internal_user'],
+                        $totals['agency_user'],
+                        $totals['outlet_user'],
+                        $totals['canvasser_user']
+                    ))),
+                ];
+            }
+
+            return $result;
         } catch (\Exception $e) {
             \Log::error("Error in getDailyTopupData: " . $e->getMessage());
             \Log::error($e->getTraceAsString());
@@ -304,11 +296,11 @@ class LeadProgramController extends Controller
     public function getDailyTopupDataTable(Request $request)
     {
         try {
-            $result = $this->getDailyTopupData();
-            
+            $monthFilter = $request->get('month');
+            $result = $this->getDailyTopupData($monthFilter);
+
             return datatables()->of(collect($result))
                 ->make(true);
-
         } catch (\Exception $e) {
             \Log::error("Error in getDailyTopupDataTable: " . $e->getMessage());
             \Log::error($e->getTraceAsString());
@@ -321,12 +313,12 @@ class LeadProgramController extends Controller
         try {
             // Tanggal 1 bulan yang lalu
             $oneMonthAgo = Carbon::now()->subMonth()->format('Y-m-d');
-            
+
             // 1. Jumlah Leads dari leads_master dengan data_type = 'leads'
             $totalLeads = DB::table('leads_master')
                 ->where('data_type', 'leads')
                 ->count();
-            
+
             // 2. Query untuk mendapatkan data akun existing dan new
             $accountData = DB::table('data_registarsi_status_approveorreject as dt')
                 ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
@@ -346,21 +338,21 @@ class LeadProgramController extends Controller
                     END AS status_akun")
                 )
                 ->get();
-            
+
             // Hitung jumlah existing akun
             $existingAkun = $accountData->where('status_akun', 'akun_existing')->unique('email_register')->count();
-            
+
             // Hitung jumlah new akun
             $newAkun = $accountData->where('status_akun', 'akun_new')->unique('email_register')->count();
-            
+
             // Hitung total top up new akun
             $topUpNewAkun = $accountData->where('status_akun', 'akun_new')
                 ->sum('total_settlement_klien');
-            
+
             // Hitung total top up existing akun
             $topUpExistingAkun = $accountData->where('status_akun', 'akun_existing')
                 ->sum('total_settlement_klien');
-            
+
             return [
                 'total_leads' => $totalLeads,
                 'existing_akun' => $existingAkun,
@@ -368,7 +360,6 @@ class LeadProgramController extends Controller
                 'top_up_new_akun' => $topUpNewAkun,
                 'top_up_existing_akun' => $topUpExistingAkun,
             ];
-
         } catch (\Exception $e) {
             \Log::error("Error in getLeadsAndAccountData: " . $e->getMessage());
             \Log::error($e->getTraceAsString());
@@ -503,12 +494,24 @@ class LeadProgramController extends Controller
                     ->distinct()
                     ->count('dt.email');
 
-                // 6. Hitung Top Up untuk New Akun (yang disetujui dalam 1 bulan terakhir) - filter bulan berjalan
-                $topUpNewAkunStats = DB::table('data_registarsi_status_approveorreject as dt')
-                    ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
-                    ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
+                // 6. Hitung semua Top Up untuk canvasser (dari leads_master yang cocok dengan email) - filter bulan berjalan
+                // SAMA seperti di getDailyTopupData() - ambil semua tanpa split by data_type
+                $topUpStats = DB::table('report_balance_top_up as rp')
+                    ->join('leads_master as lm', 'rp.email_client', '=', 'lm.email')
                     ->where('lm.user_id', $canvaser->id)
-                    ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                    ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
+                    ->select(
+                        DB::raw("COUNT(rp.id) as top_up_count"),
+                        DB::raw("SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as total_top_up_rp")
+                    )
+                    ->first();
+
+                // 7. Untuk keperluan breakdown/reporting saja, hitung split by data_type
+                // Tapi jika ada transaksi yang tidak ter-split, gunakan total topup bukan penjumlahan split
+                $topUpNewAkunStats = DB::table('report_balance_top_up as rp')
+                    ->join('leads_master as lm', 'rp.email_client', '=', 'lm.email')
+                    ->where('lm.user_id', $canvaser->id)
+                    ->where('lm.data_type', 'Leads') // Leads akan dianggap sebagai new akun
                     ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
                     ->select(
                         DB::raw("COUNT(rp.id) as top_up_count"),
@@ -516,14 +519,13 @@ class LeadProgramController extends Controller
                     )
                     ->first();
 
-                // 7. Hitung Top Up untuk Existing Akun (dari leads_master yang data_type = 'Eksisting Akun') - filter bulan berjalan
-                $topUpExistingAkunStats = DB::table('leads_master as lm')
-                    ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
+                $topUpExistingAkunStats = DB::table('report_balance_top_up as rp')
+                    ->join('leads_master as lm', 'rp.email_client', '=', 'lm.email')
                     ->where('lm.user_id', $canvaser->id)
                     ->where('lm.data_type', 'Eksisting Akun')
                     ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])    
                     ->select(
-                        DB::raw("COUNT(DISTINCT lm.email) as top_up_existing_akun_count"),
+                        DB::raw("COUNT(rp.id) as top_up_existing_akun_count"),
                         DB::raw("SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as top_up_existing_akun_rp")
                     )
                     ->first();
@@ -554,7 +556,7 @@ class LeadProgramController extends Controller
                 // ==========================
                 $prevMonthRemainingStart = $prevMonthSameDay->copy()->addDay();
                 // 9A PREV MONTH (1 – today)
-                $topUpPrevMonthPartial = DB::table('report_balance_top_up as rp')
+                $prevMonthPartialResult = DB::table('report_balance_top_up as rp')
                     ->join('leads_master as lm', 'rp.email_client', '=', 'lm.email')
                     ->where('lm.user_id', $canvaser->id)
                     ->whereBetween(
@@ -564,9 +566,11 @@ class LeadProgramController extends Controller
                     ->select(
                         DB::raw("sum(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as mom")
                     )
-                    ->first()->mom;
+                    ->first();
+                $topUpPrevMonthPartial = $prevMonthPartialResult->mom ?? 0;
+
                 // 9B CURRENT MONTH (1 – today)
-                $topUpCurrentMonthPartial = DB::table('report_balance_top_up as rp')
+                $currentMonthPartialResult = DB::table('report_balance_top_up as rp')
                     ->join('leads_master as lm', 'rp.email_client', '=', 'lm.email')
                     ->where('lm.user_id', $canvaser->id)
                     ->whereBetween(
@@ -576,9 +580,11 @@ class LeadProgramController extends Controller
                     ->select(
                         DB::raw("sum(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as mom")
                     )
-                    ->first()->mom;
+                    ->first();
+                $topUpCurrentMonthPartial = $currentMonthPartialResult->mom ?? 0;
+
                 // 9C SISA PREV MONTH (today+1 – end of month)
-                $topUpPrevMonthRemaining = DB::table('report_balance_top_up as rp')
+                $prevMonthRemainingResult = DB::table('report_balance_top_up as rp')
                     ->join('leads_master as lm', 'rp.email_client', '=', 'lm.email')
                     ->where('lm.user_id', $canvaser->id)
                     ->whereBetween(
@@ -591,12 +597,26 @@ class LeadProgramController extends Controller
                     ->select(
                         DB::raw("sum(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as mom")
                     )
-                    ->first()->mom;
+                    ->first();
+                $topUpPrevMonthRemaining = $prevMonthRemainingResult->mom ?? 0;
 
-                // Hitung total topup (new akun + existing akun)
+                // Hitung total topup (new akun + existing akun) - gunakan data dari report_balance_top_up langsung
+                // PENTING: Gunakan topUpStats->total_top_up_rp yang mencakup SEMUA transaksi
+                // Jangan gunakan penjumlahan split karena ada kemungkinan transaksi terlewat
                 $topUpNewAkunRp = $topUpNewAkunStats->top_up_new_akun_rp ?? 0;
                 $topUpExistingAkunRp = $topUpExistingAkunStats->top_up_existing_akun_rp ?? 0;
-                $totalTopUp = $topUpNewAkunRp + $topUpExistingAkunRp;
+                $totalTopUpFromStats = $topUpStats->total_top_up_rp ?? 0;
+                
+                // Jika split tidak mencakup semua (mungkin ada transaksi dengan data_type lain), gunakan total
+                $splitTotal = $topUpNewAkunRp + $topUpExistingAkunRp;
+                $totalTopUp = $splitTotal > 0 ? $splitTotal : $totalTopUpFromStats;
+                
+                // Jika split kurang dari total, tambahkan perbedaannya ke existing akun
+                if ($totalTopUpFromStats > 0 && $splitTotal < $totalTopUpFromStats) {
+                    $difference = $totalTopUpFromStats - $splitTotal;
+                    $topUpExistingAkunRp += $difference;
+                    $totalTopUp = $totalTopUpFromStats;
+                }
 
                 // Ambil target atau set 0 jika tidak ada
                 $target = $targetData->target ?? 0;
@@ -702,7 +722,7 @@ class LeadProgramController extends Controller
         }
     }
 
-    public function getRegionalDataTable(Request $request)
+     public function getRegionalDataTable(Request $request)
     {
         try {
             $result = $this->getRegionalData();
@@ -845,18 +865,18 @@ class LeadProgramController extends Controller
 
 
             $regionalMap = [
-                        'SUMBAGSEL'      => 'Angga Satria Gusti',
-                        'SUMBAGTENG'     => null,
-                        'SUMBAGUT'       => 'Abdul Halim',
-                        'JABAR'          => 'Raden Agie Satria Akbar',
-                        'JABODETABEK'    => 'Sony Widjaya',
-                        'JATENG DIY'     => 'Deni Setiawan',
-                        'JATIM'          => 'Muhammad Arief Syahbana',
-                        'BALI NUSRA'     => null,
-                        'KALIMANTAN'     => 'Naqsaybandi',
-                        'PAPUA MALUKU'   => null,
-                        'SULAWESI'       => 'Ikrar Dharmawan',
-                    ];
+                'SUMBAGSEL'      => 'Angga Satria Gusti',
+                'SUMBAGTENG'     => null,
+                'SUMBAGUT'       => 'Abdul Halim',
+                'JABAR'          => 'Raden Agie Satria Akbar',
+                'JABODETABEK'    => 'Sony Widjaya',
+                'JATENG DIY'     => 'Deni Setiawan',
+                'JATIM'          => 'Muhammad Arief Syahbana',
+                'BALI NUSRA'     => null,
+                'KALIMANTAN'     => 'Naqsaybandi',
+                'PAPUA MALUKU'   => null,
+                'SULAWESI'       => 'Ikrar Dharmawan',
+            ];
             $result = [];
             $picAliasMap = [
                 'Angga Satria Gusti'        => 'angga_s_gusti@telkomsel.co.id',
@@ -879,14 +899,13 @@ class LeadProgramController extends Controller
                         ->pluck('id', 'email'); // [email => id]
                     $picEmail = $picAliasMap[$picName] ?? null;
                     $userId   = $picEmail ? ($userIdByEmail[$picEmail] ?? null) : null;
-                    
                 }
 
                 // 1. New Leads (BERDASARKAN USER_ID)
                 $newLeads = 0;
 
                 if ($userId) {
-                    
+
                     $newLeads = DB::table('leads_master as lm')
                         ->where('lm.user_id', $userId)
                         ->where('lm.data_type', 'Leads')
@@ -921,10 +940,10 @@ class LeadProgramController extends Controller
 
                 // 5. Target (optional jika masih per user → boleh di-skip)
                 $targetData = DB::table('region_target')
-                    ->where('region_name', strtoupper($region)) 
-                    ->where('date', now()->startOfMonth()->format('Y-m-d'))     
+                    ->where('region_name', strtoupper($region))
+                    ->where('date', now()->startOfMonth()->format('Y-m-d'))
                     ->first();
-                    
+
                 $target = $targetData->target_amount ?? 0;
 
                 // 6. ACV
@@ -955,81 +974,80 @@ class LeadProgramController extends Controller
                     'target' => $target,
                     'acv' => $acv,
                 ];
-            // foreach ($canvasers as $canvaser) {
-            //     // 1. New Leads (prospect) - dari table logbook
-            //     $newLeads = DB::table('logbook as lb')
-            //         ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
-            //         ->where('lm.user_id', $canvaser->id)
-            //         ->where('lm.data_type', 'leads')
-            //         ->distinct()
-            //         ->count('lb.leads_master_id');
+                // foreach ($canvasers as $canvaser) {
+                //     // 1. New Leads (prospect) - dari table logbook
+                //     $newLeads = DB::table('logbook as lb')
+                //         ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                //         ->where('lm.user_id', $canvaser->id)
+                //         ->where('lm.data_type', 'leads')
+                //         ->distinct()
+                //         ->count('lb.leads_master_id');
 
-            //     // 2. New Akun (deal) - dari data_registarsi yang disetujui dalam 1 bulan terakhir
-            //     $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
-            //         ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
-            //         ->where('lm.user_id', $canvaser->id)
-            //         ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
-            //         ->distinct()
-            //         ->count('dt.email');
+                //     // 2. New Akun (deal) - dari data_registarsi yang disetujui dalam 1 bulan terakhir
+                //     $newAkun = DB::table('data_registarsi_status_approveorreject as dt')
+                //         ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                //         ->where('lm.user_id', $canvaser->id)
+                //         ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                //         ->distinct()
+                //         ->count('dt.email');
 
-            //     // 3. Existing Akun Count (prospect) - dari table logbook
-            //     $existingAkunCount = DB::table('logbook as lb')
-            //         ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
-            //         ->where('lm.user_id', $canvaser->id)
-            //         ->where('lm.data_type', 'Eksisting Akun')
-            //         ->distinct()
-            //         ->count('lb.leads_master_id');
+                //     // 3. Existing Akun Count (prospect) - dari table logbook
+                //     $existingAkunCount = DB::table('logbook as lb')
+                //         ->join('leads_master as lm', 'lb.leads_master_id', '=', 'lm.id')
+                //         ->where('lm.user_id', $canvaser->id)
+                //         ->where('lm.data_type', 'Eksisting Akun')
+                //         ->distinct()
+                //         ->count('lb.leads_master_id');
 
-            //     // 4. Top Up Existing Akun Count (deal) - jumlah AKUN existing yang melakukan topup (DISTINCT)
-            //     $topUpExistingAkunCount = DB::table('leads_master as lm')
-            //         ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
-            //         ->where('lm.user_id', $canvaser->id)
-            //         ->where('lm.data_type', 'Eksisting Akun')
-            //         ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
-            //         ->distinct()
-            //         ->count('lm.email');
+                //     // 4. Top Up Existing Akun Count (deal) - jumlah AKUN existing yang melakukan topup (DISTINCT)
+                //     $topUpExistingAkunCount = DB::table('leads_master as lm')
+                //         ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
+                //         ->where('lm.user_id', $canvaser->id)
+                //         ->where('lm.data_type', 'Eksisting Akun')
+                //         ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
+                //         ->distinct()
+                //         ->count('lm.email');
 
-            //     // 5. Target dari target_canvaser
-            //     $targetData = DB::table('target_canvaser')
-            //         ->where('user_id', $canvaser->id)
-            //         ->where('bulan', $currentMonth)
-            //         ->first();
-                
-            //     $target = $targetData->target ?? 0;
+                //     // 5. Target dari target_canvaser
+                //     $targetData = DB::table('target_canvaser')
+                //         ->where('user_id', $canvaser->id)
+                //         ->where('bulan', $currentMonth)
+                //         ->first();
 
-            //     // 6. ACV (Actual Achievement Value) - total topup dalam rupiah (new + existing) - filter bulan berjalan
-            //     $topUpNewAkunRp = DB::table('data_registarsi_status_approveorreject as dt')
-            //         ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
-            //         ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
-            //         ->where('lm.user_id', $canvaser->id)
-            //         ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
-            //         ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
-            //         ->sum(DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2))"));
+                //     $target = $targetData->target ?? 0;
 
-            //     $topUpExistingAkunRp = DB::table('leads_master as lm')
-            //         ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
-            //         ->where('lm.user_id', $canvaser->id)
-            //         ->where('lm.data_type', 'Eksisting Akun')
-            //         ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
-            //         ->sum(DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2))"));
+                //     // 6. ACV (Actual Achievement Value) - total topup dalam rupiah (new + existing) - filter bulan berjalan
+                //     $topUpNewAkunRp = DB::table('data_registarsi_status_approveorreject as dt')
+                //         ->join('leads_master as lm', 'dt.email', '=', 'lm.email')
+                //         ->join('report_balance_top_up as rp', 'dt.email', '=', 'rp.email_client')
+                //         ->where('lm.user_id', $canvaser->id)
+                //         ->whereRaw("STR_TO_DATE(dt.tanggal_approval_aktivasi, '%Y-%m-%d') > DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+                //         ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
+                //         ->sum(DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2))"));
 
-            //     $acv = ($topUpNewAkunRp ?? 0) + ($topUpExistingAkunRp ?? 0);
+                //     $topUpExistingAkunRp = DB::table('leads_master as lm')
+                //         ->join('report_balance_top_up as rp', 'lm.email', '=', 'rp.email_client')
+                //         ->where('lm.user_id', $canvaser->id)
+                //         ->where('lm.data_type', 'Eksisting Akun')
+                //         ->whereBetween(DB::raw("DATE(rp.tgl_transaksi)"), [$startOfMonth, $todayDate])
+                //         ->sum(DB::raw("CAST(rp.total_settlement_klien AS DECIMAL(15,2))"));
 
-            //     $result[] = [
-            //         'name' => $canvaser->name,
-            //         'new_leads' => $newLeads,
-            //         'new_akun' => $newAkun,
-            //         'existing_akun_count' => $existingAkunCount,
-            //         'top_up_existing_akun_count' => $topUpExistingAkunCount,
-            //         'target' => $target,
-            //         'acv' => $acv,
-            //     ];
+                //     $acv = ($topUpNewAkunRp ?? 0) + ($topUpExistingAkunRp ?? 0);
+
+                //     $result[] = [
+                //         'name' => $canvaser->name,
+                //         'new_leads' => $newLeads,
+                //         'new_akun' => $newAkun,
+                //         'existing_akun_count' => $existingAkunCount,
+                //         'top_up_existing_akun_count' => $topUpExistingAkunCount,
+                //         'target' => $target,
+                //         'acv' => $acv,
+                //     ];
             }
 
             return response()->json([
                 'canvassers' => $result
             ]);
-
         } catch (\Exception $e) {
             \Log::error("Error in getRegionalChartData: " . $e->getMessage());
             \Log::error($e->getTraceAsString());

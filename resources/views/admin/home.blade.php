@@ -18,23 +18,32 @@
     }
 
     #loading-overlay {
-
         position: fixed;
-
         top: 0;
-
         left: 0;
-
         width: 100%;
-
         height: 100%;
-
         background: rgba(0, 0, 0, 0.7);
-
         z-index: 9999;
-
         display: none;
+        justify-content: center;
+        align-items: center;
+    }
 
+    #loading-overlay.show {
+        display: flex;
+    }
+
+    #loading-spinner {
+        font-size: 24px;
+        color: white;
+        text-align: center;
+    }
+
+    #loading-spinner i {
+        display: block;
+        font-size: 48px;
+        margin-bottom: 10px;
     }
 
     /* Dashboard Cards */
@@ -351,10 +360,66 @@
             font-size: 0.65rem;
         }
     }
+
+    /* Filter and Chart Controls */
+    .chart-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .chart-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-buttons .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    /* DataTable Pagination Styling */
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.5rem 0.75rem;
+        margin: 0 2px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
+        background-color: #e2e6ea;
+        border-color: #dee2e6;
+        transform: translateY(-2px);
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
 </style>
 @endsection
 
 @section('content')
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+    <div id="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        Loading, please wait...
+    </div>
+</div>
+
 @if(session('success'))
 <div class="alert alert-success">
     {{ session('success') }}
@@ -378,12 +443,7 @@
                         <p class="mb-0">Selamat datang di sistem monitoring MyAds Telkomsel</p>
                     </div>
                     <div class="col-md-6">
-                        <div class="row g-2">
-                            <div class="col-12 mb-2">
-                                <small class="d-block text-white-50">
-                                    <i class="fas fa-bolt"></i> Quick Navigation
-                                </small>
-                            </div>
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-4 col-4">
                                 <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('chart1Card')">
                                     <i class="fas fa-chart-bar d-block mb-1"></i>
@@ -397,10 +457,13 @@
                                 </button>
                             </div>
                             <div class="col-md-4 col-4">
-                                <button type="button" class="btn btn-light btn-sm w-100" onclick="scrollToSection('dailyTopupTableCard')">
-                                    <i class="fas fa-chart-line d-block mb-1"></i>
-                                    <small>Daily Topup</small>
-                                </button>
+                                <select id="filterMonthDashboard" name="filterMonthDashboard" class="form-control form-control-sm" style="background-color: rgba(255,255,255,0.9); color: #313131; font-size: 0.85rem;">
+                                    @foreach($months as $month)
+                                    <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                                        {{ $month['label'] }}
+                                    </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -437,7 +500,7 @@
     </div>
 
     <!-- Card 3: Target vs ACV -->
-    <div class="col-md-4">
+     <div class="col-md-4">
         <div class="card" id="chart3Card">
             <div class="card-header bg-gradient-danger text-white">
                 <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Target vs ACV (Juta Rp)</h6>
@@ -449,84 +512,30 @@
     </div>
 </div>
 
-    <!-- Filter & Shortcut Card
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-gradient-warning text-white">
-                <h5 class="mb-0"><i class="fas fa-filter"></i> Filter & Quick Navigation</h5>
-            </div>
-            <div class="card-body">
-                <div class="filter-section">
-                    <div class="mb-3">
-                        <label for="filterArea" class="form-label">
-                            <i class="fas fa-map-marked-alt text-primary"></i> Area
-                        </label>
-                        <select class="form-select select2-custom" id="filterArea" data-placeholder="Pilih Area">
-                            <option value="">Semua Area</option>
-                            <option value="AREA 1">AREA 1</option>
-                            <option value="AREA 2">AREA 2</option>
-                            <option value="AREA 3" selected>AREA 3</option>
-                            <option value="AREA 4">AREA 4</option>
-                            <option value="AREA 5">AREA 5</option>
-                            <option value="AREA 6">AREA 6</option>
-                            <option value="AREA 7">AREA 7</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="filterRegional" class="form-label">
-                            <i class="fas fa-map-marker-alt text-success"></i> Regional
-                        </label>
-                        <select class="form-select select2-custom" id="filterRegional" data-placeholder="Pilih Regional">
-                            <option value="">Semua Regional</option>
-                            <option value="JAKARTA">JAKARTA</option>
-                            <option value="BANDUNG">BANDUNG</option>
-                            <option value="SEMARANG">SEMARANG</option>
-                            <option value="SURABAYA">SURABAYA</option>
-                            <option value="MEDAN">MEDAN</option>
-                            <option value="MAKASSAR">MAKASSAR</option>
-                            <option value="DENPASAR">DENPASAR</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="filterPeriode" class="form-label">
-                            <i class="fas fa-calendar-alt text-info"></i> Periode
-                        </label>
-                        <input type="month" class="form-control" id="filterPeriode" value="{{ now()->format('Y-m') }}">
-                    </div>
-
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button type="button" class="btn btn-primary btn-sm w-100" id="applyFilter">
-                                <i class="fas fa-check"></i> Terapkan
-                            </button>
-                        </div>
-                        <div class="col-6">
-                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="resetFilter">
-                                <i class="fas fa-redo"></i> Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div> -->
 
 <!-- Report Canvaser All Region -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card" id="canvaserTableCard">
-            <div class="card-header bg-gradient-success text-white">
+           <div class="card-header bg-gradient-success text-white">
                 <h4 class="mb-0"><i class="fas fa-table"></i> Report Canvaser All Region</h4>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                @php
+                    $date = request('month')
+                        ? \Carbon\Carbon::createFromFormat('Y-m', request('month'))
+                        : now();
+                    $currentDate = $date->day;
+
+                    // Bulan sebelumnya
+                    $prevMonth = $date->copy()->subMonthNoOverflow();
+                    $lastDay = $prevMonth->endOfMonth()->day;
+                @endphp
+                <div id="captureRegionalTable" class="table-responsive">
                     <table class="table table-sm w-100 table-bordered table-hover" id="regionalTable" style="font-size: 11px;">
                         <thead class="thead-light">
                             <tr>
-                                <th colspan="17" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: {{ now()->format('Y-m') }}</th>
+                                <th colspan="17" class="text-center" style="background-color: #d1ecf1;">Data Bulan Berjalan: <span id="displayedMonth">{{ $date->format('Y-m') }}</span></th>
                             </tr>
                             <tr>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">No</th>
@@ -551,16 +560,6 @@
                                 <th class="text-center" style="background-color: #fff3cd;">Achievement (%)</th>
                                 <th class="text-center" style="background-color: #fff3cd;">Gap (Rp)</th>
                                 <th class="text-center" style="background-color: #fff3cd;">Gap Daily (Rp)</th>
-                                @php
-                                    $date = request('month')
-                                        ? \Carbon\Carbon::createFromFormat('Y-m', request('month'))
-                                        : now();
-                                    $currentDate = $date->day;
-
-                                    // Bulan sebelumnya
-                                    $prevMonth = $date->copy()->subMonthNoOverflow();
-                                    $lastDay = $prevMonth->endOfMonth()->day;
-                                @endphp
                                 <th class="text-center" style="background-color: #d3ffcd;">1 – {{ $currentDate }} {{ $prevMonth->translatedFormat('M') }}</th>
                                 <th class="text-center" style="background-color: #d3ffcd;">1 – {{ $currentDate }} {{ $date->translatedFormat('M') }}</th>
                                 <th class="text-center" style="background-color: #d3ffcd;">{{ $currentDate + 1 }} – {{$lastDay}} {{ $prevMonth->translatedFormat('M') }}</th>
@@ -595,13 +594,30 @@
 @endsection
 
 @section('js')
+<!-- jQuery HARUS di-load terlebih dahulu -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DataTables CSS dan JS -->
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<!-- Chart.js dan plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- html2canvas untuk screenshot -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <script>
     // Register plugin datalabels
     Chart.register(ChartDataLabels);
+
+    // Store chart instances for screenshot functionality
+    let chart1Instance, chart2Instance, chart3Instance;
 
     $(document).ready(function() {
         // Initialize Select2 for dropdowns
@@ -616,6 +632,61 @@
         });
         // Load Chart Data untuk Regional
         loadRegionalChart();
+
+        // Month filter change event
+        $('#filterMonthDashboard').on('change', function() {
+            const selectedMonth = $(this).val();
+            const selectedText = $('#filterMonthDashboard option:selected').text();
+            console.log('Selected month:', selectedMonth);
+            
+            // Show loading overlay
+            $('#loading-overlay').addClass('show');
+            
+            // Update displayed month text
+            // Extract just Y-m from selectedMonth (format: YYYY-MM-DD)
+            const monthOnly = selectedMonth.substring(0, 7);
+            $('#displayedMonth').text(monthOnly);
+            
+            // Reload chart and table data
+            loadRegionalChart(selectedMonth);
+            if (typeof regionalTable !== 'undefined') {
+                regionalTable.ajax.reload();
+            }
+        });
+
+        // Save Chart 1 Image
+        $('#btnSaveChart1').on('click', function() {
+            saveChartImage(chart1Instance, 'chart1');
+        });
+
+        // Save Chart 2 Image
+        $('#btnSaveChart2').on('click', function() {
+            saveChartImage(chart2Instance, 'chart2');
+        });
+
+        // Save Chart 3 Image
+        $('#btnSaveChart3').on('click', function() {
+            saveChartImage(chart3Instance, 'chart3');
+        });
+
+        // Save Regional Table Image
+        $('#btnSaveRegionalTableImage').on('click', function() {
+            html2canvas(document.getElementById('captureRegionalTable'), {
+                scale: 2,
+                allowTaint: true,
+                useCORS: true
+            })
+            .then(canvas => {
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'regional_table_' + new Date().getTime() + '.png';
+                link.click();
+            })
+            .catch(err => {
+                console.error('Error capturing table:', err);
+                alert('Gagal menyimpan gambar. Silakan coba lagi.');
+            });
+        });
 
         // Filter functionality
         $('#applyFilter').on('click', function() {
@@ -659,10 +730,26 @@
             ajax: {
                 url: "{{ route('regional_data') }}",
                 type: "GET",
+                data: function(d) {
+                    // Tambahkan month parameter dari filter
+                    let month = $('#filterMonthDashboard').val();
+                    // Convert Y-m-d ke Y-m format untuk backend
+                    if (month && month.includes('-')) {
+                        month = month.substring(0, 7);
+                    }
+                    d.month = month;
+                    return d;
+                },
                 dataSrc: function(json) {
                     console.log("Regional Data:", json);
                     return json.data || [];
                 }
+            },
+            preDrawCallback: function() {
+                $('#loading-overlay').addClass('show');
+            },
+            drawCallback: function() {
+                $('#loading-overlay').removeClass('show');
             },
             columns: [{
                     data: 'no',
@@ -822,16 +909,35 @@
             }
         });
         // Function untuk load Regional Chart
-        function loadRegionalChart() {
+        function loadRegionalChart(month = null) {
+            // Gunakan selected month dari dropdown jika tidak diberikan parameter
+            if (!month) {
+                month = $('#filterMonthDashboard').val();
+            }
+            
+            // Convert Y-m-d to Y-m format untuk backend
+            if (month && month.includes('-')) {
+                month = month.substring(0, 7); // Ambil hanya Y-m-d menjadi Y-m
+            }
+            
             $.ajax({
                 url: "{{ route('regional_chart_data') }}",
                 type: "GET",
+                data: {
+                    month: month
+                },
                 success: function(response) {
                     console.log("Chart Data:", response);
                     renderRegionalChart(response);
+                    // Hide loading after chart is rendered
+                    $('#loading-overlay').removeClass('show');
                 },
                 error: function(xhr, status, error) {
                     console.error("Error loading chart data:", error);
+                    console.error("XHR Status:", xhr.status);
+                    console.error("Response:", xhr.responseText);
+                    // Hide loading on error
+                    $('#loading-overlay').removeClass('show');
                 }
             });
         }
@@ -841,9 +947,20 @@
             const canvassers = data.canvassers || [];
             const labels = canvassers.map(c => c.name);
 
+            // Destroy existing charts if they exist
+            if (chart1Instance) {
+                chart1Instance.destroy();
+            }
+            if (chart2Instance) {
+                chart2Instance.destroy();
+            }
+            if (chart3Instance) {
+                chart3Instance.destroy();
+            }
+
             // Chart 1: Prospect New Leads vs Deal New Akun
             const ctx1 = document.getElementById('chart1').getContext('2d');
-            new Chart(ctx1, {
+            chart1Instance = new Chart(ctx1, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -862,7 +979,7 @@
 
             // Chart 2: Prospect Existing Akun vs Deal Top Up Existing Akun
             const ctx2 = document.getElementById('chart2').getContext('2d');
-            new Chart(ctx2, {
+            chart2Instance = new Chart(ctx2, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -881,7 +998,7 @@
 
             // Chart 3: Target vs ACV (dalam jutaan)
             const ctx3 = document.getElementById('chart3').getContext('2d');
-            new Chart(ctx3, {
+            chart3Instance = new Chart(ctx3, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -997,6 +1114,19 @@
                 }, 2000);
             }
         }
+    }
+
+    // Function untuk save chart sebagai image
+    function saveChartImage(chartInstance, chartName) {
+        if (!chartInstance) {
+            alert('Chart belum di-load. Silakan coba lagi.');
+            return;
+        }
+
+        const link = document.createElement('a');
+        link.href = chartInstance.toBase64Image();
+        link.download = chartName + '_' + new Date().getTime() + '.png';
+        link.click();
     }
 </script>
 @endsection

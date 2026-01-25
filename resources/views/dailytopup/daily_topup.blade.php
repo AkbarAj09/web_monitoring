@@ -1,5 +1,5 @@
 @extends('master')
-@section('title') Dashboard @endsection
+@section('title') Daily TopUp Channel @endsection
 @section('css')
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -36,6 +36,10 @@
         z-index: 9999;
 
         display: none;
+        
+        justify-content: center;
+        
+        align-items: center;
 
     }
 
@@ -354,10 +358,22 @@
             font-size: 0.65rem;
         }
     }
+
+    .gap-2 {
+        gap: 8px;
+    }
 </style>
 @endsection
 
 @section('content')
+<!-- Loading Overlay -->
+<div id="loading-overlay" style="display: none;">
+    <div id="loading-spinner" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10000;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: white; margin-bottom: 10px;"></i>
+        <p style="color: white; font-size: 16px;">Loading data...</p>
+    </div>
+</div>
+
 @if(session('success'))
 <div class="alert alert-success">
     {{ session('success') }}
@@ -370,7 +386,24 @@
 </div>
 @endif
 
-
+<!-- Filter Section -->
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-end align-items-center gap-2">
+        <select id="filterMonthPH" name="filterMonthPH" class="form-control" style="background-color: #313131; color: white; min-width: 180px; max-width: 200px;">
+            @foreach ($months as $month)
+            <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                {{ $month['label'] }}
+            </option>
+            @endforeach
+        </select>
+        <button type="button" id="btnSaveDailyTopupImage" class="btn btn-success" title="Save as Image" style="padding: 6px 12px; white-space: nowrap;">
+            <i class="fas fa-image mr-2"></i> Save Image
+        </button>
+        <a href="{{ route('export.daily_topup') }}" class="btn btn-success" title="Download Excel" style="padding: 6px 12px; white-space: nowrap;">
+            <i class="fas fa-file-excel mr-2"></i> Download Excel
+        </a>
+    </div>
+</div>
 <!-- Daily Topup Table -->
 <div class="row mb-4">
     <div class="col-12">
@@ -379,32 +412,34 @@
                 <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Daily Topup / Channel</h4>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                <div id="captureDailyTopupTable" class="table-responsive">
                     <table class="table table-sm w-100 table-bordered table-hover" id="dailyTopupTable" style="font-size: 12px;">
                         <thead class="thead-light">
                             <tr>
                                 <th rowspan="3" style="vertical-align: middle; text-align: center; background-color: #f8f9fa;">Tanggal</th>
-                                <th colspan="10" class="text-center" style="background-color: #f8d7da;">Source_combined / total_settlement_klien / user_id</th>
+                                <th colspan="12" class="text-center" style="background-color: #f8d7da;">Report Daily TopUp All Channel | Bulan: <span id="displayedMonthPH">{{ $months[array_search(true, array_column($months, 'selected'))]['label'] ?? now()->format('F Y') }}</span></th>
                             </tr>
                             <tr>
                                 <th colspan="2" class="text-center" style="background-color: #fff3cd;">Mitra SBP</th>
                                 <th colspan="2" class="text-center" style="background-color: #d1ecf1;">Canvasser</th>
                                 <th colspan="2" class="text-center" style="background-color: #d4edda;">Self Service</th>
                                 <th colspan="2" class="text-center" style="background-color: #e2e3e5;">Agency</th>
-                                <th class="text-center" style="background-color: #f8d7da;">Total keseluruhan</th>
-                                <th class="text-center" style="background-color: #f8d7da;">user_id</th>
+                                <th colspan="2" class="text-center" style="background-color: #fcc271;">Internal</th>
+                                <th colspan="2" class="text-center" style="background-color: #f62b3c; color: white;">Total</th>
                             </tr>
                             <tr>
-                                <th class="text-center" style="background-color: #fff3cd;">Total Settlement</th>
                                 <th class="text-center" style="background-color: #fff3cd;">user_id</th>
-                                <th class="text-center" style="background-color: #d1ecf1;">Total Settlement</th>
+                                <th class="text-center" style="background-color: #fff3cd;">Total Settlement</th>
                                 <th class="text-center" style="background-color: #d1ecf1;">user_id</th>
-                                <th class="text-center" style="background-color: #d4edda;">Total Settlement</th>
+                                <th class="text-center" style="background-color: #d1ecf1;">Total Settlement</th>
                                 <th class="text-center" style="background-color: #d4edda;">user_id</th>
+                                <th class="text-center" style="background-color: #d4edda;">Total Settlement</th>
                                 <th class="text-center" style="background-color: #e2e3e5;">user_id</th>
                                 <th class="text-center" style="background-color: #e2e3e5;">Total Settlement</th>
-                                <th class="text-center" style="background-color: #f8d7da;">Total</th>
-                                <th class="text-center" style="background-color: #f8d7da;">Total</th>
+                                <th class="text-center" style="background-color: #fcc271;">user_id</th>
+                                <th class="text-center" style="background-color: #fcc271;">Total Settlement</th>
+                                <th class="text-center" style="background-color: #f62b3c; color: white;">User Id</th>
+                                <th class="text-center" style="background-color: #f62b3c; color: white;">Settlement</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -436,6 +471,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
     $(document).ready(function() {
 
@@ -448,10 +484,20 @@
             ajax: {
                 url: "{{ route('daily_topup_data') }}",
                 type: "GET",
+                data: function(d) {
+                    d.month = $('#filterMonthPH').val();
+                    return d;
+                },
                 dataSrc: function(json) {
                     console.log("Response dari server:", json);
                     return json.data || [];
                 }
+            },
+            preDrawCallback: function() {
+                $('#loading-overlay').show();
+            },
+            drawCallback: function() {
+                $('#loading-overlay').hide();
             },
             columns: [{
                     data: 'date',
@@ -463,13 +509,6 @@
                     }
                 },
                 {
-                    data: 'mitra_sbp_settle',
-                    render: function(data, type, row) {
-                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
-                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
-                    }
-                },
-                {
                     data: 'mitra_sbp_user',
                     render: function(data, type, row) {
                         let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
@@ -477,7 +516,7 @@
                     }
                 },
                 {
-                    data: 'canvasser_settle',
+                    data: 'mitra_sbp_settle',
                     render: function(data, type, row) {
                         let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
                         return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
@@ -490,8 +529,9 @@
                         return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
                     }
                 },
+
                 {
-                    data: 'self_service_settle',
+                    data: 'canvasser_settle',
                     render: function(data, type, row) {
                         let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
                         return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
@@ -504,6 +544,14 @@
                         return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
                     }
                 },
+                {
+                    data: 'self_service_settle',
+                    render: function(data, type, row) {
+                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
+                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
+                    }
+                },
+
                 {
                     data: 'agency_user',
                     render: function(data, type, row) {
@@ -519,9 +567,17 @@
                     }
                 },
                 {
-                    data: 'total',
+                    data: 'internal_user',
                     render: function(data, type, row) {
-                        return `<div style="text-align: right; font-weight: bold;">${data || '-'}</div>`;
+                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
+                        return `<div style="text-align: center;" class="${className}">${data || '-'}</div>`;
+                    }
+                },
+                {
+                    data: 'internal_settle',
+                    render: function(data, type, row) {
+                        let className = row.date === 'Total Keseluruhan' ? 'font-weight-bold' : '';
+                        return `<div style="text-align: right;" class="${className}">${data || '-'}</div>`;
                     }
                 },
                 {
@@ -529,7 +585,14 @@
                     render: function(data, type, row) {
                         return `<div style="text-align: center; font-weight: bold;">${data || '-'}</div>`;
                     }
+                },
+                {
+                    data: 'total',
+                    render: function(data, type, row) {
+                        return `<div style="text-align: right; font-weight: bold;">${data || '-'}</div>`;
+                    }
                 }
+
             ],
             rowCallback: function(row, data) {
                 if (data.date === 'Total Keseluruhan') {
@@ -538,8 +601,40 @@
             }
         });
 
+        // Event listener untuk filter bulan
+        $('#filterMonthPH').on('change', function() {
+            // Show loading overlay
+            $('#loading-overlay').show();
+            
+            // Update label bulan yang ditampilkan dengan text dari selected option
+            var selectedText = $('#filterMonthPH option:selected').text();
+            $('#displayedMonthPH').text(selectedText);
+            
+            // Reload data table
+            table.ajax.reload();
+        });
+
         $('#dailyTopupTable').on('error.dt', function(e, settings, techNote, message) {
             console.log("DataTables Error:", message);
+        });
+
+        // Handle Save Image Button
+        document.getElementById('btnSaveDailyTopupImage').addEventListener('click', function() {
+            html2canvas(document.getElementById('captureDailyTopupTable'), {
+                    scale: 2,
+                    allowTaint: true,
+                    useCORS: true
+                })
+                .then(canvas => {
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = 'daily_topup_' + new Date().getTime() + '.png';
+                    link.click();
+                })
+                .catch(err => {
+                    console.error('Error capturing table:', err);
+                    alert('Gagal menyimpan gambar. Silakan coba lagi.');
+                });
         });
 
     });

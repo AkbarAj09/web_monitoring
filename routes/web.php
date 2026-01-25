@@ -13,6 +13,7 @@ use App\Http\Controllers\LogbookDailyController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PanenPoinController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\LeadProgramController;
 
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::get('/login', [FrontController::class, 'index']);
@@ -53,11 +54,13 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
 Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH'])->group(function () {
     Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
     Route::get('/daily-topup-channel', [FrontController::class, 'dailyTopupChannel'])->name('daily.topup.channel');
-    Route::get('/get-daily-topup-data', [\App\Http\Controllers\LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
-    Route::get('/get-leads-data-api', [\App\Http\Controllers\LeadProgramController::class, 'getLeadsDataApi'])->name('leads_data_api');
-    Route::get('/get-regional-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalDataTable'])->name('regional_data');
-    Route::get('/get-regional-chart-data', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalChartData'])->name('regional_chart_data');
-    Route::get('/get-regional-chart-data-for-ph', [\App\Http\Controllers\LeadProgramController::class, 'getRegionalChartDataForPH'])->name('regional_chart_data_for_ph');
+    Route::get('/get-daily-topup-data', [LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
+    Route::get('/export-daily-topup', [BackController::class, 'exportDailyTopup'])->name('export.daily_topup');
+    Route::get('/export-regional', [BackController::class, 'exportRegional'])->name('export.regional');
+    Route::get('/get-leads-data-api', [LeadProgramController::class, 'getLeadsDataApi'])->name('leads_data_api');
+    Route::get('/get-regional-data', [LeadProgramController::class, 'getRegionalDataTable'])->name('regional_data');
+    Route::get('/get-regional-chart-data', [LeadProgramController::class, 'getRegionalChartData'])->name('regional_chart_data');
+    Route::get('/get-regional-chart-data-for-ph', [LeadProgramController::class, 'getRegionalChartDataForPH'])->name('regional_chart_data_for_ph');
 
     Route::get('/upload-file-myads', [FrontController::class, 'uploadMyAds'])->name('admin.upload');
     Route::post('/store-csv-myads', [BackController::class, 'storeUploadMyAds'])->name('upload.myads.store');
