@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use App\Models\LeadsSource;
 use App\Models\User;
 use App\Models\Sector;
+use App\Events\LeadsMasterUpdated;
 
 class LeadsMaster extends Model
 {
@@ -31,6 +31,12 @@ class LeadsMaster extends Model
         'komitmen',
         'plan_min_topup',
         'remarks',
+    ];
+    
+    // Events untuk trigger summary update
+    protected $dispatchesEvents = [
+        'updated' => LeadsMasterUpdated::class,
+        'created' => LeadsMasterUpdated::class,
     ];
     
     // RELATION TO USER

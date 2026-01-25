@@ -16,48 +16,22 @@ class HomeController extends Controller
     public function index()
     {
         logUserLogin();
-        $data = [];
         
-        try {
-            
-            // 1. Padi UMKM Summary
-            $data['padi_umkm'] = $this->getPadiUmkmSummary();
-            
-            // 2. Event Sponsorship Summary
-            $data['event_sponsorship'] = $this->getEventSponsorshipSummary();
-            
-            // 3. Creator Partner Summary
-            $data['creator_partner'] = $this->getCreatorPartnerSummary();
-            
-            // 4. Rekruter KOL Summary
-            $data['rekruter_kol'] = $this->getRekruterKolSummary();
-            
-            // 5. Area Marcom Summary
-            $data['area_marcom'] = $this->getAreaMarcomSummary();
-            
-            // 6. Simpati Tiktok Summary
-            $data['simpati_tiktok'] = $this->getSimpatiTiktokSummary();
-            
-            // 7. Referral Champion Summary
-            $data['referral_champion'] = $this->getReferralChampionSummary();
-            
-            // 8. Sultam Racing Summary
-            $data['sultam_racing'] = $this->getSultamRacingSummary();
-            
-            // 9. Voucher Summary
-            $data['voucher'] = $this->getVoucherSummary();
-            
-            // 10. AdsVantage Race (TREG) Summary
-            $data['treg_race'] = $this->getTregRaceSummary();
-            
-            // 11. User Management Summary
-            $data['users'] = $this->getUserSummary();
-            
-        } catch (\Exception $e) {
-            Log::error('Error getting dashboard data: ' . $e->getMessage());
+       $months = [];
+
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->format('Y-m-01'); // bulan sekarang, tanggal 01
+
+        for ($i = 1; $i <= 12; ++$i) {
+            $date = Carbon::create($currentYear, $i, 1);
+            $months[] = [
+                'value' => $date->format('Y-m-d'), // e.g., 2025-05-01
+                'label' => $date->translatedFormat('F Y'), // e.g., Mei 2025
+                'selected' => $date->format('Y-m-d') === $currentMonth,
+            ];
         }
         
-        return view('admin.home', compact('data'));
+        return view('admin.home', compact('months'));
     }
     
     private function getPadiUmkmSummary()

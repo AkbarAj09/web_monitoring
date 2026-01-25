@@ -1180,4 +1180,191 @@ class BackController extends Controller
             })
             ->make(true);
     }
+
+    /**
+     * Export Daily TopUp Report to Excel
+     */
+    public function exportDailyTopup()
+    {
+        try {
+            // Get current month from request or use current month
+            $monthFilter = request()->get('month');
+            $leadProgramController = new LeadProgramController();
+            $data = $leadProgramController->getDailyTopupData($monthFilter);
+
+            if (empty($data)) {
+                return redirect()->back()->with('error', 'Tidak ada data untuk diekspor');
+            }
+
+            // Prepare export data
+            $exportData = [];
+            foreach ($data as $row) {
+                $exportData[] = [
+                    'Tanggal' => $row['date'],
+                    'Mitra SBP (Settlement)' => $row['mitra_sbp_settle'],
+                    'Mitra SBP (User)' => $row['mitra_sbp_user'],
+                    'Internal (Settlement)' => $row['internal_settle'],
+                    'Internal (User)' => $row['internal_user'],
+                    'Canvasser (Settlement)' => $row['canvasser_settle'],
+                    'Canvasser (User)' => $row['canvasser_user'],
+                    'Self Service (Settlement)' => $row['self_service_settle'],
+                    'Self Service (User)' => $row['self_service_user'],
+                    'Agency (Settlement)' => $row['agency_settle'],
+                    'Agency (User)' => $row['agency_user'],
+                    'Total (Settlement)' => $row['total'],
+                    'Total (User)' => $row['total_user'],
+                ];
+            }
+
+            // Create Excel file
+            $fileName = 'Daily_TopUp_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
+
+            return response()->streamDownload(function () use ($exportData) {
+                $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+
+                // Set header
+                $headers = ['Tanggal', 'Mitra SBP (Settlement)', 'Mitra SBP (User)', 'Internal (Settlement)', 'Internal (User)', 
+                            'Canvasser (Settlement)', 'Canvasser (User)', 'Self Service (Settlement)', 'Self Service (User)', 
+                            'Agency (Settlement)', 'Agency (User)', 'Total (Settlement)', 'Total (User)'];
+                $sheet->fromArray($headers, null, 'A1');
+
+                // Style header
+                $headerStyle = [
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '667EEA']],
+                    'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+                ];
+                $sheet->getStyle('A1:M1')->applyFromArray($headerStyle);
+
+                // Add data
+                $row = 2;
+                foreach ($exportData as $item) {
+                    $sheet->fromArray((array)$item, null, 'A' . $row);
+                    $row++;
+                }
+
+                // Set column widths
+                $sheet->getColumnDimension('A')->setWidth(18);
+                $sheet->getColumnDimension('B')->setWidth(18);
+                $sheet->getColumnDimension('C')->setWidth(15);
+                $sheet->getColumnDimension('D')->setWidth(18);
+                $sheet->getColumnDimension('E')->setWidth(15);
+                $sheet->getColumnDimension('F')->setWidth(18);
+                $sheet->getColumnDimension('G')->setWidth(15);
+                $sheet->getColumnDimension('H')->setWidth(18);
+                $sheet->getColumnDimension('I')->setWidth(15);
+                $sheet->getColumnDimension('J')->setWidth(18);
+                $sheet->getColumnDimension('K')->setWidth(15);
+                $sheet->getColumnDimension('L')->setWidth(18);
+                $sheet->getColumnDimension('M')->setWidth(15);
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                $writer->save('php://output');
+            }, $fileName);
+        } catch (\Exception $e) {
+            \Log::error("Error in exportDailyTopup: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengekspor data: ' . $e->getMessage());
+        }
+    }
+
+    public function exportRegional()
+    {
+        try {
+            $monthFilter = request()->get('month');
+            $leadProgramController = new LeadProgramController();
+            $data = $leadProgramController->getRegionalData($monthFilter);
+
+            if (empty($data)) {
+                return redirect()->back()->with('error', 'Tidak ada data untuk diekspor');
+            }
+
+            // Create Excel file
+            $fileName = 'Regional_Report_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
+
+            return response()->streamDownload(function () use ($data) {
+                $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+
+                // Set header
+                $headers = [
+                    'No', 'Canvaser Name', 'Leads', 'Existing Akun', 'New Akun', 
+                    'Top Up Existing Akun Count', 'Top Up New Akun (Rp)', 'Top Up Existing Akun (Rp)', 
+                    'Total Top Up (Rp)', 'Target (Rp)', 'Achievement (%)', 'Gap (Rp)', 
+                    'Gap Daily (Rp)', 'MOM (1-Current Date Prev)', 'MOM (1-Current Date Current)',
+                    'MOM (Remaining Prev)', 'MOM Gap (Rp)'
+                ];
+                $sheet->fromArray($headers, null, 'A1');
+
+                // Style header
+                $headerStyle = [
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F54D9']],
+                    'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+                    'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]
+                ];
+                $sheet->getStyle('A1:Q1')->applyFromArray($headerStyle);
+
+                // Add data
+                $row = 2;
+                $no = 1;
+                foreach ($data as $item) {
+                    $sheet->setCellValue('A' . $row, $no);
+                    $sheet->setCellValue('B' . $row, $item['canvaser_name']);
+                    $sheet->setCellValue('C' . $row, $item['leads']);
+                    $sheet->setCellValue('D' . $row, $item['existing_akun']);
+                    $sheet->setCellValue('E' . $row, $item['new_akun']);
+                    $sheet->setCellValue('F' . $row, $item['top_up_existing_akun_count']);
+                    $sheet->setCellValue('G' . $row, $item['top_up_new_akun_rp']);
+                    $sheet->setCellValue('H' . $row, $item['top_up_existing_akun_rp']);
+                    $sheet->setCellValue('I' . $row, $item['total_top_up_rp']);
+                    $sheet->setCellValue('J' . $row, $item['target']);
+                    $sheet->setCellValue('K' . $row, $item['achievement_percent']);
+                    $sheet->setCellValue('L' . $row, $item['gap']);
+                    $sheet->setCellValue('M' . $row, $item['gap_daily']);
+                    $sheet->setCellValue('N' . $row, $item['mom_prev_partial']);
+                    $sheet->setCellValue('O' . $row, $item['mom_current_partial']);
+                    $sheet->setCellValue('P' . $row, $item['mom_prev_remaining']);
+                    $sheet->setCellValue('Q' . $row, $item['mom_gap']);
+                    
+                    // Add color for total rows
+                    if ($item['is_total']) {
+                        $styleTotal = [
+                            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFC107']],
+                            'font' => ['bold' => true],
+                        ];
+                        $sheet->getStyle('A' . $row . ':Q' . $row)->applyFromArray($styleTotal);
+                    }
+
+                    $row++;
+                    $no++;
+                }
+
+                // Set column widths
+                $sheet->getColumnDimension('A')->setWidth(5);
+                $sheet->getColumnDimension('B')->setWidth(20);
+                $sheet->getColumnDimension('C')->setWidth(12);
+                $sheet->getColumnDimension('D')->setWidth(15);
+                $sheet->getColumnDimension('E')->setWidth(12);
+                $sheet->getColumnDimension('F')->setWidth(18);
+                $sheet->getColumnDimension('G')->setWidth(18);
+                $sheet->getColumnDimension('H')->setWidth(18);
+                $sheet->getColumnDimension('I')->setWidth(18);
+                $sheet->getColumnDimension('J')->setWidth(15);
+                $sheet->getColumnDimension('K')->setWidth(15);
+                $sheet->getColumnDimension('L')->setWidth(15);
+                $sheet->getColumnDimension('M')->setWidth(15);
+                $sheet->getColumnDimension('N')->setWidth(18);
+                $sheet->getColumnDimension('O')->setWidth(18);
+                $sheet->getColumnDimension('P')->setWidth(18);
+                $sheet->getColumnDimension('Q')->setWidth(15);
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                $writer->save('php://output');
+            }, $fileName);
+        } catch (\Exception $e) {
+            \Log::error("Error in exportRegional: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengekspor data: ' . $e->getMessage());
+        }
+    }
 }

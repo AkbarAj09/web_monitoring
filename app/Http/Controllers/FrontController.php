@@ -41,13 +41,39 @@ class FrontController extends Controller
     public function homeAdmin()
     {
         logUserLogin();
-        return view('admin.home');
+        $months = [];
+
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->format('Y-m-01'); // bulan sekarang, tanggal 01
+
+        for ($i = 1; $i <= 12; ++$i) {
+            $date = Carbon::create($currentYear, $i, 1);
+            $months[] = [
+                'value' => $date->format('Y-m-d'), // e.g., 2025-05-01
+                'label' => $date->translatedFormat('F Y'), // e.g., Mei 2025
+                'selected' => $date->format('Y-m-d') === $currentMonth,
+            ];
+        }
+        return view('admin.home', compact('months'));
     }
     
     public function dailyTopupChannel()
     {
         logUserLogin();
-        return view('dailytopup.daily_topup');
+        $months = [];
+
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->format('Y-m-01'); // bulan sekarang, tanggal 01
+
+        for ($i = 1; $i <= 12; ++$i) {
+            $date = Carbon::create($currentYear, $i, 1);
+            $months[] = [
+                'value' => $date->format('Y-m-d'), // e.g., 2025-05-01
+                'label' => $date->translatedFormat('F Y'), // e.g., Mei 2025
+                'selected' => $date->format('Y-m-d') === $currentMonth,
+            ];
+        }
+        return view('dailytopup.daily_topup', compact('months'));
     }
     public function logout()
     {
