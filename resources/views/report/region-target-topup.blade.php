@@ -484,7 +484,7 @@
                         <tfoot class="fw-bold">
                             <tr>
                                 <td colspan="3" class="text-center">TOTAL</td>
-                                <td class="text-end" style="font-weight: bold;">
+                                <td class="text-end" style="text-align: center;font-weight: bold;">
                                     {{ number_format(collect($data)->sum('topup'),0,',','.') }}
                                 </td>
                                 <td class="text-end" style="text-align: center; color: #0d6efd; font-weight: bold;">

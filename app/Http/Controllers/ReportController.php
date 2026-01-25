@@ -337,6 +337,11 @@ public function topupCanvasserData(Request $request)
             $gapDaily = $remainingWorkingDays > 0 ? $gap / $remainingWorkingDays : 0;
             $gapDaily *= -1;
 
+            if (strtoupper($region) === 'UNKNOWN') {
+                $gap = 0;
+                $gapDaily = 0;
+            }
+
             $data[] = [
                 'region'     => $region,
                 'pic'        => $pic,
