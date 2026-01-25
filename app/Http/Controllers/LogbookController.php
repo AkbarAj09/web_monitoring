@@ -197,21 +197,31 @@ class LogbookController extends Controller
             })
             ->rawColumns(['action'])
             ->make(true);
-        }
-        public function update(Request $request)
-        {
-            
-            $tes = DB::table('logbook')
-                ->where('leads_master_id', $request->id)
-                ->update([
-                    'komitmen' => $request->komitmen,
-                    'plan_min_topup' => $request->plan_min_topup,
-                    'status' => $request->status,
-                    'updated_at' => now(),
-                ]);
+    }
+    public function update(Request $request)
+    {
+        
+        $logbook = DB::table('logbook')
+            ->where('leads_master_id', $request->id)
+            ->update([
+                'komitmen' => $request->komitmen,
+                'plan_min_topup' => $request->plan_min_topup,
+                'status' => $request->status,
+                'updated_at' => now(),
+            ]);
 
-            return response()->json(['success' => true]);
-        }
+        DB::table('logbook_daily')
+            ->where('leads_master_id', $request->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->update([
+                'komitmen'        => $request->komitmen,
+                'plan_min_topup'  => $request->plan_min_topup,
+                'status'          => $request->status,
+                'updated_at'      => now(),
+            ]);
+
+        return response()->json(['success' => true]);
+    }
     
     public function insert(Request $request)
     {
