@@ -1,6 +1,7 @@
 @extends('master')
 @section('title') Referral Champion for Canvasser @endsection
 @section('css')
+<link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet"/>
 
 <style>
     .btn-ref {
@@ -160,6 +161,7 @@
 
 @endsection
 @section('js')
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script>
     $(document).ready(function() {
         var table = $('#datatablenya').DataTable({
@@ -167,6 +169,8 @@
             processing: true,
 
             serverSide: true,
+
+            responsive: true,
 
             ordering: false,
 

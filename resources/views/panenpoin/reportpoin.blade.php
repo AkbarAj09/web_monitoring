@@ -5,6 +5,8 @@
 <!-- DataTables CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css">
+<!-- DataTables Responsive CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
 
 <style>
     
@@ -214,48 +216,164 @@
         border-radius: 0.35rem;
         margin-bottom: 20px;
     }
+
+    /* Filter Card Styling */
+    .filter-card {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .filter-card h5 {
+        background-color: #495057;
+        color: white;
+        padding: 12px 15px;
+        margin: -20px -20px 15px -20px;
+        border-radius: 7px 7px 0 0;
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #333;
+    }
+
+    .filter-group small {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 2px;
+        font-weight: normal;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        width: 100%;
+    }
+
+    .loading-spinner {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        text-align: center;
+    }
+
+    .loading-spinner.active {
+        display: block;
+    }
+
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9998;
+    }
+
+    .loading-overlay.active {
+        display: block;
+    }
+
+    .spinner-border-sm {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    /* Month Display */
+    .month-display {
+        background: linear-gradient(87deg, #e74a3b 0, #be2617 100%);
+        color: white;
+        padding: 12px 15px;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: inline-block;
+    }
 </style>
 @endsection
 
 @section('content')
-<div class="row mb-3">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0">
-                <i class="fas fa-calendar-alt mr-2 text-primary"></i>
-                <strong>Bulan:</strong> 
-                <span id="selectedMonth" class="text-danger">{{ $months[array_search(true, array_column($months, 'selected'))]['label'] ?? 'Januari 2026' }}</span>
-            </h4>
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay"></div>
+<div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner-border spinner-border-sm text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    <p class="mt-2" style="color: #333; font-weight: 500;">Loading data...</p>
+</div>
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h5 style="margin: 0;"><i class="fas fa-filter"></i> FILTER DATA POIN CANVASSER</h5>
+        <div style="background: linear-gradient(87deg, #e74a3b 0, #be2617 100%); color: white; padding: 8px 15px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+            <i class="fas fa-calendar-alt mr-2"></i>
+            <strong>Bulan:</strong> 
+            <span id="selectedMonth">{{ $months[array_search(true, array_column($months, 'selected'))]['label'] ?? 'Januari 2026' }}</span>
         </div>
-        <div class="d-flex align-items-center">
-            <button id="showFilterBtn" class="btn btn-outline-primary" type="button" title="Filter" style="padding: 6px 12px;">
-                <i class="fas fa-filter"></i>
+    </div>
+    
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="tanggal">Bulan</label>
+            <select id="tanggal" name="tanggal" class="form-control">
+                @foreach ($months as $month)
+                <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                    {{ $month['label'] }}
+                </option>
+                @endforeach
+            </select>
+            <small>Pilih bulan untuk melihat data poin canvasser</small>
+        </div>
+
+        <div class="filter-group">
+            <label for="source">Source</label>
+            <select id="source" name="source" class="form-control">
+                <option value="">Semua Source</option>
+                <option value="user_panen_poin">User Panen Poin</option>
+                <option value="leads_master">Leads Master</option>
+            </select>
+            <small>Pilih sumber data untuk memfilter tipe akun</small>
+        </div>
+
+        <div class="filter-group">
+            <label for="remark">Kategori Remark</label>
+            <select id="remark" name="remark" class="form-control">
+                <option value="">Semua Remark</option>
+                <option value="Rookie">🥉 Rookie (0-100)</option>
+                <option value="Rising Star">🥈 Rising Star (101-200)</option>
+                <option value="Champion">🥇 Champion (201+)</option>
+            </select>
+            <small>Pilih kategori untuk melihat performa canvasser</small>
+        </div>
+
+        <div class="filter-group">
+            <button id="btn-export" class="btn btn-success w-100" style="height: 38px;">
+                <i class="fa fa-file-excel"></i> Export Excel
             </button>
-            <div id="filterContainer" style="display: none; margin-left: 10px;">
-                <div class="d-flex align-items-center">
-                    <select id="tanggal" name="tanggal" class="form-control mr-2" style="background-color: #313131; color: white; min-width: 180px;">
-                        @foreach ($months as $month)
-                        <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
-                            {{ $month['label'] }}
-                        </option>
-                        @endforeach
-                    </select>
-                    <select id="source" name="source" class="form-control mr-2" style="background-color: #313131; color: white; min-width: 180px;">
-                        <option value="">Semua Source</option>
-                        <option value="user_panen_poin">User Panen Poin</option>
-                        <option value="leads_master">Leads Master</option>
-                    </select>
-                    <select id="remark" name="remark" class="form-control" style="background-color: #313131; color: white; min-width: 180px;">
-                        <option value="">Semua Remark</option>
-                        <option value="Rookie">🥉 Rookie (0-100)</option>
-                        <option value="Rising Star">🥈 Rising Star (101-200)</option>
-                        <option value="Champion">🥇 Champion (201+)</option>
-                    </select>
-                </div>
-            </div>
-            <button id="btn-export" class="btn btn-success ml-2">
-                <i class="fas fa-file-excel mr-2"></i>Export Excel
-            </button>
+            <small style="color: #28a745; margin-top: 6px;">Download data sesuai filter</small>
         </div>
     </div>
 </div>
@@ -313,25 +431,41 @@
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap4.min.js"></script>
+<!-- DataTables Responsive JS -->
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
 <script>
     $(document).ready(function() {
         
-        // Toggle filter visibility
-        $('#showFilterBtn').click(function() {
-            $('#filterContainer').toggle();
-        });
+        // Function untuk show loading
+        function showLoading() {
+            $('#loadingOverlay').addClass('active');
+            $('#loadingSpinner').addClass('active');
+        }
+
+        // Function untuk hide loading
+        function hideLoading() {
+            $('#loadingOverlay').removeClass('active');
+            $('#loadingSpinner').removeClass('active');
+        }
         
         // Initialize DataTable
         var table = $('#reportTable').DataTable({
             processing: true,
             serverSide: true,
+            responsive: true,
             ajax: {
                 url: "{{ route('panenpoin.report-data') }}",
                 data: function(d) {
                     d.tanggal = $('#tanggal').val();
                     d.source = $('#source').val();
                     d.remark = $('#remark').val();
+                },
+                beforeSend: function() {
+                    showLoading();
+                },
+                complete: function() {
+                    hideLoading();
                 }
             },
             columns: [{

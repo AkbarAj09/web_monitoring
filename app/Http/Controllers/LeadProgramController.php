@@ -1145,30 +1145,83 @@ class LeadProgramController extends Controller
                 $displayMonth = Carbon::now()->translatedFormat('F Y');
             }
 
-            // Query dari report_balance_top_up dengan GROUP BY
+            // Query raw data dari report_balance_top_up TANPA GROUP BY
             $data = DB::table('report_balance_top_up as rp')
                 ->select(
+                    'rp.tgl_transaksi',
                     'rp.data_province_name',
                     'rp.user_id',
                     'rp.email_client',
-                    DB::raw('SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as total_settlement_klien'),
-                    DB::raw('COUNT(*) as transaction_count')
+                    'rp.total_settlement_klien'
                 )
                 ->whereDate('rp.tgl_transaksi', '>=', $startDate)
                 ->whereDate('rp.tgl_transaksi', '<=', $endDate)
                 ->whereNotNull('rp.email_client')
                 ->whereNotNull('rp.total_settlement_klien')
-                ->groupBy('rp.data_province_name', 'rp.user_id', 'rp.email_client')
-                ->orderBy('total_settlement_klien', 'desc')
+                ->orderBy('rp.tgl_transaksi', 'desc')
+                ->orderBy('rp.data_province_name', 'asc')
+                ->orderBy('rp.total_settlement_klien', 'desc')
                 ->get();
 
-            // Gunakan Laravel Excel atau generate manual
+            if ($data->isEmpty()) {
+                return redirect()->back()->with('error', 'Tidak ada data untuk diekspor');
+            }
+
+            // Prepare export data
+            $exportData = [];
+            foreach ($data as $row) {
+                // Ensure settlement is properly formatted as number with proper decimal places
+                $settlement = floatval($row->total_settlement_klien);
+                $formattedSettlement = number_format($settlement, 0, ',', '.');
+                
+                $exportData[] = [
+                    'Tanggal' => date('d-m-Y', strtotime($row->tgl_transaksi)),
+                    'Provinsi' => $row->data_province_name,
+                    'User ID' => $row->user_id,
+                    'Email' => $row->email_client,
+                    'Total Settlement' => ' ' . $formattedSettlement,
+                ];
+            }
+
+            // Create Excel file
             $fileName = 'Daily_TopUp_Per_Province_' . $displayMonth . '_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
-            
-            return \Excel::download(new \App\Exports\DailyTopupProvinceExport($data, $displayMonth), $fileName);
+
+            return response()->streamDownload(function () use ($exportData) {
+                $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+
+                // Set header
+                $headers = ['Tanggal', 'Provinsi', 'User ID', 'Email', 'Total Settlement'];
+                $sheet->fromArray($headers, null, 'A1');
+
+                // Style header
+                $headerStyle = [
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E74A3B']],
+                    'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+                ];
+                $sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
+
+                // Add data
+                $row = 2;
+                foreach ($exportData as $item) {
+                    $sheet->fromArray((array)$item, null, 'A' . $row);
+                    $row++;
+                }
+
+                // Set column widths
+                $sheet->getColumnDimension('A')->setWidth(15);
+                $sheet->getColumnDimension('B')->setWidth(25);
+                $sheet->getColumnDimension('C')->setWidth(15);
+                $sheet->getColumnDimension('D')->setWidth(30);
+                $sheet->getColumnDimension('E')->setWidth(20);
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                $writer->save('php://output');
+            }, $fileName);
         } catch (\Exception $e) {
             \Log::error("Error in exportDailyTopupByProvince: " . $e->getMessage());
-            return back()->with('error', 'Gagal mengexport data: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengekspor data: ' . $e->getMessage());
         }
     }
 }

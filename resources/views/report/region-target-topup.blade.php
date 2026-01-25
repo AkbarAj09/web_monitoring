@@ -5,6 +5,8 @@
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<!-- DataTables Responsive CSS -->
+<link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet"/>
 
 <style>
     .btn-ref {
@@ -528,6 +530,10 @@
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<!-- DataTable JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<!-- DataTables Responsive JS -->
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 {{-- <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script> --}}
 <script>
 // document.addEventListener('DOMContentLoaded', function () {
@@ -571,6 +577,16 @@
 
     $(document).ready(function() {
         loadRegionalChart();
+        
+        // Initialize DataTable dengan responsive
+        $('#regionTable').DataTable({
+            responsive: true,
+            paging: false,
+            searching: false,
+            info: false,
+            ordering: false
+        });
+        
         // Function untuk load Regional Chart
         function loadRegionalChart() {
             $.ajax({

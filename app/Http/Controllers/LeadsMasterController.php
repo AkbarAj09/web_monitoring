@@ -154,19 +154,17 @@ class LeadsMasterController extends Controller
             $query->where('user_id', auth()->id());
         }
 
-        /* ===== FILTER (SAMA DENGAN DATATABLE) ===== */
-        // if ($request->canvasser) {
-        //     $query->where('user_id', $request->canvasser);
-        // }
-
-        if ($request->company) {
-            $query->where('company_name', 'like', '%' . $request->company . '%');
+        // Filter Canvasser
+        if ($request->canvasser) {
+            $query->where('user_id', $request->canvasser);
         }
 
-        if ($request->email) {
-            $query->where('email', 'like', '%' . $request->email . '%');
+        // Filter Regional
+        if ($request->regional) {
+            $query->where('regional', $request->regional);
         }
 
+        // Filter Tanggal
         if ($request->start_date && $request->end_date) {
             $query->whereBetween('created_at', [
                 $request->start_date . ' 00:00:00',
