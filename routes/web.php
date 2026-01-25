@@ -55,7 +55,9 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH'])->group(function () {
     Route::get('/admin/home', [HomeController::class, 'index'])->name('admin.home');
     Route::get('/daily-topup-channel', [FrontController::class, 'dailyTopupChannel'])->name('daily.topup.channel');
     Route::get('/get-daily-topup-data', [LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
+    Route::get('/get-daily-topup-by-province-data', [LeadProgramController::class, 'getDailyTopupByProvinceDataTable'])->name('daily_topup_by_province_data');
     Route::get('/export-daily-topup', [BackController::class, 'exportDailyTopup'])->name('export.daily_topup');
+    Route::get('/export-daily-topup-by-province', [LeadProgramController::class, 'exportDailyTopupByProvince'])->name('export.daily_topup_by_province');
     Route::get('/export-regional', [BackController::class, 'exportRegional'])->name('export.regional');
     Route::get('/get-leads-data-api', [LeadProgramController::class, 'getLeadsDataApi'])->name('leads_data_api');
     Route::get('/get-regional-data', [LeadProgramController::class, 'getRegionalDataTable'])->name('regional_data');

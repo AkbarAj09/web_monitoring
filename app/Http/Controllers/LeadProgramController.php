@@ -1054,4 +1054,122 @@ class LeadProgramController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getDailyTopupByProvinceDataTable(Request $request)
+    {
+        try {
+            $monthFilter = $request->get('month');
+            $search = $request->input('search.value');
+
+            // Tentukan range tanggal berdasarkan filter bulan
+            if ($monthFilter) {
+                $startDate = Carbon::createFromFormat('Y-m-d', $monthFilter)->startOfMonth()->format('Y-m-d');
+                $endDate = Carbon::createFromFormat('Y-m-d', $monthFilter)->endOfMonth()->format('Y-m-d');
+            } else {
+                $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+                $endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+            }
+
+            // Base query untuk DataTables
+            $baseQuery = DB::table('report_balance_top_up as rp')
+                ->select(
+                    'rp.data_province_name',
+                    'rp.user_id',
+                    'rp.email_client',
+                    DB::raw('SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as total_settlement_klien'),
+                    DB::raw('COUNT(*) as transaction_count'),
+                    DB::raw('MAX(rp.tgl_transaksi) as tgl_transaksi')
+                )
+                ->whereDate('rp.tgl_transaksi', '>=', $startDate)
+                ->whereDate('rp.tgl_transaksi', '<=', $endDate)
+                ->whereNotNull('rp.email_client')
+                ->whereNotNull('rp.total_settlement_klien')
+                ->groupBy('rp.data_province_name', 'rp.user_id', 'rp.email_client')
+                ->orderBy('total_settlement_klien', 'desc');
+
+            // Apply search filter
+            if ($search) {
+                $baseQuery->where(function ($q) use ($search) {
+                    $q->where('rp.data_province_name', 'like', "%$search%")
+                      ->orWhere('rp.email_client', 'like', "%$search%")
+                      ->orWhere('rp.user_id', 'like', "%$search%");
+                });
+            }
+
+            // Hitung TOTAL keseluruhan data (SEBELUM pagination)
+            $allData = (clone $baseQuery)->get();
+            $uniqueProvinces = $allData->unique('data_province_name')->count();
+            $uniqueUserIds = $allData->unique('user_id')->count();
+            $uniqueEmails = $allData->unique('email_client')->count();
+            $totalSettlement = $allData->sum('total_settlement_klien');
+
+            $totals = [
+                'total_provinces' => $uniqueProvinces,
+                'total_user_ids' => $uniqueUserIds,
+                'total_emails' => $uniqueEmails,
+                'total_settlement' => $totalSettlement,
+                'total_settlement_format' => 'Rp ' . number_format($totalSettlement, 0, ',', '.')
+            ];
+
+            return datatables()->of($baseQuery)
+                ->addColumn('tanggal_format', function ($row) {
+                    // Tampilkan bulan saja karena ini sudah di-aggregate per bulan
+                    return \Carbon\Carbon::parse($row->tgl_transaksi)->translatedFormat('F Y');
+                })
+                ->addColumn('total_settlement_format', function ($row) {
+                    return 'Rp ' . number_format($row->total_settlement_klien, 0, ',', '.');
+                })
+                ->rawColumns(['total_settlement_format'])
+                ->with('totals', $totals)
+                ->make(true);
+        } catch (\Exception $e) {
+            \Log::error("Error in getDailyTopupByProvinceDataTable: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function exportDailyTopupByProvince(Request $request)
+    {
+        try {
+            $monthFilter = $request->get('month');
+
+            // Tentukan range tanggal berdasarkan filter bulan
+            if ($monthFilter) {
+                $startDate = Carbon::createFromFormat('Y-m-d', $monthFilter)->startOfMonth()->format('Y-m-d');
+                $endDate = Carbon::createFromFormat('Y-m-d', $monthFilter)->endOfMonth()->format('Y-m-d');
+                $displayMonth = Carbon::createFromFormat('Y-m-d', $monthFilter)->translatedFormat('F Y');
+            } else {
+                $startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+                $endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+                $displayMonth = Carbon::now()->translatedFormat('F Y');
+            }
+
+            // Query dari report_balance_top_up dengan GROUP BY
+            $data = DB::table('report_balance_top_up as rp')
+                ->select(
+                    'rp.data_province_name',
+                    'rp.user_id',
+                    'rp.email_client',
+                    DB::raw('SUM(CAST(rp.total_settlement_klien AS DECIMAL(15,2))) as total_settlement_klien'),
+                    DB::raw('COUNT(*) as transaction_count')
+                )
+                ->whereDate('rp.tgl_transaksi', '>=', $startDate)
+                ->whereDate('rp.tgl_transaksi', '<=', $endDate)
+                ->whereNotNull('rp.email_client')
+                ->whereNotNull('rp.total_settlement_klien')
+                ->groupBy('rp.data_province_name', 'rp.user_id', 'rp.email_client')
+                ->orderBy('total_settlement_klien', 'desc')
+                ->get();
+
+            // Gunakan Laravel Excel atau generate manual
+            $fileName = 'Daily_TopUp_Per_Province_' . $displayMonth . '_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
+            
+            return \Excel::download(new \App\Exports\DailyTopupProvinceExport($data, $displayMonth), $fileName);
+        } catch (\Exception $e) {
+            \Log::error("Error in exportDailyTopupByProvince: " . $e->getMessage());
+            return back()->with('error', 'Gagal mengexport data: ' . $e->getMessage());
+        }
+    }
 }
+

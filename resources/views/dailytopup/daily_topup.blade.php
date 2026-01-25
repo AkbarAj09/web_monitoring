@@ -386,30 +386,45 @@
 </div>
 @endif
 
-<!-- Filter Section -->
+<!-- Filter Section with Quick Navigation -->
 <div class="row mb-3">
-    <div class="col-12 d-flex justify-content-end align-items-center gap-2">
-        <select id="filterMonthPH" name="filterMonthPH" class="form-control" style="background-color: #313131; color: white; min-width: 180px; max-width: 200px;">
-            @foreach ($months as $month)
-            <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
-                {{ $month['label'] }}
-            </option>
-            @endforeach
-        </select>
-        <button type="button" id="btnSaveDailyTopupImage" class="btn btn-success" title="Save as Image" style="padding: 6px 12px; white-space: nowrap;">
-            <i class="fas fa-image mr-2"></i> Save Image
-        </button>
-        <a href="{{ route('export.daily_topup') }}" class="btn btn-success" title="Download Excel" style="padding: 6px 12px; white-space: nowrap;">
-            <i class="fas fa-file-excel mr-2"></i> Download Excel
-        </a>
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <!-- Quick Navigation Buttons (Left) -->
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('dailyTopupByProvinceTableCard').scrollIntoView({behavior: 'smooth'});">
+                <i class="fas fa-arrow-down mr-2"></i> Per Province
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.href='{{ route('home') }}';">
+                <i class="fas fa-home mr-2"></i> Dashboard
+            </button>
+        </div>
+
+        <!-- Filter and Action Buttons (Right) -->
+        <div class="d-flex align-items-center gap-2">
+            <select id="filterMonthPH" name="filterMonthPH" class="form-control" style="background-color: #313131; color: white; min-width: 180px; max-width: 200px;">
+                @foreach ($months as $month)
+                <option value="{{ $month['value'] }}" {{ $month['selected'] ? 'selected' : '' }}>
+                    {{ $month['label'] }}
+                </option>
+                @endforeach
+            </select>
+        </div>
     </div>
 </div>
 <!-- Daily Topup Table -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card" id="dailyTopupTableCard">
-            <div class="card-header bg-gradient-danger text-white">
+            <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center" style="padding: 1rem; border-radius: 0.35rem 0.35rem 0 0;">
                 <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Daily Topup / Channel</h4>
+                <div class="d-flex gap-2">
+                    <button type="button" id="btnSaveDailyTopupImage" class="btn btn-light btn-sm" title="Save as Image" style="padding: 6px 12px; white-space: nowrap;">
+                        <i class="fas fa-image mr-2"></i> Save Image
+                    </button>
+                    <a href="{{ route('export.daily_topup') }}" class="btn btn-light btn-sm" title="Download Excel" style="padding: 6px 12px; white-space: nowrap;">
+                        <i class="fas fa-file-excel mr-2"></i> Download Excel
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <div id="captureDailyTopupTable" class="table-responsive">
@@ -448,6 +463,70 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Daily Topup Per Province Table -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" id="dailyTopupByProvinceTableCard">
+            <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center" style="padding: 1rem; border-radius: 0.35rem 0.35rem 0 0;">
+                <h4 class="mb-0" style="font-weight: 700; letter-spacing: 0.5px;">
+                    <i class="fas fa-map-marker-alt"></i> Daily TopUp Channel Per Province
+                </h4>
+                <div class="d-flex gap-2">
+                    <button type="button" id="btnSaveProvinceImage" class="btn btn-light btn-sm" title="Save as Image" style="padding: 6px 12px; white-space: nowrap;">
+                        <i class="fas fa-image mr-2"></i> Save Image
+                    </button>
+                    <button type="button" id="btnExportProvinceExcel" class="btn btn-light btn-sm" title="Download Excel" style="padding: 6px 12px; white-space: nowrap;">
+                        <i class="fas fa-file-excel mr-2"></i> Download Excel
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" id="captureProvinceTable">
+                    <table class="table table-sm w-100 table-bordered table-hover" id="dailyTopupByProvinceTable" style="font-size: 12px;">
+                        <thead class="thead-light">
+                            <tr>
+                                <th colspan="5" class="text-center" style="background-color: #d1ecf1; font-weight: 700; padding: 12px;">
+                                    Report Daily TopUp Per Province | Bulan: <span id="displayedMonthByProvince">January 2026</span>
+                                </th>
+                            </tr>
+                            <tr>
+                                <th style="text-align: center; background-color: #ff2626; font-weight: 700; color: white;">Province</th>
+                                <th style="text-align: center; background-color: #ff2626; font-weight: 700; color: white;">User ID</th>
+                                <th style="text-align: center; background-color: #ff2626; font-weight: 700; color: white;">Email</th>
+                                <th style="text-align: center; background-color: #ff2626; font-weight: 700; color: white;">Bulan</th>
+                                <th style="text-align: center; background-color: #ff2626; font-weight: 700; color: white;">Total Settlement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background-color: #ff2626; font-weight: 700; color: white;">
+                                <td id="footerProvince" style="text-align: center; border: 1px solid #cc0000; padding: 12px; color: white; font-size: 13px;"><strong>Total Province</strong><br><span id="totalProvinceValue" style="font-size: 16px;">0</span></td>
+                                <td id="footerUserId" style="text-align: center; border: 1px solid #cc0000; padding: 12px; color: white; font-size: 13px;"><strong>Total User ID</strong><br><span id="totalUserIdValue" style="font-size: 16px;">0</span></td>
+                                <td id="footerEmail" style="text-align: center; border: 1px solid #cc0000; padding: 12px; color: white; font-size: 13px;"><strong>Total Email</strong><br><span id="totalEmailValue" style="font-size: 16px;">0</span></td>
+                                <td id="footerBulan" style="text-align: center; border: 1px solid #cc0000; padding: 12px; font-size: 14px; color: white;"><strong>TOTAL</strong></td>
+                                <td id="footerSettlement" style="text-align: right; border: 1px solid #cc0000; padding: 12px; font-weight: 700; color: white; font-size: 16px;">Rp 0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('dailyTopupTableCard').scrollIntoView({behavior: 'smooth'});">
+            <i class="fas fa-arrow-up mr-2"></i> Back to Daily TopUp
+        </button>
+        <button type="button" class="btn btn-outline-primary" onclick="window.location.href='{{ route('home') }}';">
+            <i class="fas fa-home mr-2"></i> Dashboard
+        </button>
     </div>
 </div>
 
@@ -609,9 +688,11 @@
             // Update label bulan yang ditampilkan dengan text dari selected option
             var selectedText = $('#filterMonthPH option:selected').text();
             $('#displayedMonthPH').text(selectedText);
+            $('#displayedMonthByProvince').text(selectedText);
             
             // Reload data table
             table.ajax.reload();
+            tableByProvince.ajax.reload();
         });
 
         $('#dailyTopupTable').on('error.dt', function(e, settings, techNote, message) {
@@ -635,6 +716,111 @@
                     console.error('Error capturing table:', err);
                     alert('Gagal menyimpan gambar. Silakan coba lagi.');
                 });
+        });
+
+        // DataTable untuk Daily Topup Per Province
+        var tableByProvince = $('#dailyTopupByProvinceTable').DataTable({
+            processing: true,
+            serverSide: true,
+            searching: true,
+            pageLength: 25,
+            lengthChange: true,
+            ajax: {
+                url: "{{ route('daily_topup_by_province_data') }}",
+                type: "GET",
+                data: function(d) {
+                    d.month = $('#filterMonthPH').val();
+                    return d;
+                },
+                dataSrc: function(json) {
+                    console.log("Response dari server (by province):", json);
+                    // Consume totals dari backend
+                    if (json.totals) {
+                        $('#totalProvinceValue').text(json.totals.total_provinces);
+                        $('#totalUserIdValue').text(json.totals.total_user_ids);
+                        $('#totalEmailValue').text(json.totals.total_emails);
+                        $('#footerSettlement').text(json.totals.total_settlement_format);
+                    }
+                    return json.data || [];
+                }
+            },
+            preDrawCallback: function() {
+                $('#loading-overlay').show();
+            },
+            drawCallback: function(settings) {
+                $('#loading-overlay').hide();
+            },
+            columns: [
+                {
+                    data: 'data_province_name',
+                    searchable: true,
+                    render: function(data, type, row) {
+                        return `<div style="text-align: center;">${data || '-'}</div>`;
+                    }
+                },
+                {
+                    data: 'user_id',
+                    searchable: true,
+                    render: function(data, type, row) {
+                        return `<div style="text-align: center;">${data || '-'}</div>`;
+                    }
+                },
+                {
+                    data: 'email_client',
+                    searchable: true,
+                    render: function(data, type, row) {
+                        return `<div style="text-align: left; word-break: break-word;">${data || '-'}</div>`;
+                    }
+                },
+                {
+                    data: 'tanggal_format',
+                    searchable: false,
+                    render: function(data, type, row) {
+                        return `<div style="text-align: center;">${data || '-'}</div>`;
+                    }
+                },
+                {
+                    data: 'total_settlement_format',
+                    searchable: false,
+                    render: function(data, type, row) {
+                        return `<div style="text-align: right; font-weight: 500;">${data || '-'}</div>`;
+                    }
+                }
+            ]
+        });
+
+        // Event listener untuk filter bulan - reload datatable per province juga
+        $('#filterMonthPH').on('change', function() {
+            tableByProvince.ajax.reload();
+        });
+
+        $('#dailyTopupByProvinceTable').on('error.dt', function(e, settings, techNote, message) {
+            console.log("DataTables Error (Province):", message);
+        });
+
+        // Handle Save Province Image Button
+        document.getElementById('btnSaveProvinceImage').addEventListener('click', function() {
+            html2canvas(document.getElementById('captureProvinceTable'), {
+                    scale: 2,
+                    allowTaint: true,
+                    useCORS: true
+                })
+                .then(canvas => {
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = 'daily_topup_per_province_' + new Date().getTime() + '.png';
+                    link.click();
+                })
+                .catch(err => {
+                    console.error('Error capturing table:', err);
+                    alert('Gagal menyimpan gambar. Silakan coba lagi.');
+                });
+        });
+
+        // Handle Export Province Excel Button
+        document.getElementById('btnExportProvinceExcel').addEventListener('click', function() {
+            let monthValue = $('#filterMonthPH').val();
+            window.location = "{{ route('export.daily_topup_by_province') }}?month=" + monthValue;
         });
 
     });

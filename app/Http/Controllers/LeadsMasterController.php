@@ -102,13 +102,20 @@ class LeadsMasterController extends Controller
                 return $row->mobile_phone ?? '-';
             })
             ->addColumn('data_type', function ($row) {
-                return $row->data_type ?? '-';
+                $type = $row->data_type ?? '-';
+                if ($type === 'Eksisting Akun') {
+                    return '<span class="badge badge-success">' . $type . '</span>';
+                } else if ($type === 'Leads') {
+                    return '<span class="badge badge-primary">' . $type . '</span>';
+                }
+                return '<span class="badge badge-secondary">' . $type . '</span>';
             })
             ->editColumn('created_at', function ($row) {
-                return date('Y-m-d', strtotime($row->created_at));
+                return \Carbon\Carbon::parse($row->created_at)->translatedFormat('d M Y');
             })
             ->addColumn('total_settlement_klien', function ($row) {
-                return $row->total_settlement_klien ?? '-';
+                $amount = $row->total_settlement_klien ?? 0;
+                return 'Rp ' . number_format($amount, 0, ',', '.');
             })
             ->addColumn('aksi', function ($row) {
                 $btn = '
@@ -133,7 +140,7 @@ class LeadsMasterController extends Controller
 
                 return $btn;
             })
-            ->rawColumns(['aksi', 'status'])
+            ->rawColumns(['aksi', 'status', 'data_type'])
             ->make(true);
     }
 
