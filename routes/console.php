@@ -44,7 +44,7 @@ Schedule::call(function () {
 
 Schedule::call(function () {
     app(LeadsMasterController::class)->refreshDetailLeadsSummary();
-})->everyFiveMinutes()->name('refreshDetailLeadsSummary');
+})->everyTwoMinutes()->name('refreshDetailLeadsSummary');
 
 // Schedule::call(function () {
 //     app(GetDataController::class)->getDataCreatorPartner();

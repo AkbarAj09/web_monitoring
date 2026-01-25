@@ -499,15 +499,17 @@ class LeadsMasterController extends Controller
 
     /**
      * Sinkronisasi regional di leads_master
-     * - Cocokkan email leads_master dengan email_client di report_balance_top_up
-     * - Ambil province name dari report_balance_top_up
-     * - Cocokkan province dengan regional_provinces
-     * - Update regional di leads_master
+     * Kondisi 1: Cocokkan email leads_master dengan email_client di report_balance_top_up
+     *           - Ambil province name dari report_balance_top_up
+     *           - Cocokkan province dengan regional_provinces
+     * Kondisi 2: Jika email tidak ditemukan di report_balance_top_up, cek di data_registarsi_status_approveorreject
+     *           - Ambil provinsi dari data_registarsi_status_approveorreject
+     *           - Cocokkan province dengan regional_provinces
      */
     public function syncLeadsWithRegional()
     {
-        // Gunakan subquery untuk mendapatkan data regional yang paling baru per email
-        $regionalSubquery = DB::table('report_balance_top_up as rbt')
+        // Kondisi 1: Sinkronisasi dari report_balance_top_up
+        $regionalFromTopup = DB::table('report_balance_top_up as rbt')
             ->join('regional_provinces as rp', DB::raw('LOWER(rbt.data_province_name)'), '=', DB::raw('LOWER(rp.province)'))
             ->select(
                 DB::raw('LOWER(rbt.email_client) as email_lower'),
@@ -516,23 +518,45 @@ class LeadsMasterController extends Controller
             ->distinct()
             ->orderBy('rbt.tgl_transaksi', 'desc');
 
-        // Update leads_master dengan regional yang ditemukan
-        $syncedCount = DB::table('leads_master as lm')
-            ->joinSub($regionalSubquery, 'rs', function ($join) {
-                $join->on(DB::raw('LOWER(lm.email)'), '=', 'rs.email_lower');
+        $syncedCountFromTopup = DB::table('leads_master as lm')
+            ->joinSub($regionalFromTopup, 'rt', function ($join) {
+                $join->on(DB::raw('LOWER(lm.email)'), '=', 'rt.email_lower');
             })
             ->whereNull('lm.regional') // Hanya update yang belum punya regional
             ->update([
-                'lm.regional' => DB::raw('rs.regional'),
+                'lm.regional' => DB::raw('rt.regional'),
                 'lm.updated_at' => now(),
             ]);
 
-        \Log::info('Leads Master Regional Sync - Updated: ' . $syncedCount . ' records');
+        // Kondisi 2: Sinkronisasi dari data_registarsi_status_approveorreject untuk email yang belum ketemu di report_balance_top_up
+        $regionalFromRegistrasi = DB::table('data_registarsi_status_approveorreject as dsa')
+            ->join('regional_provinces as rp', DB::raw('LOWER(dsa.provinsi)'), '=', DB::raw('LOWER(rp.province)'))
+            ->select(
+                DB::raw('LOWER(dsa.email) as email_lower'),
+                'rp.regional'
+            )
+            ->distinct();
+
+        $syncedCountFromRegistrasi = DB::table('leads_master as lm')
+            ->joinSub($regionalFromRegistrasi, 'rr', function ($join) {
+                $join->on(DB::raw('LOWER(lm.email)'), '=', 'rr.email_lower');
+            })
+            ->whereNull('lm.regional') // Hanya update yang belum punya regional
+            ->update([
+                'lm.regional' => DB::raw('rr.regional'),
+                'lm.updated_at' => now(),
+            ]);
+
+        $totalSyncedCount = $syncedCountFromTopup + $syncedCountFromRegistrasi;
+
+        \Log::info('Leads Master Regional Sync - From TopUp: ' . $syncedCountFromTopup . ' records, From Registrasi: ' . $syncedCountFromRegistrasi . ' records');
 
         return response()->json([
             'success' => true,
-            'message' => "Sinkronisasi regional selesai. Data diupdate: {$syncedCount}",
-            'synced_count' => $syncedCount,
+            'message' => "Sinkronisasi regional selesai. Dari TopUp: {$syncedCountFromTopup}, Dari Registrasi: {$syncedCountFromRegistrasi}",
+            'synced_count_from_topup' => $syncedCountFromTopup,
+            'synced_count_from_registrasi' => $syncedCountFromRegistrasi,
+            'total_synced_count' => $totalSyncedCount,
         ]);
     }
 
