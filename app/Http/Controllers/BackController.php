@@ -1153,8 +1153,8 @@ class BackController extends Controller
         $result = [];
         foreach ($voucherData as $data) {
             $totalTopup = (float)$data->total_topup;
-            // Insentif per akun: jika total top-up > 500K, dapat 100K
-            $insentif = $totalTopup > 500000 ? 100000 : 0;
+            // Insentif per akun: jika total top-up >= 500K, dapat 100K
+            $insentif = $totalTopup >= 500000 ? 100000 : 0;
 
             $tglFormatted = $data->paid_date ? 
                 Carbon::parse($data->paid_date)->format('d M Y') : '-';
@@ -1179,6 +1179,210 @@ class BackController extends Controller
                 return $row['insentif'] > 0 ? 'Rp ' . number_format($row['insentif'], 0, ',', '.') : '-';
             })
             ->make(true);
+    }
+
+    /**
+     * Get Canvasser Voucher Summary
+     * Summary per canvasser (grouped by voucher code)
+     * Total client count, total topup, total insentif
+     */
+    public function getCanvasserVoucherSummary(Request $request)
+    {
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Voucher codes untuk Canvasser
+        $canvasserCodes = ['EXTRA1', 'EXTRA2', 'EXTRA3', 'EXTRA4', 'EXTRA5', 'EXTRA6', 'EXTRA7', 'EXTRA8', 'EXTRA9', 'EXTRA10', 'EXTRA11', 'EXTRA12', 'EXTRA13'];
+        
+        // Mapping voucher code ke nama canvasser
+        $canvasserMapping = [
+            'EXTRA1' => 'Amanah',
+            'EXTRA2' => 'Indah',
+            'EXTRA3' => 'Maria',
+            'EXTRA4' => 'Meisya',
+            'EXTRA5' => 'Hardi',
+            'EXTRA6' => 'Bustomi',
+            'EXTRA7' => 'Intan',
+            'EXTRA8' => 'Hika Rochmah',
+            'EXTRA9' => 'Akbar Zikron',
+            'EXTRA10' => 'Riva',
+            'EXTRA11' => 'Fanni',
+            'EXTRA12' => 'Majph',
+            'EXTRA13' => 'Rizky',
+        ];
+
+        // Ambil data dari JOIN report_balance_top_up + data_voucher
+        $voucherData = DB::table('report_balance_top_up as rb')
+            ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
+            ->select(
+                'dv.voucher_code',
+                'rb.email_client',
+                DB::raw('CAST(rb.amount AS DECIMAL(15,2)) as total_topup'),
+                'rb.paid_date'
+            )
+            ->whereIn('dv.voucher_code', $canvasserCodes)
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->orderBy('dv.voucher_code')
+            ->orderBy('rb.email_client')
+            ->get();
+
+        // Group by voucher code and calculate summary
+        $summaryData = [];
+        $grouped = $voucherData->groupBy('voucher_code');
+        
+        foreach ($grouped as $voucherCode => $items) {
+            $totalTopup = 0;
+            $totalInsentif = 0;
+            $emailClients = [];
+            
+            foreach ($items as $item) {
+                $amount = (float)$item->total_topup;
+                $totalTopup += $amount;
+                
+                // Insentif per akun: jika total top-up >= 500K, dapat 100K
+                if ($amount >= 500000) {
+                    $totalInsentif += 100000;
+                }
+                
+                // Collect unique email clients
+                if (!in_array($item->email_client, $emailClients)) {
+                    $emailClients[] = $item->email_client;
+                }
+            }
+            
+            $summaryData[] = [
+                'referral_code' => $voucherCode,
+                'canvasser' => $canvasserMapping[$voucherCode] ?? $voucherCode,
+                'total_client' => count($emailClients),
+                'total_topup' => $totalTopup,
+                'total_insentif' => $totalInsentif,
+            ];
+        }
+
+        return DataTables::of($summaryData)
+            ->addIndexColumn()
+            ->editColumn('total_topup', function ($row) {
+                return 'Rp ' . number_format($row['total_topup'], 0, ',', '.');
+            })
+            ->editColumn('total_insentif', function ($row) {
+                return 'Rp ' . number_format($row['total_insentif'], 0, ',', '.');
+            })
+            ->make(true);
+    }
+
+    /**
+     * Export Canvasser Voucher Summary to Excel
+     */
+    public function exportCanvasserVoucherSummary()
+    {
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Voucher codes untuk Canvasser
+        $canvasserCodes = ['EXTRA1', 'EXTRA2', 'EXTRA3', 'EXTRA4', 'EXTRA5', 'EXTRA6', 'EXTRA7', 'EXTRA8', 'EXTRA9', 'EXTRA10', 'EXTRA11', 'EXTRA12', 'EXTRA13'];
+        
+        // Mapping voucher code ke nama canvasser
+        $canvasserMapping = [
+            'EXTRA1' => 'Amanah',
+            'EXTRA2' => 'Indah',
+            'EXTRA3' => 'Maria',
+            'EXTRA4' => 'Meisya',
+            'EXTRA5' => 'Hardi',
+            'EXTRA6' => 'Bustomi',
+            'EXTRA7' => 'Intan',
+            'EXTRA8' => 'Hika Rochmah',
+            'EXTRA9' => 'Akbar Zikron',
+            'EXTRA10' => 'Riva',
+            'EXTRA11' => 'Fanni',
+            'EXTRA12' => 'Majph',
+            'EXTRA13' => 'Rizky',
+        ];
+
+        // Ambil data dari JOIN report_balance_top_up + data_voucher
+        $voucherData = DB::table('report_balance_top_up as rb')
+            ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
+            ->select(
+                'dv.voucher_code',
+                'rb.email_client',
+                DB::raw('CAST(rb.amount AS DECIMAL(15,2)) as total_topup')
+            )
+            ->whereIn('dv.voucher_code', $canvasserCodes)
+            ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
+            ->orderBy('dv.voucher_code')
+            ->orderBy('rb.email_client')
+            ->get();
+
+        // Group by voucher code and calculate summary
+        $summaryData = [];
+        $grouped = $voucherData->groupBy('voucher_code');
+        
+        foreach ($grouped as $voucherCode => $items) {
+            $totalTopup = 0;
+            $totalInsentif = 0;
+            $emailClients = [];
+            
+            foreach ($items as $item) {
+                $amount = (float)$item->total_topup;
+                $totalTopup += $amount;
+                
+                // Insentif per akun: jika total top-up >= 500K, dapat 100K
+                if ($amount >= 500000) {
+                    $totalInsentif += 100000;
+                }
+                
+                // Collect unique email clients
+                if (!in_array($item->email_client, $emailClients)) {
+                    $emailClients[] = $item->email_client;
+                }
+            }
+            
+            $summaryData[] = [
+                'referral_code' => $voucherCode,
+                'canvasser' => $canvasserMapping[$voucherCode] ?? $voucherCode,
+                'total_client' => count($emailClients),
+                'total_topup' => $totalTopup,
+                'total_insentif' => $totalInsentif,
+            ];
+        }
+
+        // Create Excel file
+        $fileName = 'Canvasser_Summary_' . Carbon::now()->format('Y-m-d_His') . '.xlsx';
+        
+        return response()->streamDownload(function () use ($summaryData) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Set header
+            $headers = ['Referral Code', 'Nama Canvasser', 'Total Client', 'Total Top Up', 'Total Insentif'];
+            $sheet->fromArray($headers, null, 'A1');
+            
+            // Style header
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '36B9CC']],
+                'alignment' => ['horizontal' => 'center', 'vertical' => 'center']
+            ];
+            $sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
+            
+            // Add data
+            $row = 2;
+            foreach ($summaryData as $item) {
+                $sheet->setCellValue('A' . $row, $item['referral_code']);
+                $sheet->setCellValue('B' . $row, $item['canvasser']);
+                $sheet->setCellValue('C' . $row, $item['total_client']);
+                $sheet->setCellValue('D' . $row, $item['total_topup']);
+                $sheet->setCellValue('E' . $row, $item['total_insentif']);
+                $row++;
+            }
+            
+            // Set column widths
+            $sheet->getColumnDimension('A')->setWidth(20);
+            $sheet->getColumnDimension('B')->setWidth(25);
+            $sheet->getColumnDimension('C')->setWidth(15);
+            $sheet->getColumnDimension('D')->setWidth(20);
+            $sheet->getColumnDimension('E')->setWidth(20);
+            
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName);
     }
 
     /**

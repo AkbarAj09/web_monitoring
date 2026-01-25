@@ -110,7 +110,9 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH'])->group(function () {
     // Referral Champion Canvasser
     Route::get('/referral-champion-canvasser', [FrontController::class, 'monitoringCanvasserVoucher'])->name('admin.monitoring.canvasser_voucher');
     Route::get('/get-canvasser-voucher-data', [BackController::class, 'getCanvasserVoucher'])->name('canvasser_voucher_data');
+    Route::get('/get-canvasser-voucher-summary', [BackController::class, 'getCanvasserVoucherSummary'])->name('canvasser_voucher_summary');
     Route::get('/export-canvasser-voucher', [BackController::class, 'exportCanvasserVoucher'])->name('export.canvasser_voucher');
+    Route::get('/export-canvasser-voucher-summary', [BackController::class, 'exportCanvasserVoucherSummary'])->name('export.canvasser_voucher_summary');
 
     // PowerHouse Referral
     Route::get('/powerhouse-referral', [FrontController::class, 'monitoringPowerHouseReferral'])->name('admin.monitoring.powerhouse_referral');

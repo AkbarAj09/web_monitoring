@@ -6,6 +6,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 <!-- DataTables CSS -->
 <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+<link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet"/>
 
 <style>
     #loading-overlay {
@@ -467,13 +468,52 @@
 </div>
 @endif
 
+<!-- Summary Report Referral Champion Canvasser -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" id="canvaserSummaryCard">
+            <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-chart-pie"></i> Summary Report Referral Champion Canvasser</h4>
+                <div class="btn-actions" style="margin-right: -300px;">
+                    <button type="button" id="btnSaveCanvasserSummaryImage" class="btn btn-success-custom btn-sm" title="Save as Image">
+                        <i class="fas fa-image"></i> Save Image
+                    </button>
+                    <a href="{{ route('export.canvasser_voucher_summary') }}" class="btn btn-success-custom btn-sm" title="Download Excel">
+                        <i class="fas fa-file-excel"></i> Download Excel
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="captureCanvasserSummaryTable" class="table-responsive">
+                    <table class="table table-sm w-100 table-bordered table-hover" id="canvasserSummaryTable" style="font-size: 13px;">
+                        <thead class="table-light">
+                            <tr style="background-color: #e3f2fd; font-weight: bold;">
+                                <th colspan="6" style="text-align: center; padding: 10px; border-bottom: 2px solid #36b9cc;">Summary Referral Champion Canvasser</th>
+                            </tr>
+                            <tr>
+                                <th style="text-align: center; width: 5%;">No</th>
+                                <th style="text-align: center;">Referral Code</th>
+                                <th style="text-align: center;">Nama Canvasser</th>
+                                <th style="text-align: center;">Total Client</th>
+                                <th style="text-align: center;">Total Top Up</th>
+                                <th style="text-align: center;">Total Insentif</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Report Referral Champion Canvasser -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card" id="canvaserTableCard">
             <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0"><i class="fas fa-table"></i> Report Referral Champion Canvasser</h4>
+                <h4 class="mb-0"><i class="fas fa-table"></i> Detail Report Referral Champion Canvasser</h4>
                 <div class="btn-actions" style="margin-right: -500px;">
                     <button type="button" id="btnSaveCanvasserImage" class="btn btn-success-custom btn-sm" title="Save as Image">
                         <i class="fas fa-image"></i> Save Image
@@ -509,33 +549,22 @@
     </div>
 </div>
 
-<!-- Last Updated Info -->
-<div class="row">
-    <div class="col-12">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <small class="text-muted">
-                    <i class="fas fa-clock"></i> Last updated: {{ now()->format('d F Y, H:i:s') }} WIB
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @section('js')
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Initialize DataTables
+        // Initialize DataTables for Detail
         var table = $('#regionalTable').DataTable({
             processing: true,
             serverSide: true,
+            responsive: true,
             ajax: {
                 url: "{{ route('canvasser_voucher_data') }}",
                 type: 'GET'
@@ -562,6 +591,28 @@
             }
         });
 
+        // Initialize DataTables for Summary
+        var summaryTable = $('#canvasserSummaryTable').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: true,
+            searching: false,
+            paging: false,
+            ajax: {
+                url: "{{ route('canvasser_voucher_summary') }}",
+                type: 'GET'
+            },
+            columns: [
+                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'referral_code', name: 'referral_code', className: 'text-center' },
+                { data: 'canvasser', name: 'canvasser', className: 'text-center' },
+                { data: 'total_client', name: 'total_client', className: 'text-center' },
+                { data: 'total_topup', name: 'total_topup', className: 'text-center' },
+                { data: 'total_insentif', name: 'total_insentif', className: 'text-center' }
+            ],
+            order: [[1, 'asc']]
+        });
+
         // Handle Save Image Button
         document.getElementById('btnSaveCanvasserImage').addEventListener('click', function () {
             html2canvas(document.getElementById('captureCanvasserTable'), { 
@@ -572,6 +623,25 @@
                 .then(canvas => {
                     const link = document.createElement('a');
                     link.download = 'canvasser-report-' + new Date().getTime() + '.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                })
+                .catch(err => {
+                    console.error('Error capturing image:', err);
+                    alert('Gagal menyimpan gambar. Silakan coba lagi.');
+                });
+        });
+
+        // Handle Save Image Button for Summary
+        document.getElementById('btnSaveCanvasserSummaryImage').addEventListener('click', function () {
+            html2canvas(document.getElementById('captureCanvasserSummaryTable'), { 
+                scale: 2,
+                allowTaint: true,
+                useCORS: true
+            })
+                .then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'canvasser-summary-' + new Date().getTime() + '.png';
                     link.href = canvas.toDataURL();
                     link.click();
                 })

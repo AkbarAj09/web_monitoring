@@ -357,13 +357,41 @@ public function topupCanvasserData(Request $request)
 
 
 
-    public function reportMitraSBP()
+    public function reportMitraSBP(Request $request)
     {
+        logUserLogin();
+        
+        /* ================= FILTER BULAN ================= */
+        $month = $request->get('month', now()->format('Y-m'));
+        [$year, $monthNum] = explode('-', $month);
+        $monthStart = Carbon::create($year, $monthNum, 1)->startOfMonth();
+        $monthEnd = Carbon::create($year, $monthNum, 1)->endOfMonth();
+        
+        /* ================= GENERATE MONTHS DROPDOWN ================= */
+        $months = [];
+        for ($i = 0; $i < 12; $i++) {
+            $date = now()->subMonths($i);
+            $value = $date->format('Y-m');
+            $label = $date->translatedFormat('F Y');
+            $months[] = ['value' => $value, 'label' => $label, 'selected' => $value === $month];
+        }
+        
+        /* ================= GET CVSR EMAILS TO EXCLUDE ================= */
+        // Get all CVSR emails to exclude from Mitra SBP, Agency, Internal counts
+        // REASON: CVSR takes PRIORITY over remark classification (align with Daily TopUp logic)
+        $cvsrEmails = DB::table('leads_master as lm')
+            ->join('users as u', 'u.id', '=', 'lm.user_id')
+            ->where('u.role', 'cvsr')
+            ->where('u.name', '!=', 'self service')
+            ->select(DB::raw('LOWER(TRIM(lm.email)) as email'))
+            ->get()
+            ->pluck('email')
+            ->toArray();
+
         $data_mitra_sbp = DB::table('region_target as rt')
             ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
             ->leftJoin('report_balance_top_up as rbt', function ($join) {
-                $join->on('rbt.email_client', '=', 'ms.email_myads')
-                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+                $join->on('rbt.email_client', '=', 'ms.email_myads');
             })
             ->select(
                 'ms.area',
@@ -373,6 +401,9 @@ public function topupCanvasserData(Request $request)
             )
             ->where('rt.data_type', 'Mitra SBP')
             ->where('ms.remark', 'Mitra SBP')
+            ->whereBetween('rbt.tgl_transaksi', [$monthStart, $monthEnd])
+            // Exclude emails yang ada di leads_master sebagai CVSR
+            ->whereNotIn(DB::raw('LOWER(TRIM(ms.email_myads))'), $cvsrEmails)
             ->groupBy(
                 'ms.area',
                 'rt.region_name',
@@ -387,8 +418,7 @@ public function topupCanvasserData(Request $request)
         $data_agency = DB::table('region_target as rt')
             ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
             ->leftJoin('report_balance_top_up as rbt', function ($join) {
-                $join->on('rbt.email_client', '=', 'ms.email_myads')
-                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+                $join->on('rbt.email_client', '=', 'ms.email_myads');
             })
             ->select(
                 'ms.area',
@@ -398,6 +428,9 @@ public function topupCanvasserData(Request $request)
             )
             ->where('rt.data_type', 'Agency')
             ->where('ms.remark', 'Agency')
+            ->whereBetween('rbt.tgl_transaksi', [$monthStart, $monthEnd])
+            // Exclude emails yang ada di leads_master sebagai CVSR
+            ->whereNotIn(DB::raw('LOWER(TRIM(ms.email_myads))'), $cvsrEmails)
             ->groupBy(
                 'ms.area',
                 'rt.region_name',
@@ -413,8 +446,7 @@ public function topupCanvasserData(Request $request)
         $data_internal = DB::table('region_target as rt')
             ->leftJoin('mitra_sbp as ms', 'ms.regional', '=', 'rt.region_name')
             ->leftJoin('report_balance_top_up as rbt', function ($join) {
-                $join->on('rbt.email_client', '=', 'ms.email_myads')
-                    ->where('rbt.tgl_transaksi', '>=', Carbon::now()->startOfMonth());
+                $join->on('rbt.email_client', '=', 'ms.email_myads');
             })
             ->select(
                 'ms.area',
@@ -424,6 +456,9 @@ public function topupCanvasserData(Request $request)
             )
             ->where('rt.data_type', 'Internal')
             ->where('ms.remark', 'Internal')
+            ->whereBetween('rbt.tgl_transaksi', [$monthStart, $monthEnd])
+            // Exclude emails yang ada di leads_master sebagai CVSR
+            ->whereNotIn(DB::raw('LOWER(TRIM(ms.email_myads))'), $cvsrEmails)
             ->groupBy(
                 'ms.area',
                 'rt.region_name',
@@ -434,7 +469,8 @@ public function topupCanvasserData(Request $request)
             ->get();
 
         $grouped_internal = $data_internal->groupBy('area');
-        return view('mitra-sbp.report-performance', compact('grouped_mitra_sbp', 'data_mitra_sbp','grouped_agency', 'data_agency','grouped_internal', 'data_internal'));
+        
+        return view('mitra-sbp.report-performance', compact('grouped_mitra_sbp', 'data_mitra_sbp', 'grouped_agency', 'data_agency', 'grouped_internal', 'data_internal', 'months', 'month'));
     }
 
     
