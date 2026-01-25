@@ -115,28 +115,7 @@
                         <i class="nav-icon fa-solid fa-user-tie" style="color:rgb(143, 142, 142);"></i>
                         <p>New/Eksisting Akun</p>
                     </a>
-                </li>             
-                <li class="nav-item">
-                    <a href="{{ route('logbook.index') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('logbook.index') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
-                        <p>Logbook</p>
-                    </a>
-                </li>                    
-                <li class="nav-item">
-                    <a href="{{ route('logbook-daily.index') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('logbook-daily.index') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-book" style="color:rgb(250, 125, 90);"></i>
-                        <p>Logbook Daily</p>
-                    </a>
                 </li>         
-                {{-- <li class="nav-item">
-                    <a href="{{ route('topup-canvasser') }}"
-                        class="nav-link waves-effect {{ request()->routeIs('topup-canvasser') ? 'active' : '' }}">
-                        <i class="nav-icon fa-solid fa-money-bill" style="color:rgb(80, 255, 80);"></i>
-                        <p>Topup & Client Canvasser</p>
-                    </a>
-                </li>           --}}
                 @if(!$isCanv)
                 <li class="nav-item">
                     <a href="{{ route('calendar') }}"
@@ -146,6 +125,46 @@
                     </a>
                 </li>  
                 @endif
+                @php
+                    $logbookActive = request()->routeIs('logbook.*') || request()->routeIs('logbook-daily.*');
+                @endphp
+
+                <li class="nav-item {{ $logbookActive ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ $logbookActive ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-book" style="color:#eafc4f;"></i>
+                        <p>
+                            Logbook
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('logbook.index') }}"
+                            class="nav-link {{ request()->routeIs('logbook.index') ? 'active' : '' }}">
+                                <i class="nav-icon fa-solid fa-book" style="color:rgb(90,90,250);"></i>
+                                <p>Logbook Monthly</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="{{ route('logbook-daily.index') }}"
+                            class="nav-link {{ request()->routeIs('logbook-daily.index') ? 'active' : '' }}">
+                                <i class="nav-icon fa-solid fa-book" style="color:rgb(250, 125, 90);"></i>
+                                <p>Logbook Daily</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                {{-- <li class="nav-item">
+                    <a href="{{ route('topup-canvasser') }}"
+                        class="nav-link waves-effect {{ request()->routeIs('topup-canvasser') ? 'active' : '' }}">
+                        <i class="nav-icon fa-solid fa-money-bill" style="color:rgb(80, 255, 80);"></i>
+                        <p>Topup & Client Canvasser</p>
+                    </a>
+                </li>           --}}
+                
 
                 @if($isAdmin)
                     <li class="nav-item {{ request()->routeIs('mitra-sbp') ? 'menu-open' : '' }}">

@@ -128,7 +128,7 @@
 
         <div class="filter-group">
             <label for="start_date">Tanggal Mulai</label>
-            <input type="date" id="start_date" class="form-control" value="{{ now()->startOfMonth()->toDateString() }}">
+            <input type="date" id="start_date" class="form-control" value="{{ now()->toDateString() }}">
             <small>Pilih tanggal awal periode</small>
         </div>
 
