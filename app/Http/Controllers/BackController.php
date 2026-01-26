@@ -1233,6 +1233,7 @@ class BackController extends Controller
             $totalTopup = 0;
             $totalInsentif = 0;
             $emailClients = [];
+            $totalClient = 0;
             
             foreach ($items as $item) {
                 $amount = (float)$item->total_topup;
@@ -1244,15 +1245,16 @@ class BackController extends Controller
                 }
                 
                 // Collect unique email clients
-                if (!in_array($item->email_client, $emailClients)) {
-                    $emailClients[] = $item->email_client;
-                }
+                // if (!in_array($item->email_client, $emailClients)) {
+                //     $emailClients[] = $item->email_client;
+                // }
+                 $totalClient++;
             }
             
             $summaryData[] = [
                 'referral_code' => $voucherCode,
                 'canvasser' => $canvasserMapping[$voucherCode] ?? $voucherCode,
-                'total_client' => count($emailClients),
+                'total_client' => $totalClient,
                 'total_topup' => $totalTopup,
                 'total_insentif' => $totalInsentif,
             ];
