@@ -1229,28 +1229,24 @@ class BackController extends Controller
         $summaryData = [];
         $grouped = $voucherData->groupBy('voucher_code');
         
-        foreach ($grouped as $voucherCode => $items) {
+        foreach ($canvasserCodes as $voucherCode) {
+
+            $items = $grouped[$voucherCode] ?? collect();
+
             $totalTopup = 0;
             $totalInsentif = 0;
-            $emailClients = [];
             $totalClient = 0;
-            
+
             foreach ($items as $item) {
-                $amount = (float)$item->total_topup;
+                $amount = (float) $item->total_topup;
                 $totalTopup += $amount;
-                
-                // Insentif per akun: jika total top-up >= 500K, dapat 100K
+                $totalClient++;
+
                 if ($amount >= 500000) {
                     $totalInsentif += 100000;
                 }
-                
-                // Collect unique email clients
-                // if (!in_array($item->email_client, $emailClients)) {
-                //     $emailClients[] = $item->email_client;
-                // }
-                 $totalClient++;
             }
-            
+
             $summaryData[] = [
                 'referral_code' => $voucherCode,
                 'canvasser' => $canvasserMapping[$voucherCode] ?? $voucherCode,
