@@ -166,7 +166,7 @@
                 </li>           --}}
                 
 
-                @if($isAdmin)
+                @if($isAdmin || $isPH)
                     <li class="nav-item {{ request()->routeIs('mitra-sbp') ? 'menu-open' : '' }}">
                             <a href="#" class="nav-link {{ request()->routeIs('mitra-sbp') ? 'active' : '' }}">
                                 <i class="nav-icon fas fa-network-wired" style="color:#28a745;"></i>
