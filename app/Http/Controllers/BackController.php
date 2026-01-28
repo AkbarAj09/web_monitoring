@@ -796,7 +796,7 @@ class BackController extends Controller
                 'rb.payment_method_name',
                 'rb.paid_date'
             )
-            ->whereIn('dv.voucher_code', $powerHouseCodes)
+            ->whereIn(DB::raw('UPPER(dv.voucher_code)'), $powerHouseCodes)
             ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$currentMonth])
             ->orderBy('dv.voucher_code')
             ->get();
