@@ -1017,7 +1017,7 @@ class BackController extends Controller
         $voucherData = DB::table('report_balance_top_up as rb')
             ->join('data_voucher as dv', 'rb.no_invoice', '=', 'dv.id_transaksi')
             ->select(
-                'dv.voucher_code',
+                DB::raw('UPPER(dv.voucher_code) as voucher_code'),
                 DB::raw('COUNT(*) as jumlah_akun'),
                 DB::raw('SUM(CAST(rb.amount AS DECIMAL(15,2))) as total_topup'),
                 DB::raw('MAX(rb.tgl_transaksi) as tgl_transaksi_terakhir')
