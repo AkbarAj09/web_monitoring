@@ -1022,7 +1022,7 @@ class BackController extends Controller
                 DB::raw('SUM(CAST(rb.amount AS DECIMAL(15,2))) as total_topup'),
                 DB::raw('MAX(rb.tgl_transaksi) as tgl_transaksi_terakhir')
             )
-            ->whereIn('dv.voucher_code', $powerHouseCodes)
+            ->whereIn(DB::raw('UPPER(dv.voucher_code)'), $powerHouseCodes)
             ->whereRaw('DATE_FORMAT(rb.paid_date, "%Y-%m") = ?', [$month])
             ->groupBy('dv.voucher_code')
             ->get()
