@@ -63,7 +63,7 @@ class LogbookDailyController extends Controller
                 'logbook_daily.realisasi_topup'
             ])
             ->distinct()
-            ->orderBy('leads_master.created_at', 'desc')
+            // ->orderBy('leads_master.created_at', 'desc')
             ->orderBy('logbook_daily.realisasi_topup', 'desc');
 
 
@@ -236,7 +236,7 @@ class LogbookDailyController extends Controller
             foreach ($topups as $data) {
                 DB::table('logbook_daily')
                     ->where('leads_master_id', $data->leads_master_id)
-                    ->whereDate('created_at', $today)
+                    // ->whereDate('created_at', $today)
                     ->update([
                         'status'          => 'Topup',
                         'realisasi_topup' => $data->realisasi_topup,
