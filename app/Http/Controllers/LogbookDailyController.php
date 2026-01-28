@@ -201,50 +201,73 @@ class LogbookDailyController extends Controller
         }
         public function refreshLogbookDaily()
         {
+            $today = Carbon::today()->toDateString(); // YYYY-MM-DD
             $month = now()->month;
-            $year  = now()->year; // YYYY-MM-DD
+            $year  = now()->year;
 
-            // Hitung realisasi topup per leads (AUTO prioritas, MANUAL fallback)
-            $topups = DB::table('leads_master')
-                ->leftJoin('report_balance_top_up', function ($join) use ($month, $year) {
-                    $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)')
-                        ->whereMonth('report_balance_top_up.tgl_transaksi', $month)
-                        ->whereYear('report_balance_top_up.tgl_transaksi', $year);
-                })
-                ->leftJoin('manual_upload_topup', function ($join) use ($month, $year) {
+            // --------------------------------
+            // 1️⃣ Hari ini → pakai manual topup saja
+            // --------------------------------
+            $topupsToday = DB::table('leads_master')
+                ->leftJoin('manual_upload_topup', function ($join) use ($month, $year, $today) {
                     $join->whereRaw('LOWER(manual_upload_topup.email) = LOWER(leads_master.email)')
                         ->whereMonth('manual_upload_topup.tanggal', $month)
-                        ->whereYear('manual_upload_topup.tanggal', $year);
+                        ->whereYear('manual_upload_topup.tanggal', $year)
+                        ->whereDate('manual_upload_topup.tanggal', $today); // Hanya hari ini
                 })
                 ->select(
                     'leads_master.id as leads_master_id',
-
-                    DB::raw('
-                        CASE
-                            WHEN COALESCE(SUM(report_balance_top_up.total_settlement_klien), 0) > 0
-                            THEN SUM(report_balance_top_up.total_settlement_klien)
-                            ELSE COALESCE(SUM(manual_upload_topup.total), 0)
-                        END AS realisasi_topup
-                    ')
+                    DB::raw('COALESCE(SUM(manual_upload_topup.total), 0) AS realisasi_topup')
                 )
                 ->groupBy('leads_master.id')
                 ->having('realisasi_topup', '>', 0)
                 ->get();
 
-
-            $today = Carbon::today();
-            foreach ($topups as $data) {
+            // update logbook hari ini
+            foreach ($topupsToday as $data) {
                 DB::table('logbook_daily')
                     ->where('leads_master_id', $data->leads_master_id)
-                    // ->whereDate('created_at', $today)
+                    ->whereDate('created_at', $today)
                     ->update([
                         'status'          => 'Topup',
                         'realisasi_topup' => $data->realisasi_topup,
                         'updated_at'      => now(),
                     ]);
-                    print($data->leads_master_id. '    ');
+                print($data->leads_master_id . '    ');
+            }
+
+            // --------------------------------
+            // 2️⃣ Hari sebelumnya → pakai report_balance_top_up saja
+            // --------------------------------
+            $topupsPast = DB::table('leads_master')
+                ->leftJoin('report_balance_top_up', function ($join) use ($month, $year, $today) {
+                    $join->whereRaw('LOWER(report_balance_top_up.email_client) = LOWER(leads_master.email)')
+                        ->whereMonth('report_balance_top_up.tgl_transaksi', $month)
+                        ->whereYear('report_balance_top_up.tgl_transaksi', $year)
+                        ->whereDate('report_balance_top_up.tgl_transaksi', '<', $today); // hanya sebelum hari ini
+                })
+                ->select(
+                    'leads_master.id as leads_master_id',
+                    DB::raw('COALESCE(SUM(report_balance_top_up.total_settlement_klien), 0) AS realisasi_topup')
+                )
+                ->groupBy('leads_master.id')
+                ->having('realisasi_topup', '>', 0)
+                ->get();
+
+            // update logbook hari sebelumnya
+            foreach ($topupsPast as $data) {
+                DB::table('logbook_daily')
+                    ->where('leads_master_id', $data->leads_master_id)
+                    ->whereDate('created_at', '<', $today)
+                    ->update([
+                        'status'          => 'Topup',
+                        'realisasi_topup' => $data->realisasi_topup,
+                        'updated_at'      => now(),
+                    ]);
+                print($data->leads_master_id . '    ');
             }
         }
+
 
         public function summary(Request $request)
         {
