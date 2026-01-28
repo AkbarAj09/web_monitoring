@@ -1008,7 +1008,7 @@ class BackController extends Controller
             'Raden Agie S. Akbar' => ['Raden Agie Satria Akbar', 'Raden Agie S. Akbar'],
             'Sony Widjaya' => ['Sony Widjaya'],
             'Deni Setiawan' => ['Deni Setiawan'],
-            'Muhammad Arief Syahbana' => ['Muhammad Arief Syahbana'],
+            'Muhammad Arief Syahbana' => ['Muhammad Arief Syahbana', 'Muhammad Arief'],
             'Naqsyabandi' => ['Naqsyabandi'],
             'Ikrar Dharmawan' => ['Ikrar Dharmawan'],
         ];
