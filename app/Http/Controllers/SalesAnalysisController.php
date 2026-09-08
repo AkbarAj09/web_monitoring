@@ -14,6 +14,16 @@ class SalesAnalysisController extends Controller
         return view('admin.sales-analysis', ['channels' => SalesAnalysisService::CHANNELS]);
     }
 
+    public function script()
+    {
+        // cPanel may serve a separate document root from the project's public folder.
+        return response()->file(base_path('public/js/sales-analysis.js'), [
+            'Content-Type' => 'application/javascript; charset=UTF-8',
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
+        ])->setPrivate();
+    }
+
     public function data(Request $request, string $chart, SalesAnalysisService $service)
     {
         abort_unless(in_array($chart, ['trend', 'accounts-trend', 'retention', 'channels'], true), 404);

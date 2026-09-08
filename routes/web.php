@@ -32,6 +32,7 @@ use App\Http\Controllers\OneSynergyReportController;
 
 Route::middleware(['auth', 'checkrole:Admin'])->prefix('sales-analysis')->name('sales-analysis.')->group(function () {
     Route::get('/', [\App\Http\Controllers\SalesAnalysisController::class, 'index'])->name('index');
+    Route::get('/script', [\App\Http\Controllers\SalesAnalysisController::class, 'script'])->name('script');
     Route::get('/data/{chart}', [\App\Http\Controllers\SalesAnalysisController::class, 'data'])
         ->whereIn('chart', ['trend', 'accounts-trend', 'retention', 'channels'])->name('data');
 });

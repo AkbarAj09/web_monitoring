@@ -92,9 +92,30 @@ class SalesAnalysisTest extends TestCase
         $this->assertSame([], DB::getQueryLog());
     }
 
+    public function test_script_loads_through_laravel_with_a_separate_public_directory(): void
+    {
+        $originalPublicPath = public_path();
+        $this->app->usePublicPath(base_path('storage/framework/testing-public-root'));
+
+        try {
+            $scriptPath = base_path('public/js/sales-analysis.js');
+            $scriptUrl = route('sales-analysis.script', ['v' => filemtime($scriptPath)]);
+            $this->get(route('sales-analysis.index'))->assertOk()->assertSee($scriptUrl)
+                ->assertDontSee(asset('js/sales-analysis.js'));
+
+            $response = $this->get($scriptUrl)->assertOk()
+                ->assertHeader('Content-Type', 'application/javascript; charset=UTF-8')
+                ->assertHeader('X-Content-Type-Options', 'nosniff');
+            $this->assertSame(realpath($scriptPath), $response->baseResponse->getFile()->getRealPath());
+            $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        } finally {
+            $this->app->usePublicPath($originalPublicPath);
+        }
+    }
+
     public function test_every_chart_and_page_are_admin_only(): void
     {
-        $urls = [route('sales-analysis.index')];
+        $urls = [route('sales-analysis.index'), route('sales-analysis.script')];
         foreach (['trend', 'accounts-trend', 'retention', 'channels'] as $chart) {
             $urls[] = route('sales-analysis.data', ['chart' => $chart, 'month' => '2026-09']);
         }

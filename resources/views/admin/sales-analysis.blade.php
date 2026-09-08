@@ -98,5 +98,5 @@
 
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script src="{{ asset('js/sales-analysis.js') }}?v={{ filemtime(public_path('js/sales-analysis.js')) }}"></script>
+<script src="{{ route('sales-analysis.script', ['v' => filemtime(base_path('public/js/sales-analysis.js'))]) }}"></script>
 @endsection
