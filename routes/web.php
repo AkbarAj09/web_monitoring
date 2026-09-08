@@ -91,7 +91,7 @@ Route::middleware(['auth', 'checkrole:Admin,Treg'])->group(function (){
     ->name('download.format.voucher.treg');
 });
 
-Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH,AM,MPCC,Regional'])->group(function () {
+Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH,AM,AM Leader,MPCC,Regional'])->group(function () {
     Route::get('/daily-topup-channel', [FrontController::class, 'dailyTopupChannel'])->name('daily.topup.channel');
     Route::get('/get-daily-topup-data', [LeadProgramController::class, 'getDailyTopupDataTable'])->name('daily_topup_data');
     Route::get('/get-daily-topup-by-province-data', [LeadProgramController::class, 'getDailyTopupByProvinceDataTable'])->name('daily_topup_by_province_data');
@@ -241,7 +241,7 @@ Route::middleware(['auth', 'checkrole:Admin,Tsel,cvsr,PH,MPCC'])->group(function
 });
 
 // AM berdiri sendiri: route ini tidak dapat diakses oleh role Powerhouse (PH).
-Route::middleware(['auth', 'checkrole:Admin,AM'])->prefix('am')->name('am.')->group(function () {
+Route::middleware(['auth', 'checkrole:Admin,AM,AM Leader'])->prefix('am')->name('am.')->group(function () {
     Route::get('/referral', [AmReferralController::class, 'index'])->name('referral.index');
     Route::get('/referral/data', [AmReferralController::class, 'data'])->name('referral.data');
     Route::get('/referral/deal-data', [AmReferralController::class, 'dealData'])->name('referral.deal-data');
@@ -293,8 +293,6 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
     Route::get('topup-canvasser/data', [ReportController::class, 'topupCanvasserData']);
     Route::get('topup-canvasser/excel', [ReportController::class, 'exportTopupCanvasserExcel'])->name('topup-canvasser.excel');
     Route::get('topup-canvasser/pdf', [ReportController::class, 'exportTopupCanvasserPdf'])->name('topup-canvasser.pdf');
-    Route::get('transaction-detail', [ReportController::class, 'transactionDetailByEmail'])->name('transaction-detail');
-    Route::get('transaction-detail/data', [ReportController::class, 'transactionDetailByEmailData'])->name('transaction-detail.data');
 
     // Panen Poin Routes
     Route::get('panen-poin/input', [PanenPoinController::class, 'index'])->name('panenpoin.index');
@@ -350,15 +348,23 @@ Route::middleware(['auth', 'checkrole:Admin,cvsr,PH'])->group(function (){
 // Route::get('/send-manual-notif', [PanenPoinController::class, 'manualNotifyAll']);
 });
 
-Route::middleware(['auth', 'checkrole:Admin,cvsr,PH,AM,MPCC'])->group(function () {
+Route::middleware(['auth', 'checkrole:Admin,cvsr,PH,AM,AM Leader'])->group(function () {
+    Route::get('transaction-detail', [ReportController::class, 'transactionDetailByEmail'])->name('transaction-detail');
+    Route::get('transaction-detail/data', [ReportController::class, 'transactionDetailByEmailData'])->name('transaction-detail.data');
+});
+
+Route::middleware(['auth', 'checkrole:Admin,cvsr,PH,AM,AM Leader,MPCC'])->group(function () {
     Route::get('leads-master/export', [LeadsMasterController::class, 'export'])->name('leads-master.export');
     Route::get('leads-master', [LeadsMasterController::class, 'index'])->name('leads-master.index');
+    Route::get('leads-master/data', [LeadsMasterController::class, 'data'])->name('leads-master.data');
+    Route::get('leads-master/{id}', [LeadsMasterController::class, 'show'])->name('leads-master.show')->whereNumber('id');
+});
+
+Route::middleware(['auth', 'checkrole:Admin,cvsr,PH,AM,MPCC'])->group(function () {
     Route::get('leads-master/create', [LeadsMasterController::class, 'create'])->name('leads-master.create');
     Route::get('leads-master/create-existing', [LeadsMasterController::class, 'createExisting'])->name('leads-master.create-existing');
-    Route::get('leads-master/data', [LeadsMasterController::class, 'data'])->name('leads-master.data');
     Route::post('leads-master/store', [LeadsMasterController::class, 'store'])->name('leads-master.store');
     Route::post('leads-master/store-existing', [LeadsMasterController::class, 'storeExisting'])->name('leads-master.store-existing');
-    Route::get('leads-master/{id}', [LeadsMasterController::class, 'show'])->name('leads-master.show')->whereNumber('id');
     Route::get('leads-master/{lead}/edit', [LeadsMasterController::class, 'edit'])->name('leads-master.edit')->whereNumber('lead');
     Route::put('leads-master/{lead}', [LeadsMasterController::class, 'update'])->name('leads-master.update')->whereNumber('lead');
 });

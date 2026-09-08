@@ -151,6 +151,11 @@ class AmReferralController extends Controller
 
     private function amUsers()
     {
+        if (Auth::user()->hasRole('AM Leader')) {
+            return AmReferral::query()->whereRaw('UPPER(role) = ?', ['AM'])
+                ->orderBy('name')->get(['id', 'name', 'referral_code']);
+        }
+
         return AmReferral::query()->activeAm()->when(Auth::user()->role !== 'Admin', fn ($query) => $query->whereKey(Auth::id()))
             ->orderBy('name')->get(['id', 'name', 'referral_code']);
     }
