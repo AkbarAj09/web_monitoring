@@ -1556,6 +1556,28 @@ class LeadProgramController extends Controller
         }
     }
 
+    private function maskProvinceEmail(?string $email): string
+    {
+        $email = trim((string) $email);
+
+        if ($email === '' || $email === '-') {
+            return '-';
+        }
+
+        $parts = explode('@', $email, 2);
+        $visibleLength = min(3, max(0, mb_strlen($parts[0]) - 1));
+        $maskedEmail = mb_substr($parts[0], 0, $visibleLength) . '***';
+
+        if (isset($parts[1])) {
+            $domainParts = explode('.', $parts[1], 2);
+            $visibleDomainLength = min(2, max(0, mb_strlen($domainParts[0]) - 1));
+            $maskedEmail .= '@' . mb_substr($domainParts[0], 0, $visibleDomainLength) . '***'
+                . (isset($domainParts[1]) ? '.' . $domainParts[1] : '');
+        }
+
+        return $maskedEmail;
+    }
+
     public function getDailyTopupByProvinceDataTable(Request $request)
     {
         try {
@@ -1614,6 +1636,7 @@ class LeadProgramController extends Controller
             ];
 
             return datatables()->of($baseQuery)
+                ->editColumn('email_client', fn ($row) => $this->maskProvinceEmail($row->email_client))
                 ->addColumn('tanggal_format', function ($row) {
                     // Tampilkan bulan saja karena ini sudah di-aggregate per bulan
                     return \Carbon\Carbon::parse($row->tgl_transaksi)->translatedFormat('F Y');
@@ -1680,7 +1703,7 @@ class LeadProgramController extends Controller
                     'Tanggal' => date('d-m-Y', strtotime($row->tgl_transaksi)),
                     'Provinsi' => $row->data_province_name,
                     'User ID' => $row->user_id,
-                    'Email' => $row->email_client,
+                    'Email' => $this->maskProvinceEmail($row->email_client),
                     'Total Settlement' => ' ' . $formattedSettlement,
                 ];
             }
