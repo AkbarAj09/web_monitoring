@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Http\Controllers\SalesAnalysisController;
+use App\Services\SalesAnalysisService;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -207,16 +210,36 @@ class SalesAnalysisTest extends TestCase
             ->assertOk()->assertJsonCount(1, 'rows')->assertJsonPath('rows.0.cells.0.is_partial', false)->assertJsonPath('rows.0.cells.0.rate', 100);
     }
 
-    public function test_retention_channel_filter_and_cache_are_independent(): void
+    public function test_retention_always_uses_all_channels_and_reuses_the_same_cache(): void
     {
         $this->topup('am@example.test', 10, '2026-08-31');
         $this->chart('retention')->assertOk()->assertJsonPath('rows.7.cells.1.rate', 50);
-        $this->chart('retention', ['channel' => 'am'])->assertOk()->assertJsonPath('rows.7.baseline', 1)->assertJsonPath('rows.7.cells.1.rate', 0);
-        $this->chart('retention', ['channel' => 'canvasser'])->assertOk()->assertJsonPath('rows.7.cells.1.rate', 100);
-        $this->chart('retention', ['channel' => 'powerhouse'])->assertOk()->assertJsonPath('rows.7.cells.1.rate', null);
+        $this->chart('retention', ['channel' => 'am'])->assertOk()->assertJsonPath('rows.7.baseline', 2)->assertJsonPath('rows.7.cells.1.rate', 50);
+        $this->chart('retention', ['channel' => 'canvasser'])->assertOk()->assertJsonPath('rows.7.cells.1.rate', 50);
+        $this->chart('retention', ['channel' => 'powerhouse'])->assertOk()->assertJsonPath('rows.7.cells.1.rate', 50);
         DB::enableQueryLog();
         $this->chart('retention', ['channel' => 'am'])->assertOk();
         $this->assertSame([], DB::getQueryLog());
+    }
+
+    public function test_stale_cache_is_returned_before_refreshing_data(): void
+    {
+        $key = 'sales-analysis:v1:channels:2026-09:2026-09-09:all';
+        Cache::put($key, ['rows' => [], 'updated_at' => 'old result'], 3600);
+        Cache::put('illuminate:cache:flexible:created:'.$key, now()->subMinutes(6)->timestamp, 3600);
+        $calls = 0;
+        $service = \Mockery::mock(SalesAnalysisService::class)->makePartial();
+        $service->shouldReceive('channels')->once()->andReturnUsing(function () use (&$calls) {
+            $calls++;
+            return ['rows' => [['name' => 'AM']]];
+        });
+        $request = \Illuminate\Http\Request::create('/sales-analysis/data/channels', 'GET', ['month' => '2026-09']);
+        $response = (new SalesAnalysisController())->data($request, 'channels', $service);
+        $this->assertSame('old result', $response->getData(true)['updated_at']);
+        $this->assertSame(0, $calls);
+        app(\Illuminate\Support\Defer\DeferredCallbackCollection::class)->invoke();
+        $this->assertSame(1, $calls);
+        $this->assertSame('AM', Cache::get($key)['rows'][0]['name']);
     }
 
     public function test_completed_month_and_short_previous_month_are_handled(): void

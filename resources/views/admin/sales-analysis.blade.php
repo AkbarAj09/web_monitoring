@@ -52,12 +52,12 @@
         </div>
         @endforeach
     </div>
-    <p class="analysis-note mb-4">Grafik topup membandingkan periode setara bulan lalu. Tabel retention mengikuti kelompok akun setiap bulan melalui kolom N+0, N+1, dan seterusnya. Data diperbarui maksimal setiap 5 menit.</p>
+    <p class="analysis-note mb-4">Grafik topup membandingkan periode setara bulan lalu. Tabel retention mengikuti kelompok akun setiap bulan melalui kolom N+0, N+1, dan seterusnya. Cache disegarkan setelah 5 menit; waktu data tercantum pada setiap panel.</p>
     <div class="row">
         @foreach([
             'trend' => ['Tren kumulatif topup', 'Apakah laju penjualan lebih cepat dibanding bulan lalu?'],
             'accounts-trend' => ['Tren kumulatif akun topup', 'Berapa akun unik yang sudah melakukan topup sejak awal bulan?'],
-            'retention' => ['Retention akun topup sejak Januari', 'Kelompok akun topup per bulan dan persentase yang kembali topup pada bulan berikutnya.'],
+            'retention' => ['Retention akun topup sejak Januari', 'Semua channel: kelompok akun topup per bulan dan persentase yang kembali topup pada bulan berikutnya.'],
             'channels' => ['Kontribusi & pertumbuhan channel', 'Channel mana yang menyumbang penjualan dan mulai melemah?'],
         ] as $key => [$title, $description])
         <div class="col-12 {{ $key !== 'retention' ? 'col-xl-6' : '' }} d-flex">
@@ -65,7 +65,7 @@
                 <div class="card-header">
                     <h2 id="title-{{ $key }}">{{ $title }}</h2>
                     <p class="text-muted small mb-0">{{ $description }}</p>
-                    @if($key !== 'channels')
+                    @if(in_array($key, ['trend', 'accounts-trend']))
                     <label for="channel-{{ $key }}" class="small mt-3 mb-1">Channel</label>
                     <select id="channel-{{ $key }}" class="form-control form-control-sm chart-channel">
                         <option value="all">Semua channel</option>

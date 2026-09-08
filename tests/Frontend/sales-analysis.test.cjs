@@ -22,7 +22,7 @@ function setup() {
         for (const selector of ['.chart-content', '.chart-state', '.chart-retry', '.chart-updated', '.chart-period', '.chart-frame', '.chart-note', 'thead', 'tbody', 'canvas']) {
             card.elements[selector] = new Element();
         }
-        if (key !== 'channels') { card.elements['.chart-channel'] = new Element(); card.elements['.chart-channel'].value = 'all'; }
+        if (key === 'trend' || key === 'accounts-trend') { card.elements['.chart-channel'] = new Element(); card.elements['.chart-channel'].value = 'all'; }
         if (key === 'retention') { delete card.elements['canvas']; delete card.elements['.chart-frame']; }
         cards[key] = card;
     }
@@ -162,8 +162,7 @@ test('retention renders a visible cohort table without a chart, including future
     assert.match(rows[1].children[2].title, /tidak ada akun dasar/);
     assert.match(rows[1].children[3].title, /belum masuk periode/);
     assert.equal(app.cards.trend.attributes['aria-busy'], 'true');
-    const select = card.querySelector('.chart-channel');
-    select.value = 'am'; select.dispatch('change');
-    assert.equal(app.pending.length, 5);
-    assert.match(app.pending[4].url, /\/retention\?.*channel=am/);
+    assert.equal(card.querySelector('.chart-channel'), null);
+    assert.equal(app.pending.length, 4);
+    assert.doesNotMatch(app.pending[3].url, /channel=/);
 });
