@@ -926,11 +926,11 @@
 
 <!-- Bar Chart Section -->
 
-<!-- Filter Lokasi Kerja -->
+<!-- Filter Area dan Lokasi Kerja -->
 
 <div class="row mb-4" id="locationFilterRow">
 
-<div class="col-md-6 col-lg-4">
+<div class="col-md-12 col-lg-8">
 
     <div class="card" id="locationFilterCard">
 
@@ -938,7 +938,33 @@
 
             <div class="row align-items-end">
 
-                <div class="col-12">
+                <div class="col-md-4 mb-3 mb-md-0">
+
+                    <label for="filterCanvasserArea" class="form-label">
+
+                        <i class="fas fa-map"></i> Area
+
+                    </label>
+
+                    <select id="filterCanvasserArea" name="area" class="form-control" style="min-height: 42px;">
+
+                        <option value="">Semua area</option>
+
+                        <option value="1">Area 1</option>
+
+                        <option value="2">Area 2</option>
+
+                        <option value="3">Area 3</option>
+
+                        <option value="4">Area 4</option>
+
+                    </select>
+
+                    <small class="text-muted">Pilih area untuk membatasi lokasi kerja.</small>
+
+                </div>
+
+                <div class="col-md-8">
 
                     <label for="filterLokasiKerja" class="form-label">
 
@@ -958,7 +984,7 @@
 
                     </select>
 
-                    <small class="text-muted">Kosongkan pilihan untuk menampilkan semua lokasi.</small>
+                    <small class="text-muted">Kosongkan pilihan untuk menampilkan semua lokasi dalam area terpilih.</small>
 
                 </div>
 
@@ -1261,13 +1287,28 @@
 
         // NOTE: Chart akan di-load setelah DataTable selesai (lazy loading)
 
+        const locationsByArea = {
+            '1': ['Medan', 'Padang', 'Pekanbaru', 'Palembang'],
+            '2': ['Jakarta', 'Bogor', 'Bandung', 'Depok'],
+            '3': ['Semarang', 'Surabaya', 'Yogyakarta'],
+            '4': ['Makassar', 'Manado', 'Samarinda']
+        };
+
+        let availableCanvasserRows = [];
+
+        function normalizeLocation(location) {
+            return String(location || '').trim().toLocaleLowerCase('id');
+        }
+
         function syncLokasiKerjaOptions(rows) {
 
             const $filter = $('#filterLokasiKerja');
 
             const selectedLocations = $filter.val() || [];
 
-            const locations = [...new Set(
+            const areaLocations = locationsByArea[$('#filterCanvasserArea').val()];
+
+            const locations = areaLocations || [...new Set(
 
                 rows
 
@@ -1292,6 +1333,16 @@
             $filter.trigger('change.select2');
 
         }
+
+        $('#filterCanvasserArea').on('change', function() {
+
+            $('#filterLokasiKerja').val([]);
+
+            syncLokasiKerjaOptions(availableCanvasserRows);
+
+            $('#filterLokasiKerja').trigger('change');
+
+        });
 
         $('#filterLokasiKerja').on('change', function() {
 
@@ -1569,11 +1620,19 @@
 
                     const allRows = json.data || [];
 
+                    availableCanvasserRows = allRows;
+
                     syncLokasiKerjaOptions(allRows);
 
                     const selectedLocations = $('#filterLokasiKerja').val() || [];
 
-                    const rows = selectedLocations.length === 0
+                    const areaLocations = locationsByArea[$('#filterCanvasserArea').val()] || [];
+
+                    const effectiveLocations = selectedLocations.length > 0 ? selectedLocations : areaLocations;
+
+                    const normalizedLocations = effectiveLocations.map(normalizeLocation);
+
+                    const rows = normalizedLocations.length === 0
 
                         ? allRows
 
@@ -1581,11 +1640,11 @@
 
                             !row.is_total &&
 
-                            selectedLocations.includes(String(row.lokasi_kerja || '').trim())
+                            normalizedLocations.includes(normalizeLocation(row.lokasi_kerja))
 
                         );
 
-                    if (selectedLocations.length > 0) {
+                    if (normalizedLocations.length > 0) {
 
                         json.recordsFiltered = rows.length;
 

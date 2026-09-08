@@ -25,7 +25,9 @@ class LeadsMasterController extends Controller
         return view('leads-master.index', [
             'canvassers' => auth()->user()->role === 'Admin'
                 ? Cache::remember('users_list_leads_with_am_v2', 3600, fn() => User::whereIn('role', ['cvsr', 'PH', 'AM'])->orderBy('name')->get())
-                : collect(),
+                : (auth()->user()->hasRole('AM Leader')
+                    ? User::whereRaw('UPPER(role) = ?', ['AM'])->orderBy('name')->get()
+                    : collect()),
             'sources'    => Cache::remember('sources_list_leads', 3600, fn() => LeadsSource::orderBy('name')->get()),
             'regionals'  => Cache::remember('regionals_list_leads', 3600, fn() => 
                 DB::table('regional_provinces')
@@ -79,7 +81,9 @@ class LeadsMasterController extends Controller
             ->orderBy('dls.saldo_utama', 'desc');
 
         // 🔐 Filter berdasarkan role
-        if (!auth()->user()->hasRole('Admin')) {
+        if (auth()->user()->hasRole('AM Leader')) {
+            $query->whereRaw('UPPER(filter_user.role) = ?', ['AM']);
+        } elseif (!auth()->user()->hasRole('Admin')) {
             $query->where('dls.user_id', auth()->id());
         }
 
@@ -91,7 +95,7 @@ class LeadsMasterController extends Controller
         }
         
         // Filter Canvasser
-        if (auth()->user()->role === 'Admin' && $request->canvasser) {
+        if (auth()->user()->hasRole(['Admin', 'AM Leader']) && $request->canvasser) {
             $query->where('dls.user_id', $request->canvasser);
         }
 
@@ -181,10 +185,15 @@ class LeadsMasterController extends Controller
                     <a href="' . route('leads-master.show', $row->leads_master_id) . '" class="btn btn-sm btn-warning mt-1">
                         <i class="fas fa-search"></i> Lihat
                     </a>
-                    <a href="' . route('leads-master.edit', $row->leads_master_id) . '" class="btn btn-sm btn-primary mt-1">
-                        <i class="fas fa-pencil-alt"></i> Edit
-                    </a>
                 ';
+
+                if (!auth()->user()->hasRole('AM Leader')) {
+                    $btn .= '
+                        <a href="' . route('leads-master.edit', $row->leads_master_id) . '" class="btn btn-sm btn-primary mt-1">
+                            <i class="fas fa-pencil-alt"></i> Edit
+                        </a>
+                    ';
+                }
 
                 if (!empty($row->email)) {
                     $btn .= '
@@ -242,12 +251,14 @@ class LeadsMasterController extends Controller
 
 
         // 🔐 ROLE
-        if (!auth()->user()->hasRole('Admin')) {
+        if (auth()->user()->hasRole('AM Leader')) {
+            $query->whereRaw('UPPER(filter_user.role) = ?', ['AM']);
+        } elseif (!auth()->user()->hasRole('Admin')) {
             $query->where('dls.user_id', auth()->id());
         }
 
         // Filter Canvasser
-        if (auth()->user()->role === 'Admin' && $request->canvasser) {
+        if (auth()->user()->hasRole(['Admin', 'AM Leader']) && $request->canvasser) {
             $query->where('dls.user_id', $request->canvasser);
         }
 
@@ -633,7 +644,11 @@ class LeadsMasterController extends Controller
         logUserLogin();
         // Load lead beserta relasi
         $lead = LeadsMaster::with(['user', 'source', 'sector'])->findOrFail($id);
-        $this->authorizeOwnedLead($lead);
+        if (auth()->user()->hasRole('AM Leader')) {
+            abort_unless(strtoupper((string) $lead->user?->role) === 'AM', 403);
+        } else {
+            $this->authorizeOwnedLead($lead);
+        }
 
         return view('leads-master.show', compact('lead'));
     }

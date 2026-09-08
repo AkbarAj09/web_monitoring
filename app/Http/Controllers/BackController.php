@@ -439,6 +439,7 @@ class BackController extends Controller
                 case 'MPCC':
                     return redirect()->route('mpcc.report');
                 case 'AM':
+                case 'AM Leader':
                     return redirect()->route('am.referral.index');
                 case 'Regional':
                     return redirect()->route('daily.topup.channel');

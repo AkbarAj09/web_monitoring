@@ -20,6 +20,7 @@
                 $isCanv = $roleValue === 'cvsr';
                 $isPH = $roleUpper === 'PH';
                 $isAM = $roleUpper === 'AM';
+                $isAMLeader = $roleUpper === 'AM LEADER';
                 $isTcd = $roleUpper === 'TCD';
                 $isInternal = $roleUpper === 'INTERNAL';
                 $isB2b = strtolower($roleValue) === 'b2b';
@@ -52,6 +53,8 @@
                 <span class="badge badge-info">POWERHOUSE</span>
                 @elseif($isAM)
                 <span class="badge badge-primary">AM</span>
+                @elseif($isAMLeader)
+                <span class="badge badge-primary">AM LEADER</span>
                 @elseif($isTcd)
                 <span class="badge badge-secondary">TCD</span>
                 @elseif($isInternal || $isMpcc)
@@ -792,7 +795,7 @@
                         <p>Logout</p>
                     </a>
                 </li>
-                @elseif($isAM)
+                @elseif($isAM || $isAMLeader)
                 <li class="nav-header">AM DASHBOARD</li>
                 <li class="nav-item">
                     <a href="{{ route('daily.topup.channel') }}" class="nav-link {{ request()->routeIs('daily.topup.channel') ? 'active' : '' }}">
@@ -812,6 +815,7 @@
                         <p>Data Leads & Akun</p>
                     </a>
                 </li>
+                @if(!$isAMLeader)
                 <li class="nav-item">
                     <a href="{{ route('leads-master.create') }}" class="nav-link waves-effect {{ request()->routeIs('leads-master.create') ? 'active' : '' }}">
                         <i class="nav-icon fa-solid fa-user-pen" style="color:rgb(1,240,172);"></i>
@@ -824,6 +828,7 @@
                         <p>New/Eksisting Akun</p>
                     </a>
                 </li>
+                @endif
                 <li class="nav-header">System Management</li>
                 <li class="nav-item"><a href="{{ url('change-password') }}" class="nav-link {{ request()->routeIs('change-password') ? 'active' : '' }}"><i class="nav-icon fas fa-key"></i><p>Change Password</p></a></li>
                 <li class="nav-header">LOGOUT</li>

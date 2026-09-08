@@ -25,6 +25,20 @@ class ReportController extends Controller
             return;
         }
 
+        if (auth()->user()->hasRole('AM Leader')) {
+            $hasAmAccess = DB::table('leads_master as lm')
+                ->join('users as u', 'u.id', '=', 'lm.user_id')
+                ->whereRaw('UPPER(u.role) = ?', ['AM'])
+                ->where(function ($query) use ($normalizedEmail) {
+                    $query->whereRaw('LOWER(TRIM(lm.email)) = ?', [$normalizedEmail])
+                        ->orWhereRaw('LOWER(TRIM(lm.myads_account)) = ?', [$normalizedEmail]);
+                })
+                ->exists();
+
+            abort_unless($hasAmAccess, 403, 'Anda tidak punya akses untuk melihat transaksi email ini.');
+            return;
+        }
+
         if (auth()->user()->role === 'Area 2') {
             $hasArea2Access = DB::table('leads_master')
                 ->whereIn('regional', self::AREA_2_REGIONALS)
