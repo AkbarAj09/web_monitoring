@@ -42,7 +42,7 @@ class SalesAnalysisService
             ->where('rp.payment_method_name', '!=', 'Voucher Bonus');
     }
 
-    private function channelTransactions(CarbonImmutable $start, CarbonImmutable $end): Builder
+    private function channelTransactions(CarbonImmutable $start, CarbonImmutable $end, bool $aggregateByEmail = false): Builder
     {
         // Match Daily Topup Channel ownership precedence; deduplicate lookup rows before joining.
         $owners = DB::table('leads_master as lm')->join('users as u', 'u.id', '=', 'lm.user_id')
@@ -54,7 +54,14 @@ class SalesAnalysisService
         $b2b = DB::table('b2b_clients')->selectRaw('LOWER(TRIM(myads_account)) as email_key')
             ->distinct();
 
-        return $this->transactions($start, $end)
+        $transactions = $this->transactions($start, $end);
+        if ($aggregateByEmail) {
+            $transactions->selectRaw('LOWER(TRIM(rp.email_client)) as email_client, MIN(rp.tgl_transaksi) as tgl_transaksi,
+                SUM(CAST(rp.total_settlement_klien AS DECIMAL(18,2))) as total_settlement_klien')
+                ->groupByRaw('LOWER(TRIM(rp.email_client))');
+        }
+
+        return DB::query()->fromSub($transactions, 'rp')
             ->leftJoinSub($owners, 'owner', fn ($join) => $join->on(DB::raw('LOWER(TRIM(rp.email_client))'), '=', 'owner.email_key'))
             ->leftJoin('users as u', 'u.id', '=', 'owner.user_id')
             ->leftJoinSub($partners, 'partner', fn ($join) => $join->on(DB::raw('LOWER(TRIM(rp.email_client))'), '=', 'partner.email_key'))
@@ -107,39 +114,51 @@ class SalesAnalysisService
         return $series + ['labels' => range(1, max(count($series['current']), count($series['previous'])))];
     }
 
-    public function retention(array $period, string $channel = 'all'): array
+    public function retention(array $period): array
     {
         $january = $period['start']->startOfYear();
-        $transactions = $channel === 'all'
-            ? $this->transactions($january, $period['end'])
-                ->selectRaw('rp.tgl_transaksi, LOWER(TRIM(rp.email_client)) as email_key')
-            : $this->channelTransactions($january, $period['end']);
-        $monthlyAccounts = DB::query()->fromSub($transactions, 'tx')
-            ->where('email_key', '!=', '')
-            ->when($channel !== 'all', fn ($query) => $query->where('channel', $channel))
-            ->selectRaw('SUBSTR(tgl_transaksi, 1, 7) as topup_month, email_key')->distinct();
-
-        // Follow each month's fixed account group in every subsequent month, including N+0.
-        $counts = DB::query()->fromSub(clone $monthlyAccounts, 'cohort_accounts')
-            ->joinSub(clone $monthlyAccounts, 'retained_accounts', function ($join) {
-                $join->on('retained_accounts.email_key', '=', 'cohort_accounts.email_key')
-                    ->on('retained_accounts.topup_month', '>=', 'cohort_accounts.topup_month');
-            })
-            ->selectRaw('cohort_accounts.topup_month as cohort_month, retained_accounts.topup_month as activity_month, COUNT(*) as accounts')
-            ->groupBy('cohort_accounts.topup_month', 'retained_accounts.topup_month')->get()->groupBy('cohort_month');
+        // One bit per month: repeated topups in the same month contribute only once.
+        // Group by activity pattern instead of joining the year's account list to itself.
+        $cases = [];
+        $bindings = [];
+        for ($index = 0; $index < $period['start']->month; $index++) {
+            $cases[] = 'WHEN ? THEN '.(1 << $index);
+            $bindings[] = $january->addMonths($index)->format('Y-m');
+        }
+        $accountActivity = $this->transactions($january, $period['end'])
+            ->whereRaw("TRIM(rp.email_client) != ''")
+            ->selectRaw('SUM(DISTINCT CASE SUBSTR(rp.tgl_transaksi, 1, 7) '.implode(' ', $cases).' ELSE 0 END) as active_months', $bindings)
+            ->groupByRaw('LOWER(TRIM(rp.email_client))');
+        $patterns = DB::query()->fromSub($accountActivity, 'activity')
+            ->selectRaw('active_months, COUNT(*) as accounts')->groupBy('active_months')->get();
+        $counts = [];
+        foreach ($patterns as $pattern) {
+            $mask = (int) $pattern->active_months;
+            for ($cohort = 0; $cohort < $period['start']->month; $cohort++) {
+                if (!($mask & (1 << $cohort))) {
+                    continue;
+                }
+                for ($activity = $cohort; $activity < $period['start']->month; $activity++) {
+                    if ($mask & (1 << $activity)) {
+                        $counts[$cohort][$activity] = ($counts[$cohort][$activity] ?? 0) + (int) $pattern->accounts;
+                    }
+                }
+            }
+        }
 
         $offsets = range(0, $period['start']->month - 1);
         $rows = [];
         for ($date = $january; $date->lte($period['start']); $date = $date->addMonth()) {
             $month = $date->format('Y-m');
-            $activity = ($counts[$month] ?? collect())->pluck('accounts', 'activity_month');
-            $baseline = (int) ($activity[$month] ?? 0);
+            $cohortIndex = $date->month - 1;
+            $activity = $counts[$cohortIndex] ?? [];
+            $baseline = $activity[$cohortIndex] ?? 0;
             $cells = [];
             foreach ($offsets as $offset) {
                 $activityDate = $date->addMonths($offset);
                 $activityMonth = $activityDate->format('Y-m');
                 $isFuture = $activityDate->gt($period['start']);
-                $retained = $isFuture ? null : (int) ($activity[$activityMonth] ?? 0);
+                $retained = $isFuture ? null : ($activity[$cohortIndex + $offset] ?? 0);
                 $cells[] = [
                     'month' => $activityMonth, 'count' => $retained,
                     'rate' => !$isFuture && $baseline > 0 ? round($retained / $baseline * 100, 2) : null,
@@ -161,7 +180,7 @@ class SalesAnalysisService
     {
         $aggregates = [];
         foreach (['current' => ['start', 'end'], 'previous' => ['previousStart', 'previousEnd']] as $key => [$from, $to]) {
-            $aggregates[$key] = DB::query()->fromSub($this->channelTransactions($period[$from], $period[$to]), 'tx')
+            $aggregates[$key] = DB::query()->fromSub($this->channelTransactions($period[$from], $period[$to], true), 'tx')
                 ->selectRaw("channel, SUM(settlement) as total, COUNT(DISTINCT NULLIF(email_key, '')) as accounts")
                 ->groupBy('channel')->get()->keyBy('channel');
         }

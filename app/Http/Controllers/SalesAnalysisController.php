@@ -21,22 +21,23 @@ class SalesAnalysisController extends Controller
             'month' => ['required', 'date_format:Y-m', 'before_or_equal:'.now()->format('Y-m')],
             'channel' => ['sometimes', Rule::in(array_merge(['all'], array_keys(SalesAnalysisService::CHANNELS)))],
         ]);
-        $channel = $chart !== 'channels' ? ($validated['channel'] ?? 'all') : 'all';
+        $channel = in_array($chart, ['trend', 'accounts-trend'], true) ? ($validated['channel'] ?? 'all') : 'all';
         $period = $service->period($validated['month']);
         $version = $chart === 'retention' ? 'v2' : 'v1';
         $key = "sales-analysis:{$version}:{$chart}:{$period['month']}:{$period['end']->format('Y-m-d')}:{$channel}";
 
-        $payload = Cache::remember($key, now()->addMinutes(5), function () use ($service, $chart, $period, $channel) {
+        // Serve the last result while refreshing stale data after the response.
+        $payload = Cache::flexible($key, [300, 3600], function () use ($service, $chart, $period, $channel) {
             $data = match ($chart) {
                 'channels' => $service->channels($period),
-                'retention' => $service->retention($period, $channel),
+                'retention' => $service->retention($period),
                 default => $service->trend($period, $channel, $chart === 'accounts-trend'),
             };
 
             return $data + ['period' => [
                 'current' => $period['current_label'], 'previous' => $period['previous_label'],
             ], 'updated_at' => now()->format('d M Y H:i')];
-        });
+        }, ['seconds' => 120]);
 
         return response()->json($payload);
     }
