@@ -852,6 +852,14 @@
                         <p>Report Canvasser</p>
                     </a>
                 </li>
+                @if($isAdmin)
+                <li class="nav-item">
+                    <a href="{{ route('sales-analysis.index') }}" class="nav-link {{ request()->routeIs('sales-analysis.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-chart-pie" style="color:#38bdf8;"></i>
+                        <p>Analisa Sales</p>
+                    </a>
+                </li>
+                @endif
                 <li class="nav-item">
                     <a href="{{ route('tips-sales') }}"
                         class="nav-link waves-effect {{ request()->routeIs('tips-sales') ? 'active' : '' }}">

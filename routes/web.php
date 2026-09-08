@@ -30,6 +30,12 @@ use App\Http\Controllers\CanvasserDetailController;
 use App\Http\Controllers\Area2LeadsController;
 use App\Http\Controllers\OneSynergyReportController;
 
+Route::middleware(['auth', 'checkrole:Admin'])->prefix('sales-analysis')->name('sales-analysis.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SalesAnalysisController::class, 'index'])->name('index');
+    Route::get('/data/{chart}', [\App\Http\Controllers\SalesAnalysisController::class, 'data'])
+        ->whereIn('chart', ['trend', 'accounts-trend', 'retention', 'channels'])->name('data');
+});
+
 Route::get('/', [FrontController::class, 'index'])->name('home');
 Route::get('/login', [FrontController::class, 'index']);
 Route::post('/login', [BackController::class, 'login'])->name('login');
